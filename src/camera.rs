@@ -38,7 +38,8 @@ impl Default for MapCamera {
 
 fn setup_camera(mut commands: Commands) {
     let initial_viewport_height = 18.0;
-    let camera_offset = Vec3::new(10.0, 14.0, 10.0);
+    // 南から北向きに見下ろすオフセット（+Zから-Z向き）
+    let camera_offset = Vec3::new(0.0, 14.0, 12.0);
 
     // 3D & UI統合カメラ
     commands.spawn((
@@ -57,14 +58,14 @@ fn setup_camera(mut commands: Commands) {
         },
     ));
 
-    // メイン指向性ライト（太陽光）
+    // メイン指向性ライト（南西上空から北東向きに照らす）
     commands.spawn((
         DirectionalLight {
             illuminance: 15_000.0,
             shadow_maps_enabled: true,
             ..default()
         },
-        Transform::from_xyz(15.0, 30.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(10.0, 30.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
     // アンビエント環境光
@@ -92,9 +93,9 @@ fn pan_zoom_camera_system(
     let dt = time.delta_secs();
 
     // 1. パン操作（WASD / 矢印）
-    // 斜め見下ろしカメラに合わせて、X+Z軸方向に直交する向きに移動
-    let forward_dir = Vec3::new(-1.0, 0.0, -1.0).normalize();
-    let right_dir = Vec3::new(1.0, 0.0, -1.0).normalize();
+    // 南から北（画面上が北 = -Z、画面右が東 = +X）
+    let forward_dir = Vec3::new(0.0, 0.0, -1.0);
+    let right_dir = Vec3::new(1.0, 0.0, 0.0);
 
     let mut move_vec = Vec3::ZERO;
     if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
@@ -136,7 +137,7 @@ fn pan_zoom_camera_system(
         * (lerp_speed * dt).min(1.0);
 
     // カメラ位置を注視点 + オフセットに更新
-    let camera_offset = Vec3::new(10.0, 14.0, 10.0);
+    let camera_offset = Vec3::new(0.0, 14.0, 12.0);
     let new_cam_pos = map_cam.current_focal_point + camera_offset;
     transform.translation = new_cam_pos;
     transform.look_at(map_cam.current_focal_point, Vec3::Y);
