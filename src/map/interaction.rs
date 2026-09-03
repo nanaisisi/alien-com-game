@@ -21,7 +21,7 @@ impl Plugin for MapInteractionPlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_systems(OnExit(AppState::InGame), cleanup_interaction_ui);
+            .add_systems(OnEnter(AppState::Title), cleanup_interaction_ui);
     }
 }
 
@@ -40,7 +40,15 @@ struct InfoPanelRoot;
 #[derive(Component)]
 struct InfoPanelText;
 
-fn setup_interaction_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_interaction_ui(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    existing: Query<Entity, With<InfoPanelRoot>>,
+) {
+    if !existing.is_empty() {
+        return;
+    }
+
     let font = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
     let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
 

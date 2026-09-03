@@ -18,7 +18,7 @@ impl Plugin for InGameHudPlugin {
                 )
                     .run_if(in_state(AppState::InGame)),
             )
-            .add_systems(OnExit(AppState::InGame), cleanup_hud);
+            .add_systems(OnEnter(AppState::Title), cleanup_hud);
     }
 }
 
@@ -89,7 +89,12 @@ fn setup_hud(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     resources: Res<FactionResources>,
+    existing_hud: Query<Entity, With<HudRoot>>,
 ) {
+    if !existing_hud.is_empty() {
+        return;
+    }
+
     let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
     let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
 
@@ -448,9 +453,9 @@ fn hud_button_action_system(
                     advance_turn(&mut resources);
                 }
                 HudAction::OpenMenu => {
-                    info!("Opening Settings / Pause Menu...");
+                    info!("Opening Pause Menu...");
                     settings.return_state = AppState::InGame;
-                    next_state.set(AppState::Settings);
+                    next_state.set(AppState::PauseMenu);
                 }
             }
         }
@@ -467,9 +472,9 @@ fn handle_keyboard_shortcuts(
         advance_turn(&mut resources);
     }
     if keys.just_pressed(KeyCode::Escape) {
-        info!("ESC pressed: Opening Settings / Pause Menu...");
+        info!("ESC pressed: Opening Pause Menu...");
         settings.return_state = AppState::InGame;
-        next_state.set(AppState::Settings);
+        next_state.set(AppState::PauseMenu);
     }
 }
 

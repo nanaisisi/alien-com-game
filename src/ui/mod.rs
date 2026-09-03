@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 pub mod hud;
+pub mod pause;
 pub mod settings;
 pub mod title;
 
@@ -12,6 +13,7 @@ impl Plugin for GameUiPlugin {
             title::TitleUiPlugin,
             settings::SettingsUiPlugin,
             hud::InGameHudPlugin,
+            pause::PauseMenuPlugin,
         ));
     }
 }

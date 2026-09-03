@@ -58,6 +58,7 @@ pub enum SettingsFocusItem {
     BgmVolume,
     SfxVolume,
     Fullscreen,
+    ResetDefaults,
     Resume,
     ReturnToTitle,
     Back,
@@ -104,6 +105,7 @@ enum SettingsButtonAction {
     SfxVolumeDown,
     SfxVolumeUp,
     ToggleFullscreen,
+    ResetDefaults,
     ResumeGame,
     RequestReturnToTitle,
     ConfirmReturnToTitle,
@@ -262,6 +264,19 @@ fn setup_settings_ui(
                             &font_regular,
                             &font_bold,
                         );
+
+                        // 5. 設定初期化
+                        spawn_button_setting_row(
+                            list,
+                            SettingsFocusItem::ResetDefaults,
+                            ButtonRowConfig {
+                                label: "設定の初期化",
+                                button_text: "初期値に戻す (RESET)",
+                                action: SettingsButtonAction::ResetDefaults,
+                            },
+                            &font_regular,
+                            &font_bold,
+                        );
                     });
 
                 // フッターボタン群
@@ -334,7 +349,12 @@ fn setup_settings_ui(
                             });
                         });
                 } else {
-                    // タイトル画面等からの設定画面: 「戻る」ボタン1つ
+                    // タイトル画面またはポーズメニューからの設定画面: 「戻る」ボタン1つ
+                    let back_label = if settings.return_state == AppState::PauseMenu {
+                        "メニューへ戻る (BACK)"
+                    } else {
+                        "タイトルへ戻る (BACK)"
+                    };
                     panel
                         .spawn((
                             Button,
@@ -355,7 +375,7 @@ fn setup_settings_ui(
                         ))
                         .with_children(|btn| {
                             btn.spawn((
-                                Text::new("タイトルへ戻る (BACK)"),
+                                Text::new(back_label),
                                 TextFont {
                                     font: font_bold.clone().into(),
                                     font_size: FontSize::Px(16.0),
@@ -554,6 +574,83 @@ fn spawn_toggle_setting_row(
         });
 }
 
+struct ButtonRowConfig<'a> {
+    label: &'a str,
+    button_text: &'a str,
+    action: SettingsButtonAction,
+}
+
+fn spawn_button_setting_row(
+    parent: &mut ChildSpawnerCommands,
+    focus_item: SettingsFocusItem,
+    cfg: ButtonRowConfig,
+    font_regular: &Handle<Font>,
+    font_bold: &Handle<Font>,
+) {
+    let ButtonRowConfig {
+        label,
+        button_text,
+        action,
+    } = cfg;
+    parent
+        .spawn((
+            SettingsNavRow(focus_item),
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Px(48.0),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceBetween,
+                padding: UiRect::axes(Val::Px(16.0), Val::Px(8.0)),
+                border: UiRect::all(Val::Px(1.5)),
+                border_radius: BorderRadius::all(Val::Px(6.0)),
+                ..default()
+            },
+            BorderColor::all(Color::NONE),
+            BackgroundColor(ROW_BG),
+        ))
+        .with_children(|row| {
+            // 項目名
+            row.spawn((
+                Text::new(label),
+                TextFont {
+                    font: font_regular.clone().into(),
+                    font_size: FontSize::Px(16.0),
+                    ..default()
+                },
+                TextColor(TEXT_COLOR),
+            ));
+
+            // アクションボタン
+            row.spawn((
+                Button,
+                action,
+                Node {
+                    padding: UiRect::axes(Val::Px(14.0), Val::Px(6.0)),
+                    height: Val::Px(34.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border: UiRect::all(Val::Px(1.5)),
+                    border_radius: BorderRadius::all(Val::Px(6.0)),
+                    ..default()
+                },
+                BorderColor::all(BORDER_COLOR),
+                BackgroundColor(NORMAL_BUTTON),
+            ))
+            .with_children(|btn| {
+                btn.spawn((
+                    Text::new(button_text),
+                    TextFont {
+                        font: font_bold.clone().into(),
+                        font_size: FontSize::Px(13.0),
+                        ..default()
+                    },
+                    TextColor(TEXT_COLOR),
+                ));
+            });
+        });
+}
+
 fn spawn_icon_button(
     parent: &mut ChildSpawnerCommands,
     label: &str,
@@ -680,6 +777,17 @@ fn settings_button_action_system(
                         } else {
                             bevy::window::WindowMode::Windowed
                         };
+                    }
+                }
+                SettingsButtonAction::ResetDefaults => {
+                    info!("Resetting settings to default values...");
+                    let defaults = GameSettings::default();
+                    settings.master_volume = defaults.master_volume;
+                    settings.bgm_volume = defaults.bgm_volume;
+                    settings.sfx_volume = defaults.sfx_volume;
+                    settings.fullscreen = defaults.fullscreen;
+                    if let Ok(mut window) = windows.single_mut() {
+                        window.mode = bevy::window::WindowMode::Windowed;
                     }
                 }
                 SettingsButtonAction::ResumeGame => {
@@ -990,6 +1098,7 @@ fn settings_keyboard_navigation_system(
             SettingsFocusItem::BgmVolume,
             SettingsFocusItem::SfxVolume,
             SettingsFocusItem::Fullscreen,
+            SettingsFocusItem::ResetDefaults,
             SettingsFocusItem::Resume,
             SettingsFocusItem::ReturnToTitle,
         ]
@@ -999,6 +1108,7 @@ fn settings_keyboard_navigation_system(
             SettingsFocusItem::BgmVolume,
             SettingsFocusItem::SfxVolume,
             SettingsFocusItem::Fullscreen,
+            SettingsFocusItem::ResetDefaults,
             SettingsFocusItem::Back,
         ]
     };
@@ -1075,6 +1185,17 @@ fn settings_keyboard_navigation_system(
         match state.focus.current_item {
             SettingsFocusItem::Fullscreen => {
                 toggle_fullscreen(&mut state.settings, &mut windows);
+            }
+            SettingsFocusItem::ResetDefaults => {
+                info!("Resetting settings to default values via Enter/Space...");
+                let defaults = GameSettings::default();
+                state.settings.master_volume = defaults.master_volume;
+                state.settings.bgm_volume = defaults.bgm_volume;
+                state.settings.sfx_volume = defaults.sfx_volume;
+                state.settings.fullscreen = defaults.fullscreen;
+                if let Ok(mut window) = windows.single_mut() {
+                    window.mode = bevy::window::WindowMode::Windowed;
+                }
             }
             SettingsFocusItem::Resume => {
                 info!("Resuming game via Enter/Space...");

@@ -35,7 +35,7 @@ impl Plugin for MapPlugin {
         app.init_resource::<MapGrid>()
             .add_plugins(interaction::MapInteractionPlugin)
             .add_systems(OnEnter(AppState::InGame), generate_hex_map)
-            .add_systems(OnExit(AppState::InGame), cleanup_hex_map);
+            .add_systems(OnEnter(AppState::Title), cleanup_hex_map);
     }
 }
 
@@ -83,6 +83,12 @@ fn generate_hex_map(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // すでにマップが生成されている場合（PauseMenu / Settings からの復帰時など）は再生成しない
+    if !map_grid.tiles.is_empty() {
+        info!("Hex map already exists. Skipping map generation.");
+        return;
+    }
+
     info!("Generating Overworld Hex Map (Radius: {})...", MAP_RADIUS);
 
     map_grid.tiles.clear();
