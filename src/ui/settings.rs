@@ -1,5 +1,7 @@
 use bevy::prelude::*;
+use bevy::window::PresentMode;
 
+use crate::camera::MainDirectionalLight;
 use crate::state::AppState;
 
 pub struct SettingsUiPlugin;
@@ -8,6 +10,11 @@ impl Plugin for SettingsUiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<GameSettings>()
             .init_resource::<SettingsNavFocus>()
+            .init_resource::<FpsLimiterState>()
+            .add_systems(Startup, setup_environment_settings_system)
+            .add_systems(PostStartup, apply_graphics_settings_system)
+            .add_systems(Update, apply_graphics_settings_system)
+            .add_systems(Last, enforce_fps_limit_system)
             .add_systems(OnEnter(AppState::Settings), (setup_settings_ui, reset_settings_focus))
             .add_systems(
                 Update,
@@ -24,6 +31,141 @@ impl Plugin for SettingsUiPlugin {
     }
 }
 
+/// フレームレート制限用の状態追跡リソース
+#[derive(Resource)]
+struct FpsLimiterState {
+    last_frame_instant: std::time::Instant,
+}
+
+impl Default for FpsLimiterState {
+    fn default() -> Self {
+        Self {
+            last_frame_instant: std::time::Instant::now(),
+        }
+    }
+}
+
+/// 起動時に実行環境（GPUスペック等）を検知し、最適なグラフィック設定を自動適用するシステム
+fn setup_environment_settings_system(
+    mut settings: ResMut<GameSettings>,
+    adapter_info: Option<Res<bevy::render::renderer::RenderAdapterInfo>>,
+) {
+    let adapter_ref = adapter_info.as_deref();
+    let env_settings = GameSettings::default_for_environment(adapter_ref);
+    settings.fps_limit = env_settings.fps_limit;
+    settings.shadows_enabled = env_settings.shadows_enabled;
+    settings.anti_aliasing = env_settings.anti_aliasing;
+    info!(
+        "System Environment Graphic Settings applied: FPS Limit={:?}, MSAA={:?}, Shadows={}",
+        settings.fps_limit, settings.anti_aliasing, settings.shadows_enabled
+    );
+}
+
+fn enforce_fps_limit_system(
+    settings: Res<GameSettings>,
+    mut limiter: ResMut<FpsLimiterState>,
+) {
+    if let Some(target_duration) = settings.fps_limit.target_frame_time() {
+        let elapsed = limiter.last_frame_instant.elapsed();
+        if elapsed < target_duration {
+            let sleep_duration = target_duration - elapsed;
+            std::thread::sleep(sleep_duration);
+        }
+    }
+    limiter.last_frame_instant = std::time::Instant::now();
+}
+
+pub const RESOLUTION_PRESETS: [(u32, u32); 4] = [
+    (1280, 720),
+    (1600, 900),
+    (1920, 1080),
+    (2560, 1440),
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FpsLimitMode {
+    Unlimited,
+    Fps30,
+    Fps60,
+    Fps120,
+    Fps144,
+}
+
+impl FpsLimitMode {
+    pub fn next(&self) -> Self {
+        match self {
+            Self::Unlimited => Self::Fps30,
+            Self::Fps30 => Self::Fps60,
+            Self::Fps60 => Self::Fps120,
+            Self::Fps120 => Self::Fps144,
+            Self::Fps144 => Self::Unlimited,
+        }
+    }
+
+    pub fn prev(&self) -> Self {
+        match self {
+            Self::Unlimited => Self::Fps144,
+            Self::Fps30 => Self::Unlimited,
+            Self::Fps60 => Self::Fps30,
+            Self::Fps120 => Self::Fps60,
+            Self::Fps144 => Self::Fps120,
+        }
+    }
+
+    pub fn display_label(&self) -> &'static str {
+        match self {
+            Self::Unlimited => "無制限 (OFF)",
+            Self::Fps30 => "30 FPS",
+            Self::Fps60 => "60 FPS",
+            Self::Fps120 => "120 FPS",
+            Self::Fps144 => "144 FPS",
+        }
+    }
+
+    pub fn target_frame_time(&self) -> Option<std::time::Duration> {
+        match self {
+            Self::Unlimited => None,
+            Self::Fps30 => Some(std::time::Duration::from_nanos(1_000_000_000 / 30)),
+            Self::Fps60 => Some(std::time::Duration::from_nanos(1_000_000_000 / 60)),
+            Self::Fps120 => Some(std::time::Duration::from_nanos(1_000_000_000 / 120)),
+            Self::Fps144 => Some(std::time::Duration::from_nanos(1_000_000_000 / 144)),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AntiAliasingMode {
+    Off,
+    Msaa2x,
+    Msaa4x,
+}
+
+impl AntiAliasingMode {
+    pub fn next(&self) -> Self {
+        match self {
+            Self::Off => Self::Msaa2x,
+            Self::Msaa2x => Self::Msaa4x,
+            Self::Msaa4x => Self::Off,
+        }
+    }
+
+    pub fn prev(&self) -> Self {
+        match self {
+            Self::Off => Self::Msaa4x,
+            Self::Msaa2x => Self::Off,
+            Self::Msaa4x => Self::Msaa2x,
+        }
+    }
+
+    pub fn display_label(&self) -> &'static str {
+        match self {
+            Self::Off => "オフ (OFF)",
+            Self::Msaa2x => "MSAA 2x",
+            Self::Msaa4x => "MSAA 4x",
+        }
+    }
+}
+
 /// ゲーム全体の設定リソース
 #[derive(Resource, Debug, Clone)]
 pub struct GameSettings {
@@ -31,18 +173,56 @@ pub struct GameSettings {
     pub bgm_volume: u32,
     pub sfx_volume: u32,
     pub fullscreen: bool,
+    pub resolution_index: usize,
+    pub fps_limit: FpsLimitMode,
+    pub vsync: bool,
+    pub shadows_enabled: bool,
+    pub anti_aliasing: AntiAliasingMode,
     pub return_state: AppState,
 }
 
-impl Default for GameSettings {
-    fn default() -> Self {
+impl GameSettings {
+    /// 実行マシンのGPU環境（ディスクリートGPUか統合GPUか等）に応じたデフォルト設定を生成
+    pub fn default_for_environment(adapter_info: Option<&bevy::render::renderer::RenderAdapterInfo>) -> Self {
+        let (fps_limit, anti_aliasing, shadows_enabled) = match adapter_info {
+            Some(info) => {
+                // device_type は wgpu::DeviceType (DiscreteGpu, IntegratedGpu, Cpu, VirtualGpu, Other)
+                let type_str = format!("{:?}", info.device_type);
+                if type_str.contains("DiscreteGpu") {
+                    info!("Detected Discrete GPU ({}). Applying high quality graphics preset.", info.name);
+                    (FpsLimitMode::Fps60, AntiAliasingMode::Msaa4x, true)
+                } else if type_str.contains("IntegratedGpu") {
+                    info!("Detected Integrated GPU ({}). Applying medium quality graphics preset.", info.name);
+                    (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
+                } else if type_str.contains("Cpu") {
+                    info!("Detected CPU/Software renderer ({}). Applying lightweight graphics preset.", info.name);
+                    (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
+                } else {
+                    info!("Detected GPU ({}, type: {}). Applying standard graphics preset.", info.name, type_str);
+                    (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
+                }
+            }
+            None => (FpsLimitMode::Fps60, AntiAliasingMode::Msaa4x, true),
+        };
+
         Self {
             master_volume: 80,
             bgm_volume: 70,
             sfx_volume: 80,
             fullscreen: false,
+            resolution_index: 0, // 1280x720 (ウィンドウモード標準)
+            fps_limit,
+            vsync: true,
+            shadows_enabled,
+            anti_aliasing,
             return_state: AppState::Title,
         }
+    }
+}
+
+impl Default for GameSettings {
+    fn default() -> Self {
+        Self::default_for_environment(None)
     }
 }
 
@@ -57,7 +237,12 @@ pub enum SettingsFocusItem {
     MasterVolume,
     BgmVolume,
     SfxVolume,
+    Resolution,
     Fullscreen,
+    FpsLimit,
+    Vsync,
+    Shadows,
+    AntiAliasing,
     ResetDefaults,
     Resume,
     ReturnToTitle,
@@ -104,7 +289,15 @@ enum SettingsButtonAction {
     BgmVolumeUp,
     SfxVolumeDown,
     SfxVolumeUp,
+    ResolutionPrev,
+    ResolutionNext,
     ToggleFullscreen,
+    FpsLimitPrev,
+    FpsLimitNext,
+    ToggleVsync,
+    ToggleShadows,
+    AntiAliasingPrev,
+    AntiAliasingNext,
     ResetDefaults,
     ResumeGame,
     RequestReturnToTitle,
@@ -118,7 +311,12 @@ enum SettingValueLabel {
     MasterVolume,
     BgmVolume,
     SfxVolume,
+    Resolution,
     Fullscreen,
+    FpsLimit,
+    Vsync,
+    Shadows,
+    AntiAliasing,
 }
 
 // カラーテーマ（title.rsと統一感のあるSFダークサイバー調）
@@ -145,6 +343,9 @@ fn setup_settings_ui(
     let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
     let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
 
+    let current_res = RESOLUTION_PRESETS[settings.resolution_index];
+    let res_text = format!("{}x{}", current_res.0, current_res.1);
+
     // 全画面オーバーレイ
     commands
         .spawn((
@@ -162,11 +363,12 @@ fn setup_settings_ui(
             // メイン設定パネルウィンドウ
             root.spawn((
                 Node {
-                    width: Val::Px(560.0),
+                    width: Val::Px(580.0),
+                    max_height: Val::Percent(92.0),
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
-                    padding: UiRect::all(Val::Px(28.0)),
-                    row_gap: Val::Px(20.0),
+                    padding: UiRect::axes(Val::Px(24.0), Val::Px(16.0)),
+                    row_gap: Val::Px(10.0),
                     border: UiRect::all(Val::Px(2.0)),
                     border_radius: BorderRadius::all(Val::Px(12.0)),
                     ..default()
@@ -180,7 +382,7 @@ fn setup_settings_ui(
                     Text::new("設定 (SETTINGS)"),
                     TextFont {
                         font: font_bold.clone().into(),
-                        font_size: FontSize::Px(32.0),
+                        font_size: FontSize::Px(26.0),
                         ..default()
                     },
                     TextColor(ACCENT_COLOR),
@@ -191,7 +393,7 @@ fn setup_settings_ui(
                     Node {
                         width: Val::Percent(100.0),
                         height: Val::Px(1.0),
-                        margin: UiRect::vertical(Val::Px(4.0)),
+                        margin: UiRect::vertical(Val::Px(2.0)),
                         ..default()
                     },
                     BackgroundColor(Color::srgba(0.25, 0.38, 0.50, 0.5)),
@@ -202,16 +404,19 @@ fn setup_settings_ui(
                     .spawn(Node {
                         width: Val::Percent(100.0),
                         flex_direction: FlexDirection::Column,
-                        row_gap: Val::Px(12.0),
+                        row_gap: Val::Px(6.0),
                         ..default()
                     })
                     .with_children(|list| {
+                        // --- サウンド設定セクション ---
+                        spawn_section_header(list, "■ サウンド設定 (Audio)", &font_bold);
+
                         // 1. 主音量 (Master Volume)
                         spawn_stepper_setting_row(
                             list,
                             SettingsFocusItem::MasterVolume,
                             StepperRowConfig {
-                                label: "マスター音量 (Master)",
+                                label: "マスター音量",
                                 initial_val: &format!("{}%", settings.master_volume),
                                 val_marker: SettingValueLabel::MasterVolume,
                                 action_dec: SettingsButtonAction::MasterVolumeDown,
@@ -251,7 +456,25 @@ fn setup_settings_ui(
                             &font_bold,
                         );
 
-                        // 4. 画面モード (Fullscreen Toggle)
+                        // --- グラフィック設定セクション ---
+                        spawn_section_header(list, "■ グラフィック・画面設定 (Graphics)", &font_bold);
+
+                        // 4. 解像度 (Resolution)
+                        spawn_stepper_setting_row(
+                            list,
+                            SettingsFocusItem::Resolution,
+                            StepperRowConfig {
+                                label: "解像度",
+                                initial_val: &res_text,
+                                val_marker: SettingValueLabel::Resolution,
+                                action_dec: SettingsButtonAction::ResolutionPrev,
+                                action_inc: SettingsButtonAction::ResolutionNext,
+                            },
+                            &font_regular,
+                            &font_bold,
+                        );
+
+                        // 5. 画面モード (Fullscreen Toggle)
                         spawn_toggle_setting_row(
                             list,
                             SettingsFocusItem::Fullscreen,
@@ -265,7 +488,68 @@ fn setup_settings_ui(
                             &font_bold,
                         );
 
-                        // 5. 設定初期化
+                        // 6. フレームレート制限 (FPS Limit)
+                        spawn_stepper_setting_row(
+                            list,
+                            SettingsFocusItem::FpsLimit,
+                            StepperRowConfig {
+                                label: "フレームレート制限",
+                                initial_val: settings.fps_limit.display_label(),
+                                val_marker: SettingValueLabel::FpsLimit,
+                                action_dec: SettingsButtonAction::FpsLimitPrev,
+                                action_inc: SettingsButtonAction::FpsLimitNext,
+                            },
+                            &font_regular,
+                            &font_bold,
+                        );
+
+                        // 7. 垂直同期 (VSync)
+                        spawn_toggle_setting_row(
+                            list,
+                            SettingsFocusItem::Vsync,
+                            ToggleRowConfig {
+                                label: "垂直同期 (VSync)",
+                                initial_val: if settings.vsync { "有効 (ON)" } else { "無効 (OFF)" },
+                                val_marker: SettingValueLabel::Vsync,
+                                action_toggle: SettingsButtonAction::ToggleVsync,
+                            },
+                            &font_regular,
+                            &font_bold,
+                        );
+
+                        // 8. 影の描画 (Shadows)
+                        spawn_toggle_setting_row(
+                            list,
+                            SettingsFocusItem::Shadows,
+                            ToggleRowConfig {
+                                label: "影の描画 (Shadows)",
+                                initial_val: if settings.shadows_enabled { "有効 (ON)" } else { "無効 (OFF)" },
+                                val_marker: SettingValueLabel::Shadows,
+                                action_toggle: SettingsButtonAction::ToggleShadows,
+                            },
+                            &font_regular,
+                            &font_bold,
+                        );
+
+                        // 9. アンチエイリアス (Anti-Aliasing)
+                        spawn_stepper_setting_row(
+                            list,
+                            SettingsFocusItem::AntiAliasing,
+                            StepperRowConfig {
+                                label: "アンチエイリアス",
+                                initial_val: settings.anti_aliasing.display_label(),
+                                val_marker: SettingValueLabel::AntiAliasing,
+                                action_dec: SettingsButtonAction::AntiAliasingPrev,
+                                action_inc: SettingsButtonAction::AntiAliasingNext,
+                            },
+                            &font_regular,
+                            &font_bold,
+                        );
+
+                        // --- その他セクション ---
+                        spawn_section_header(list, "■ システム (System)", &font_bold);
+
+                        // 9. 設定初期化
                         spawn_button_setting_row(
                             list,
                             SettingsFocusItem::ResetDefaults,
@@ -286,7 +570,7 @@ fn setup_settings_ui(
                         .spawn(Node {
                             flex_direction: FlexDirection::Row,
                             column_gap: Val::Px(16.0),
-                            margin: UiRect::top(Val::Px(12.0)),
+                            margin: UiRect::top(Val::Px(6.0)),
                             ..default()
                         })
                         .with_children(|row| {
@@ -297,7 +581,7 @@ fn setup_settings_ui(
                                 SettingsNavRow(SettingsFocusItem::Resume),
                                 Node {
                                     width: Val::Px(220.0),
-                                    height: Val::Px(46.0),
+                                    height: Val::Px(40.0),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
                                     border: UiRect::all(Val::Px(2.0)),
@@ -312,7 +596,7 @@ fn setup_settings_ui(
                                     Text::new("ゲームに戻る (RESUME)"),
                                     TextFont {
                                         font: font_bold.clone().into(),
-                                        font_size: FontSize::Px(15.0),
+                                        font_size: FontSize::Px(14.0),
                                         ..default()
                                     },
                                     TextColor(TEXT_COLOR),
@@ -326,7 +610,7 @@ fn setup_settings_ui(
                                 SettingsNavRow(SettingsFocusItem::ReturnToTitle),
                                 Node {
                                     width: Val::Px(220.0),
-                                    height: Val::Px(46.0),
+                                    height: Val::Px(40.0),
                                     justify_content: JustifyContent::Center,
                                     align_items: AlignItems::Center,
                                     border: UiRect::all(Val::Px(2.0)),
@@ -341,7 +625,7 @@ fn setup_settings_ui(
                                     Text::new("タイトルへ戻る (TITLE)"),
                                     TextFont {
                                         font: font_bold.clone().into(),
-                                        font_size: FontSize::Px(15.0),
+                                        font_size: FontSize::Px(14.0),
                                         ..default()
                                     },
                                     TextColor(Color::srgb(0.95, 0.75, 0.75)),
@@ -362,10 +646,10 @@ fn setup_settings_ui(
                             SettingsNavRow(SettingsFocusItem::Back),
                             Node {
                                 width: Val::Px(240.0),
-                                height: Val::Px(46.0),
+                                height: Val::Px(40.0),
                                 justify_content: JustifyContent::Center,
                                 align_items: AlignItems::Center,
-                                margin: UiRect::top(Val::Px(12.0)),
+                                margin: UiRect::top(Val::Px(6.0)),
                                 border: UiRect::all(Val::Px(2.0)),
                                 border_radius: BorderRadius::all(Val::Px(8.0)),
                                 ..default()
@@ -378,7 +662,7 @@ fn setup_settings_ui(
                                 Text::new(back_label),
                                 TextFont {
                                     font: font_bold.clone().into(),
-                                    font_size: FontSize::Px(16.0),
+                                    font_size: FontSize::Px(15.0),
                                     ..default()
                                 },
                                 TextColor(TEXT_COLOR),
@@ -396,12 +680,32 @@ fn setup_settings_ui(
                     },
                     TextColor(Color::srgb(0.50, 0.62, 0.72)),
                     Node {
-                        margin: UiRect::top(Val::Px(8.0)),
+                        margin: UiRect::top(Val::Px(4.0)),
                         ..default()
                     },
                 ));
             });
         });
+}
+
+fn spawn_section_header(
+    parent: &mut ChildSpawnerCommands,
+    title: &str,
+    font_bold: &Handle<Font>,
+) {
+    parent.spawn((
+        Text::new(title),
+        TextFont {
+            font: font_bold.clone().into(),
+            font_size: FontSize::Px(13.0),
+            ..default()
+        },
+        TextColor(Color::srgb(0.45, 0.70, 0.85)),
+        Node {
+            margin: UiRect::axes(Val::Px(4.0), Val::Px(2.0)),
+            ..default()
+        },
+    ));
 }
 
 struct StepperRowConfig<'a> {
@@ -431,11 +735,11 @@ fn spawn_stepper_setting_row(
             SettingsNavRow(focus_item),
             Node {
                 width: Val::Percent(100.0),
-                height: Val::Px(48.0),
+                height: Val::Px(38.0),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
-                padding: UiRect::axes(Val::Px(16.0), Val::Px(8.0)),
+                padding: UiRect::axes(Val::Px(16.0), Val::Px(4.0)),
                 border: UiRect::all(Val::Px(1.5)),
                 border_radius: BorderRadius::all(Val::Px(6.0)),
                 ..default()
@@ -449,7 +753,7 @@ fn spawn_stepper_setting_row(
                 Text::new(label),
                 TextFont {
                     font: font_regular.clone().into(),
-                    font_size: FontSize::Px(16.0),
+                    font_size: FontSize::Px(15.0),
                     ..default()
                 },
                 TextColor(TEXT_COLOR),
@@ -469,7 +773,7 @@ fn spawn_stepper_setting_row(
                 // 値表示コンテナ
                 ctrl.spawn((
                     Node {
-                        width: Val::Px(70.0),
+                        width: Val::Px(90.0),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                         ..default()
@@ -481,7 +785,7 @@ fn spawn_stepper_setting_row(
                         val_marker,
                         TextFont {
                             font: font_bold.clone().into(),
-                            font_size: FontSize::Px(16.0),
+                            font_size: FontSize::Px(15.0),
                             ..default()
                         },
                         TextColor(ACCENT_COLOR),
@@ -519,11 +823,11 @@ fn spawn_toggle_setting_row(
             SettingsNavRow(focus_item),
             Node {
                 width: Val::Percent(100.0),
-                height: Val::Px(48.0),
+                height: Val::Px(38.0),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
-                padding: UiRect::axes(Val::Px(16.0), Val::Px(8.0)),
+                padding: UiRect::axes(Val::Px(16.0), Val::Px(4.0)),
                 border: UiRect::all(Val::Px(1.5)),
                 border_radius: BorderRadius::all(Val::Px(6.0)),
                 ..default()
@@ -537,7 +841,7 @@ fn spawn_toggle_setting_row(
                 Text::new(label),
                 TextFont {
                     font: font_regular.clone().into(),
-                    font_size: FontSize::Px(16.0),
+                    font_size: FontSize::Px(15.0),
                     ..default()
                 },
                 TextColor(TEXT_COLOR),
@@ -549,7 +853,7 @@ fn spawn_toggle_setting_row(
                 action_toggle,
                 Node {
                     width: Val::Px(130.0),
-                    height: Val::Px(34.0),
+                    height: Val::Px(30.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     border: UiRect::all(Val::Px(1.5)),
@@ -565,7 +869,7 @@ fn spawn_toggle_setting_row(
                     val_marker,
                     TextFont {
                         font: font_bold.clone().into(),
-                        font_size: FontSize::Px(14.0),
+                        font_size: FontSize::Px(13.5),
                         ..default()
                     },
                     TextColor(ACCENT_COLOR),
@@ -597,11 +901,11 @@ fn spawn_button_setting_row(
             SettingsNavRow(focus_item),
             Node {
                 width: Val::Percent(100.0),
-                height: Val::Px(48.0),
+                height: Val::Px(38.0),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
-                padding: UiRect::axes(Val::Px(16.0), Val::Px(8.0)),
+                padding: UiRect::axes(Val::Px(16.0), Val::Px(4.0)),
                 border: UiRect::all(Val::Px(1.5)),
                 border_radius: BorderRadius::all(Val::Px(6.0)),
                 ..default()
@@ -615,7 +919,7 @@ fn spawn_button_setting_row(
                 Text::new(label),
                 TextFont {
                     font: font_regular.clone().into(),
-                    font_size: FontSize::Px(16.0),
+                    font_size: FontSize::Px(15.0),
                     ..default()
                 },
                 TextColor(TEXT_COLOR),
@@ -626,8 +930,8 @@ fn spawn_button_setting_row(
                 Button,
                 action,
                 Node {
-                    padding: UiRect::axes(Val::Px(14.0), Val::Px(6.0)),
-                    height: Val::Px(34.0),
+                    padding: UiRect::axes(Val::Px(14.0), Val::Px(4.0)),
+                    height: Val::Px(30.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     border: UiRect::all(Val::Px(1.5)),
@@ -662,12 +966,12 @@ fn spawn_icon_button(
             Button,
             action,
             Node {
-                width: Val::Px(32.0),
-                height: Val::Px(32.0),
+                width: Val::Px(28.0),
+                height: Val::Px(28.0),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 border: UiRect::all(Val::Px(1.5)),
-                border_radius: BorderRadius::all(Val::Px(6.0)),
+                border_radius: BorderRadius::all(Val::Px(5.0)),
                 ..default()
             },
             BorderColor::all(BORDER_COLOR),
@@ -678,7 +982,7 @@ fn spawn_icon_button(
                 Text::new(label),
                 TextFont {
                     font: font_bold.clone().into(),
-                    font_size: FontSize::Px(18.0),
+                    font_size: FontSize::Px(16.0),
                     ..default()
                 },
                 TextColor(TEXT_COLOR),
@@ -737,89 +1041,164 @@ fn settings_button_interaction_system(
     }
 }
 
+#[derive(SystemParam)]
+struct SettingsButtonActionContext<'w, 's> {
+    settings: ResMut<'w, GameSettings>,
+    next_state: ResMut<'w, NextState<AppState>>,
+    windows: Query<'w, 's, &'static mut Window>,
+    asset_server: Res<'w, AssetServer>,
+    modal_query: Query<'w, 's, Entity, With<ReturnToTitleConfirmModal>>,
+    adapter_info: Option<Res<'w, bevy::render::renderer::RenderAdapterInfo>>,
+}
+
 fn settings_button_action_system(
     mut commands: Commands,
     interaction_query: SettingsButtonActionQuery,
-    mut settings: ResMut<GameSettings>,
-    mut next_state: ResMut<NextState<AppState>>,
-    mut windows: Query<&mut Window>,
-    asset_server: Res<AssetServer>,
-    modal_query: Query<Entity, With<ReturnToTitleConfirmModal>>,
+    mut ctx: SettingsButtonActionContext,
 ) {
     for (interaction, action) in &interaction_query {
         if *interaction == Interaction::Pressed {
             match action {
                 SettingsButtonAction::MasterVolumeDown => {
-                    settings.master_volume = settings.master_volume.saturating_sub(10);
+                    ctx.settings.master_volume = ctx.settings.master_volume.saturating_sub(10);
                 }
                 SettingsButtonAction::MasterVolumeUp => {
-                    settings.master_volume = (settings.master_volume + 10).min(100);
+                    ctx.settings.master_volume = (ctx.settings.master_volume + 10).min(100);
                 }
                 SettingsButtonAction::BgmVolumeDown => {
-                    settings.bgm_volume = settings.bgm_volume.saturating_sub(10);
+                    ctx.settings.bgm_volume = ctx.settings.bgm_volume.saturating_sub(10);
                 }
                 SettingsButtonAction::BgmVolumeUp => {
-                    settings.bgm_volume = (settings.bgm_volume + 10).min(100);
+                    ctx.settings.bgm_volume = (ctx.settings.bgm_volume + 10).min(100);
                 }
                 SettingsButtonAction::SfxVolumeDown => {
-                    settings.sfx_volume = settings.sfx_volume.saturating_sub(10);
+                    ctx.settings.sfx_volume = ctx.settings.sfx_volume.saturating_sub(10);
                 }
                 SettingsButtonAction::SfxVolumeUp => {
-                    settings.sfx_volume = (settings.sfx_volume + 10).min(100);
+                    ctx.settings.sfx_volume = (ctx.settings.sfx_volume + 10).min(100);
                 }
-                SettingsButtonAction::ToggleFullscreen => {
-                    settings.fullscreen = !settings.fullscreen;
-                    if let Ok(mut window) = windows.single_mut() {
-                        window.mode = if settings.fullscreen {
-                            bevy::window::WindowMode::BorderlessFullscreen(
-                                MonitorSelection::Current,
-                            )
-                        } else {
-                            bevy::window::WindowMode::Windowed
-                        };
+                SettingsButtonAction::ResolutionPrev => {
+                    if ctx.settings.resolution_index == 0 {
+                        ctx.settings.resolution_index = RESOLUTION_PRESETS.len() - 1;
+                    } else {
+                        ctx.settings.resolution_index -= 1;
                     }
                 }
+                SettingsButtonAction::ResolutionNext => {
+                    ctx.settings.resolution_index =
+                        (ctx.settings.resolution_index + 1) % RESOLUTION_PRESETS.len();
+                }
+                SettingsButtonAction::ToggleFullscreen => {
+                    ctx.settings.fullscreen = !ctx.settings.fullscreen;
+                }
+                SettingsButtonAction::FpsLimitPrev => {
+                    ctx.settings.fps_limit = ctx.settings.fps_limit.prev();
+                }
+                SettingsButtonAction::FpsLimitNext => {
+                    ctx.settings.fps_limit = ctx.settings.fps_limit.next();
+                }
+                SettingsButtonAction::ToggleVsync => {
+                    ctx.settings.vsync = !ctx.settings.vsync;
+                }
+                SettingsButtonAction::ToggleShadows => {
+                    ctx.settings.shadows_enabled = !ctx.settings.shadows_enabled;
+                }
+                SettingsButtonAction::AntiAliasingPrev => {
+                    ctx.settings.anti_aliasing = ctx.settings.anti_aliasing.prev();
+                }
+                SettingsButtonAction::AntiAliasingNext => {
+                    ctx.settings.anti_aliasing = ctx.settings.anti_aliasing.next();
+                }
                 SettingsButtonAction::ResetDefaults => {
-                    info!("Resetting settings to default values...");
-                    let defaults = GameSettings::default();
-                    settings.master_volume = defaults.master_volume;
-                    settings.bgm_volume = defaults.bgm_volume;
-                    settings.sfx_volume = defaults.sfx_volume;
-                    settings.fullscreen = defaults.fullscreen;
-                    if let Ok(mut window) = windows.single_mut() {
+                    info!("Resetting settings to system environment default values...");
+                    let defaults = GameSettings::default_for_environment(ctx.adapter_info.as_deref());
+                    ctx.settings.master_volume = defaults.master_volume;
+                    ctx.settings.bgm_volume = defaults.bgm_volume;
+                    ctx.settings.sfx_volume = defaults.sfx_volume;
+                    ctx.settings.fullscreen = defaults.fullscreen;
+                    ctx.settings.resolution_index = defaults.resolution_index;
+                    ctx.settings.fps_limit = defaults.fps_limit;
+                    ctx.settings.vsync = defaults.vsync;
+                    ctx.settings.shadows_enabled = defaults.shadows_enabled;
+                    ctx.settings.anti_aliasing = defaults.anti_aliasing;
+                    if let Ok(mut window) = ctx.windows.single_mut() {
                         window.mode = bevy::window::WindowMode::Windowed;
                     }
                 }
                 SettingsButtonAction::ResumeGame => {
                     info!("Resuming game...");
-                    next_state.set(AppState::InGame);
+                    ctx.next_state.set(AppState::InGame);
                 }
                 SettingsButtonAction::RequestReturnToTitle => {
                     info!("Requesting return to title (opening confirmation modal)...");
-                    if modal_query.is_empty() {
-                        spawn_confirm_return_modal(&mut commands, &asset_server);
+                    if ctx.modal_query.is_empty() {
+                        spawn_confirm_return_modal(&mut commands, &ctx.asset_server);
                     }
                 }
                 SettingsButtonAction::ConfirmReturnToTitle => {
                     info!("Agreed to return to title. Discarding unsaved session...");
-                    for entity in &modal_query {
+                    for entity in &ctx.modal_query {
                         commands.entity(entity).despawn();
                     }
-                    settings.return_state = AppState::Title;
-                    next_state.set(AppState::Title);
+                    ctx.settings.return_state = AppState::Title;
+                    ctx.next_state.set(AppState::Title);
                 }
                 SettingsButtonAction::CancelReturnToTitle => {
                     info!("Cancelled return to title.");
-                    for entity in &modal_query {
+                    for entity in &ctx.modal_query {
                         commands.entity(entity).despawn();
                     }
                 }
                 SettingsButtonAction::Back => {
-                    info!("Returning to {:?}...", settings.return_state);
-                    next_state.set(settings.return_state);
+                    info!("Returning to {:?}...", ctx.settings.return_state);
+                    ctx.next_state.set(ctx.settings.return_state);
                 }
             }
         }
+    }
+}
+
+/// ゲーム設定の変更（解像度、フルスクリーン、VSync、影、MSAA）をウィンドウやレンダリング各部に適用するシステム
+fn apply_graphics_settings_system(
+    settings: Res<GameSettings>,
+    mut windows: Query<&mut Window>,
+    mut lights: Query<&mut DirectionalLight, With<MainDirectionalLight>>,
+    mut cameras: Query<&mut Msaa, With<Camera3d>>,
+) {
+    if !settings.is_changed() {
+        return;
+    }
+
+    // 1. ウィンドウ設定（解像度・画面モード・VSync）の適用
+    if let Ok(mut window) = windows.single_mut() {
+        let (width, height) = RESOLUTION_PRESETS[settings.resolution_index];
+        window.resolution.set(width as f32, height as f32);
+
+        window.mode = if settings.fullscreen {
+            bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Current)
+        } else {
+            bevy::window::WindowMode::Windowed
+        };
+
+        window.present_mode = if settings.vsync {
+            PresentMode::AutoVsync
+        } else {
+            PresentMode::AutoNoVsync
+        };
+    }
+
+    // 2. 影設定の適用
+    for mut light in &mut lights {
+        light.shadow_maps_enabled = settings.shadows_enabled;
+    }
+
+    // 3. アンチエイリアス（MSAA）設定の適用
+    for mut msaa in &mut cameras {
+        *msaa = match settings.anti_aliasing {
+            AntiAliasingMode::Off => Msaa::Off,
+            AntiAliasingMode::Msaa2x => Msaa::Sample2,
+            AntiAliasingMode::Msaa4x => Msaa::Sample4,
+        };
     }
 }
 
@@ -1007,12 +1386,36 @@ fn update_settings_display_system(
             SettingValueLabel::SfxVolume => {
                 **text = format!("{}%", settings.sfx_volume);
             }
+            SettingValueLabel::Resolution => {
+                let res = RESOLUTION_PRESETS[settings.resolution_index];
+                **text = format!("{}x{}", res.0, res.1);
+            }
             SettingValueLabel::Fullscreen => {
                 **text = if settings.fullscreen {
                     "フルスクリーン".to_string()
                 } else {
                     "ウィンドウ".to_string()
                 };
+            }
+            SettingValueLabel::FpsLimit => {
+                **text = settings.fps_limit.display_label().to_string();
+            }
+            SettingValueLabel::Vsync => {
+                **text = if settings.vsync {
+                    "有効 (ON)".to_string()
+                } else {
+                    "無効 (OFF)".to_string()
+                };
+            }
+            SettingValueLabel::Shadows => {
+                **text = if settings.shadows_enabled {
+                    "有効 (ON)".to_string()
+                } else {
+                    "無効 (OFF)".to_string()
+                };
+            }
+            SettingValueLabel::AntiAliasing => {
+                **text = settings.anti_aliasing.display_label().to_string();
             }
         }
     }
@@ -1025,6 +1428,7 @@ struct SettingsNavState<'w> {
     focus: ResMut<'w, SettingsNavFocus>,
     settings: ResMut<'w, GameSettings>,
     next_state: ResMut<'w, NextState<AppState>>,
+    adapter_info: Option<Res<'w, bevy::render::renderer::RenderAdapterInfo>>,
 }
 
 /// 矢印キーおよび決定・キャンセルキーによる設定画面のキーボード操作システム
@@ -1032,7 +1436,6 @@ fn settings_keyboard_navigation_system(
     mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
     mut state: SettingsNavState,
-    mut windows: Query<&mut Window>,
     asset_server: Res<AssetServer>,
     modal_query: Query<Entity, With<ReturnToTitleConfirmModal>>,
 ) {
@@ -1097,7 +1500,12 @@ fn settings_keyboard_navigation_system(
             SettingsFocusItem::MasterVolume,
             SettingsFocusItem::BgmVolume,
             SettingsFocusItem::SfxVolume,
+            SettingsFocusItem::Resolution,
             SettingsFocusItem::Fullscreen,
+            SettingsFocusItem::FpsLimit,
+            SettingsFocusItem::Vsync,
+            SettingsFocusItem::Shadows,
+            SettingsFocusItem::AntiAliasing,
             SettingsFocusItem::ResetDefaults,
             SettingsFocusItem::Resume,
             SettingsFocusItem::ReturnToTitle,
@@ -1107,7 +1515,12 @@ fn settings_keyboard_navigation_system(
             SettingsFocusItem::MasterVolume,
             SettingsFocusItem::BgmVolume,
             SettingsFocusItem::SfxVolume,
+            SettingsFocusItem::Resolution,
             SettingsFocusItem::Fullscreen,
+            SettingsFocusItem::FpsLimit,
+            SettingsFocusItem::Vsync,
+            SettingsFocusItem::Shadows,
+            SettingsFocusItem::AntiAliasing,
             SettingsFocusItem::ResetDefaults,
             SettingsFocusItem::Back,
         ]
@@ -1146,8 +1559,27 @@ fn settings_keyboard_navigation_system(
             SettingsFocusItem::SfxVolume => {
                 state.settings.sfx_volume = state.settings.sfx_volume.saturating_sub(10);
             }
+            SettingsFocusItem::Resolution => {
+                if state.settings.resolution_index == 0 {
+                    state.settings.resolution_index = RESOLUTION_PRESETS.len() - 1;
+                } else {
+                    state.settings.resolution_index -= 1;
+                }
+            }
             SettingsFocusItem::Fullscreen => {
-                toggle_fullscreen(&mut state.settings, &mut windows);
+                state.settings.fullscreen = !state.settings.fullscreen;
+            }
+            SettingsFocusItem::FpsLimit => {
+                state.settings.fps_limit = state.settings.fps_limit.prev();
+            }
+            SettingsFocusItem::Vsync => {
+                state.settings.vsync = !state.settings.vsync;
+            }
+            SettingsFocusItem::Shadows => {
+                state.settings.shadows_enabled = !state.settings.shadows_enabled;
+            }
+            SettingsFocusItem::AntiAliasing => {
+                state.settings.anti_aliasing = state.settings.anti_aliasing.prev();
             }
             SettingsFocusItem::ReturnToTitle => {
                 // InGameの下部ボタン間移動: タイトルへ戻る ← ゲームに戻る
@@ -1169,8 +1601,24 @@ fn settings_keyboard_navigation_system(
             SettingsFocusItem::SfxVolume => {
                 state.settings.sfx_volume = (state.settings.sfx_volume + 10).min(100);
             }
+            SettingsFocusItem::Resolution => {
+                state.settings.resolution_index =
+                    (state.settings.resolution_index + 1) % RESOLUTION_PRESETS.len();
+            }
             SettingsFocusItem::Fullscreen => {
-                toggle_fullscreen(&mut state.settings, &mut windows);
+                state.settings.fullscreen = !state.settings.fullscreen;
+            }
+            SettingsFocusItem::FpsLimit => {
+                state.settings.fps_limit = state.settings.fps_limit.next();
+            }
+            SettingsFocusItem::Vsync => {
+                state.settings.vsync = !state.settings.vsync;
+            }
+            SettingsFocusItem::Shadows => {
+                state.settings.shadows_enabled = !state.settings.shadows_enabled;
+            }
+            SettingsFocusItem::AntiAliasing => {
+                state.settings.anti_aliasing = state.settings.anti_aliasing.next();
             }
             SettingsFocusItem::Resume => {
                 // InGameの下部ボタン間移動: ゲームに戻る → タイトルへ戻る
@@ -1183,19 +1631,37 @@ fn settings_keyboard_navigation_system(
     // [Enter] / [Space] 決定キー
     if keys.just_pressed(KeyCode::Enter) || keys.just_pressed(KeyCode::Space) {
         match state.focus.current_item {
+            SettingsFocusItem::Resolution => {
+                state.settings.resolution_index =
+                    (state.settings.resolution_index + 1) % RESOLUTION_PRESETS.len();
+            }
             SettingsFocusItem::Fullscreen => {
-                toggle_fullscreen(&mut state.settings, &mut windows);
+                state.settings.fullscreen = !state.settings.fullscreen;
+            }
+            SettingsFocusItem::FpsLimit => {
+                state.settings.fps_limit = state.settings.fps_limit.next();
+            }
+            SettingsFocusItem::Vsync => {
+                state.settings.vsync = !state.settings.vsync;
+            }
+            SettingsFocusItem::Shadows => {
+                state.settings.shadows_enabled = !state.settings.shadows_enabled;
+            }
+            SettingsFocusItem::AntiAliasing => {
+                state.settings.anti_aliasing = state.settings.anti_aliasing.next();
             }
             SettingsFocusItem::ResetDefaults => {
-                info!("Resetting settings to default values via Enter/Space...");
-                let defaults = GameSettings::default();
+                info!("Resetting settings to system environment default values via Enter/Space...");
+                let defaults = GameSettings::default_for_environment(state.adapter_info.as_deref());
                 state.settings.master_volume = defaults.master_volume;
                 state.settings.bgm_volume = defaults.bgm_volume;
                 state.settings.sfx_volume = defaults.sfx_volume;
                 state.settings.fullscreen = defaults.fullscreen;
-                if let Ok(mut window) = windows.single_mut() {
-                    window.mode = bevy::window::WindowMode::Windowed;
-                }
+                state.settings.resolution_index = defaults.resolution_index;
+                state.settings.fps_limit = defaults.fps_limit;
+                state.settings.vsync = defaults.vsync;
+                state.settings.shadows_enabled = defaults.shadows_enabled;
+                state.settings.anti_aliasing = defaults.anti_aliasing;
             }
             SettingsFocusItem::Resume => {
                 info!("Resuming game via Enter/Space...");
@@ -1218,17 +1684,6 @@ fn settings_keyboard_navigation_system(
     if keys.just_pressed(KeyCode::Escape) {
         info!("ESC pressed: Returning to {:?}...", state.settings.return_state);
         state.next_state.set(state.settings.return_state);
-    }
-}
-
-fn toggle_fullscreen(settings: &mut GameSettings, windows: &mut Query<&mut Window>) {
-    settings.fullscreen = !settings.fullscreen;
-    if let Ok(mut window) = windows.single_mut() {
-        window.mode = if settings.fullscreen {
-            bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Current)
-        } else {
-            bevy::window::WindowMode::Windowed
-        };
     }
 }
 

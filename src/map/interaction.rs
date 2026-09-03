@@ -3,6 +3,7 @@ use bevy::window::PrimaryWindow;
 
 use super::hex::HexCoord;
 use super::{HexTile, MapGrid, HEX_RADIUS};
+use crate::camera::MapCamera;
 use crate::state::AppState;
 
 pub struct MapInteractionPlugin;
@@ -11,6 +12,7 @@ impl Plugin for MapInteractionPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SelectedTile>()
             .init_resource::<HoveredTile>()
+            .init_resource::<LeftDragTracker>()
             .add_systems(OnEnter(AppState::InGame), setup_interaction_ui)
             .add_systems(
                 Update,
@@ -32,6 +34,13 @@ pub struct SelectedTile(pub Option<HexCoord>);
 /// 現在マウスが乗っているタイル
 #[derive(Resource, Default, Debug)]
 pub struct HoveredTile(pub Option<HexCoord>);
+
+/// タイルクリック・ドラッグ判定用
+#[derive(Resource, Default, Debug)]
+struct LeftDragTracker {
+    press_pos: Option<Vec2>,
+    has_dragged: bool,
+}
 
 /// タイル情報UI表示用タグ
 #[derive(Component)]
@@ -103,7 +112,7 @@ fn cleanup_interaction_ui(mut commands: Commands, query: Query<Entity, With<Info
     }
 }
 
-/// マウスカーソルの位置からY=0平面との交差を計算し、ホバー・クリックされたヘックスを判定
+#[allow(clippy::too_many_arguments)]
 fn handle_tile_hover_and_click(
     windows: Query<&Window, With<PrimaryWindow>>,
     cameras: Query<(&Camera, &GlobalTransform)>,
@@ -111,6 +120,8 @@ fn handle_tile_hover_and_click(
     map_grid: Res<MapGrid>,
     mut hovered_tile: ResMut<HoveredTile>,
     mut selected_tile: ResMut<SelectedTile>,
+    mut drag_tracker: ResMut<LeftDragTracker>,
+    mut map_camera_query: Query<&mut MapCamera>,
 ) {
     let Ok(window) = windows.single() else {
         return;
@@ -121,11 +132,12 @@ fn handle_tile_hover_and_click(
 
     let Some(cursor_pos) = window.cursor_position() else {
         hovered_tile.0 = None;
+        drag_tracker.press_pos = None;
         return;
     };
 
     let w = window.width();
-    let h = window.height();
+    let h = window.height().max(1.0);
 
     // UI領域（上部バー y <= 58, 左下パネル x <= 360 && y >= h - 250, 右下ボタン x >= w - 240 && y >= h - 100）上ではタイル操作を無効化
     let is_over_top_bar = cursor_pos.y <= 58.0;
@@ -134,7 +146,38 @@ fn handle_tile_hover_and_click(
 
     if is_over_top_bar || is_over_left_panel || is_over_right_panel {
         hovered_tile.0 = None;
+        if mouse_button.just_released(MouseButton::Left) {
+            drag_tracker.press_pos = None;
+        }
         return;
+    }
+
+    // --- 左ボタンドラッグによるマップ移動処理 ---
+    if mouse_button.just_pressed(MouseButton::Left) {
+        drag_tracker.press_pos = Some(cursor_pos);
+        drag_tracker.has_dragged = false;
+    } else if mouse_button.pressed(MouseButton::Left)
+        && let Some(press_pos) = drag_tracker.press_pos
+    {
+        let drag_vector = cursor_pos - press_pos;
+        if drag_vector.length() > 5.0 {
+            drag_tracker.has_dragged = true;
+        }
+
+        if drag_tracker.has_dragged {
+            if let Ok(mut map_cam) = map_camera_query.single_mut() {
+                let world_per_pixel = map_cam.current_viewport_height / h;
+                let sin_angle = 14.0 / (14.0_f32.powi(2) + 12.0_f32.powi(2)).sqrt();
+                let delta = cursor_pos - press_pos;
+                let world_delta_x = delta.x * world_per_pixel;
+                let world_delta_z = delta.y * world_per_pixel / sin_angle;
+
+                let drag_offset = Vec3::new(-world_delta_x, 0.0, world_delta_z);
+                map_cam.target_focal_point += drag_offset;
+                map_cam.current_focal_point += drag_offset;
+            }
+            drag_tracker.press_pos = Some(cursor_pos);
+        }
     }
 
     // カメラのレイを取得
@@ -154,13 +197,19 @@ fn handle_tile_hover_and_click(
             if map_grid.tiles.contains_key(&hex) {
                 hovered_tile.0 = Some(hex);
 
-                if mouse_button.just_pressed(MouseButton::Left) {
+                // ドラッグしておらずクリックのみだった場合にタイル選択
+                if mouse_button.just_released(MouseButton::Left) && !drag_tracker.has_dragged {
                     selected_tile.0 = Some(hex);
                 }
             } else {
                 hovered_tile.0 = None;
             }
         }
+    }
+
+    if mouse_button.just_released(MouseButton::Left) {
+        drag_tracker.press_pos = None;
+        drag_tracker.has_dragged = false;
     }
 }
 
@@ -228,15 +277,21 @@ fn update_info_panel_system(
                 format!("{:.1}", terrain.movement_cost())
             };
 
+            let (col, row) = coord.to_col_row();
+            let center_coord = HexCoord::from_col_row(crate::map::GRID_WIDTH / 2, 0);
+            let dist_from_center = coord.distance(center_coord);
+
             let info = format!(
-                "【ヘックス座標】\n  q: {}, r: {} (距離: {})\n\n\
+                "【ヘックス座標】\n  col: {}, row: {} (q: {}, r: {})\n  中心からの距離: {}\n\n\
                  【地形種別】\n  {}\n\n\
                  【移動コスト】: {}\n\
                  【地上移動】: {}\n\n\
                  【環境特性】\n  エイリアン活動兆候あり\n  資源探査可能",
+                col,
+                row,
                 coord.q,
                 coord.r,
-                (coord.q.abs() + coord.r.abs() + (-coord.q - coord.r).abs()) / 2,
+                dist_from_center,
                 terrain.name(),
                 move_cost_str,
                 passable_str
