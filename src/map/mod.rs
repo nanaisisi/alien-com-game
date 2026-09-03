@@ -42,8 +42,10 @@ impl Plugin for MapPlugin {
 /// 疑似乱数/ハッシュ関数でプロシージャルに地形を決定
 fn get_procedural_terrain(q: i32, r: i32) -> TerrainType {
     let dist = (q.abs() + r.abs() + (-q - r).abs()) / 2;
-    // 外周付近は海洋や山岳にしやすい
-    let hash = ((q * 374761393) ^ (r * 668265263)) as u32;
+    // 外周付近は海洋や山岳にしやすい (オーバーフロー回避のため wrapping_mul を使用)
+    let q_u = q as u32;
+    let r_u = r as u32;
+    let hash = q_u.wrapping_mul(374761393) ^ r_u.wrapping_mul(668265263);
     let val = (hash % 100) as usize;
 
     if dist >= MAP_RADIUS - 1 {
@@ -131,7 +133,7 @@ fn generate_hex_map(
                     let world_pos = coord.to_world_pos(HEX_RADIUS);
 
                     // 六角柱メッシュ
-                    let mesh_handle = meshes.add(create_hex_mesh(HEX_RADIUS * 0.96, height));
+                    let mesh_handle = meshes.add(create_hex_mesh(HEX_RADIUS, height));
                     let material_handle = mat_cache.get(&terrain).unwrap().clone();
 
                     let tile_entity = root
@@ -142,7 +144,8 @@ fn generate_hex_map(
                             },
                             Mesh3d(mesh_handle),
                             MeshMaterial3d(material_handle),
-                            Transform::from_xyz(world_pos.x, height / 2.0, world_pos.z),
+                            Transform::from_xyz(world_pos.x, height / 2.0, world_pos.z)
+                                .with_rotation(Quat::from_rotation_y(std::f32::consts::PI / 6.0)),
                         ))
                         .id();
 

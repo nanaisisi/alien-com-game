@@ -28,6 +28,7 @@ pub struct GameSettings {
     pub bgm_volume: u32,
     pub sfx_volume: u32,
     pub fullscreen: bool,
+    pub return_state: AppState,
 }
 
 impl Default for GameSettings {
@@ -37,6 +38,7 @@ impl Default for GameSettings {
             bgm_volume: 70,
             sfx_volume: 80,
             fullscreen: false,
+            return_state: AppState::Title,
         }
     }
 }
@@ -79,8 +81,8 @@ fn setup_settings_ui(
     asset_server: Res<AssetServer>,
     settings: Res<GameSettings>,
 ) {
-    let font_regular = asset_server.load("fonts/BIZUDGothic-Regular.ttf");
-    let font_bold = asset_server.load("fonts/BIZUDGothic-Bold.ttf");
+    let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
+    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
 
     // 全画面オーバーレイ
     commands
@@ -146,11 +148,13 @@ fn setup_settings_ui(
                         // 1. 主音量 (Master Volume)
                         spawn_stepper_setting_row(
                             list,
-                            "マスター音量 (Master)",
-                            &format!("{}%", settings.master_volume),
-                            SettingValueLabel::MasterVolume,
-                            SettingsButtonAction::MasterVolumeDown,
-                            SettingsButtonAction::MasterVolumeUp,
+                            StepperRowConfig {
+                                label: "マスター音量 (Master)",
+                                initial_val: &format!("{}%", settings.master_volume),
+                                val_marker: SettingValueLabel::MasterVolume,
+                                action_dec: SettingsButtonAction::MasterVolumeDown,
+                                action_inc: SettingsButtonAction::MasterVolumeUp,
+                            },
                             &font_regular,
                             &font_bold,
                         );
@@ -158,11 +162,13 @@ fn setup_settings_ui(
                         // 2. BGM音量 (BGM Volume)
                         spawn_stepper_setting_row(
                             list,
-                            "BGM 音量",
-                            &format!("{}%", settings.bgm_volume),
-                            SettingValueLabel::BgmVolume,
-                            SettingsButtonAction::BgmVolumeDown,
-                            SettingsButtonAction::BgmVolumeUp,
+                            StepperRowConfig {
+                                label: "BGM 音量",
+                                initial_val: &format!("{}%", settings.bgm_volume),
+                                val_marker: SettingValueLabel::BgmVolume,
+                                action_dec: SettingsButtonAction::BgmVolumeDown,
+                                action_inc: SettingsButtonAction::BgmVolumeUp,
+                            },
                             &font_regular,
                             &font_bold,
                         );
@@ -170,11 +176,13 @@ fn setup_settings_ui(
                         // 3. 効果音量 (SFX Volume)
                         spawn_stepper_setting_row(
                             list,
-                            "効果音量 (SFX)",
-                            &format!("{}%", settings.sfx_volume),
-                            SettingValueLabel::SfxVolume,
-                            SettingsButtonAction::SfxVolumeDown,
-                            SettingsButtonAction::SfxVolumeUp,
+                            StepperRowConfig {
+                                label: "効果音量 (SFX)",
+                                initial_val: &format!("{}%", settings.sfx_volume),
+                                val_marker: SettingValueLabel::SfxVolume,
+                                action_dec: SettingsButtonAction::SfxVolumeDown,
+                                action_inc: SettingsButtonAction::SfxVolumeUp,
+                            },
                             &font_regular,
                             &font_bold,
                         );
@@ -224,16 +232,27 @@ fn setup_settings_ui(
         });
 }
 
-fn spawn_stepper_setting_row(
-    parent: &mut ChildSpawnerCommands,
-    label: &str,
-    initial_val: &str,
+struct StepperRowConfig<'a> {
+    label: &'a str,
+    initial_val: &'a str,
     val_marker: SettingValueLabel,
     action_dec: SettingsButtonAction,
     action_inc: SettingsButtonAction,
+}
+
+fn spawn_stepper_setting_row(
+    parent: &mut ChildSpawnerCommands,
+    cfg: StepperRowConfig,
     font_regular: &Handle<Font>,
     font_bold: &Handle<Font>,
 ) {
+    let StepperRowConfig {
+        label,
+        initial_val,
+        val_marker,
+        action_dec,
+        action_inc,
+    } = cfg;
     parent
         .spawn((
             Node {
@@ -400,11 +419,22 @@ fn spawn_icon_button(
         });
 }
 
+type SettingsButtonInteractionQuery<'world, 'state> = Query<
+    'world,
+    'state,
+    (&'static Interaction, &'static mut BackgroundColor, &'static mut BorderColor),
+    (Changed<Interaction>, With<Button>),
+>;
+
+type SettingsButtonActionQuery<'world, 'state> = Query<
+    'world,
+    'state,
+    (&'static Interaction, &'static SettingsButtonAction),
+    (Changed<Interaction>, With<Button>),
+>;
+
 fn settings_button_interaction_system(
-    mut query: Query<
-        (&Interaction, &mut BackgroundColor, &mut BorderColor),
-        (Changed<Interaction>, With<Button>),
-    >,
+    mut query: SettingsButtonInteractionQuery,
 ) {
     for (interaction, mut bg_color, mut border_color) in &mut query {
         match *interaction {
@@ -425,10 +455,7 @@ fn settings_button_interaction_system(
 }
 
 fn settings_button_action_system(
-    interaction_query: Query<
-        (&Interaction, &SettingsButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
+    interaction_query: SettingsButtonActionQuery,
     mut settings: ResMut<GameSettings>,
     mut next_state: ResMut<NextState<AppState>>,
     mut windows: Query<&mut Window>,
@@ -467,8 +494,8 @@ fn settings_button_action_system(
                     }
                 }
                 SettingsButtonAction::Back => {
-                    info!("Returning to Title...");
-                    next_state.set(AppState::Title);
+                    info!("Returning to {:?}...", settings.return_state);
+                    next_state.set(settings.return_state);
                 }
             }
         }

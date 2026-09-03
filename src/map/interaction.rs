@@ -41,8 +41,8 @@ struct InfoPanelRoot;
 struct InfoPanelText;
 
 fn setup_interaction_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font = asset_server.load("fonts/BIZUDGothic-Regular.ttf");
-    let font_bold = asset_server.load("fonts/BIZUDGothic-Bold.ttf");
+    let font = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
+    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
 
     // 左下に配置する半透明情報パネル
     commands
@@ -115,6 +115,19 @@ fn handle_tile_hover_and_click(
         hovered_tile.0 = None;
         return;
     };
+
+    let w = window.width();
+    let h = window.height();
+
+    // UI領域（上部バー y <= 58, 左下パネル x <= 360 && y >= h - 250, 右下ボタン x >= w - 240 && y >= h - 100）上ではタイル操作を無効化
+    let is_over_top_bar = cursor_pos.y <= 58.0;
+    let is_over_left_panel = cursor_pos.x <= 360.0 && cursor_pos.y >= (h - 260.0);
+    let is_over_right_panel = cursor_pos.x >= (w - 240.0) && cursor_pos.y >= (h - 100.0);
+
+    if is_over_top_bar || is_over_left_panel || is_over_right_panel {
+        hovered_tile.0 = None;
+        return;
+    }
 
     // カメラのレイを取得
     let Ok(ray) = camera.viewport_to_world(cam_transform, cursor_pos) else {

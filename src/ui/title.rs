@@ -36,8 +36,8 @@ const TEXT_COLOR: Color = Color::srgb(0.92, 0.95, 0.98);
 const ACCENT_COLOR: Color = Color::srgb(0.25, 0.85, 0.75);
 
 fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font_regular = asset_server.load("fonts/BIZUDGothic-Regular.ttf");
-    let font_bold = asset_server.load("fonts/BIZUDGothic-Bold.ttf");
+    let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
+    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
 
     // タイトルルートコンテナ（全画面フルスクリーン）
     commands
@@ -143,11 +143,22 @@ fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
+type TitleButtonInteractionQuery<'world, 'state> = Query<
+    'world,
+    'state,
+    (&'static Interaction, &'static mut BackgroundColor, &'static mut BorderColor),
+    (Changed<Interaction>, With<Button>),
+>;
+
+type TitleButtonActionQuery<'world, 'state> = Query<
+    'world,
+    'state,
+    (&'static Interaction, &'static MenuButtonAction),
+    (Changed<Interaction>, With<Button>),
+>;
+
 fn button_interaction_system(
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, &mut BorderColor),
-        (Changed<Interaction>, With<Button>),
-    >,
+    mut interaction_query: TitleButtonInteractionQuery,
 ) {
     for (interaction, mut bg_color, mut border_color) in &mut interaction_query {
         match *interaction {
@@ -168,7 +179,8 @@ fn button_interaction_system(
 }
 
 fn button_action_system(
-    interaction_query: Query<(&Interaction, &MenuButtonAction), (Changed<Interaction>, With<Button>)>,
+    interaction_query: TitleButtonActionQuery,
+    mut settings: ResMut<crate::ui::settings::GameSettings>,
     mut next_state: ResMut<NextState<AppState>>,
     mut exit_events: bevy::ecs::message::MessageWriter<AppExit>,
 ) {
@@ -184,6 +196,7 @@ fn button_action_system(
                 }
                 MenuButtonAction::Settings => {
                     info!("Transitioning to Settings...");
+                    settings.return_state = AppState::Title;
                     next_state.set(AppState::Settings);
                 }
                 MenuButtonAction::Exit => {

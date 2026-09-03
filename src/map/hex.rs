@@ -53,7 +53,7 @@ impl HexCoord {
     /// pointy-topped hex の場合:
     /// x = size * sqrt(3) * (q + r / 2)
     /// z = size * 3/2 * r
-    pub fn to_world_pos(&self, hex_radius: f32) -> Vec3 {
+    pub fn to_world_pos(self, hex_radius: f32) -> Vec3 {
         let sqrt3 = 3.0f32.sqrt();
         let x = hex_radius * sqrt3 * (self.q as f32 + self.r as f32 / 2.0);
         let z = hex_radius * 1.5 * (self.r as f32);
