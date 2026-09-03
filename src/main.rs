@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 
 mod camera;
+mod map;
 mod state;
 mod ui;
 mod world;
 
 use camera::CameraPlugin;
+use map::MapPlugin;
 use state::AppState;
 use ui::GameUiPlugin;
 use world::WorldPlugin;
@@ -21,6 +23,7 @@ fn main() {
             ..default()
         }))
         .init_state::<AppState>()
-        .add_plugins((CameraPlugin, WorldPlugin, GameUiPlugin))
+        .add_plugins((CameraPlugin, WorldPlugin, MapPlugin, GameUiPlugin))
         .run();
 }
+
