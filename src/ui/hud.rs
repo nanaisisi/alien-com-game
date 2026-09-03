@@ -183,7 +183,7 @@ fn setup_hud(
                         spawn_resource_item(
                             center,
                             HudLabel::Energy,
-                            "⚡ 電力",
+                            "\u{f0e7} 電力",
                             &format!(
                                 "{} (+{})",
                                 resources.energy, resources.energy_per_turn
@@ -197,7 +197,7 @@ fn setup_hud(
                         spawn_resource_item(
                             center,
                             HudLabel::Production,
-                            "⚙ 工業",
+                            "\u{f013} 工業",
                             &format!(
                                 "{} (+{})",
                                 resources.production, resources.production_per_turn
@@ -211,7 +211,7 @@ fn setup_hud(
                         spawn_resource_item(
                             center,
                             HudLabel::Science,
-                            "🧪 科学",
+                            "\u{f0c3} 科学",
                             &format!(
                                 "{} (+{})",
                                 resources.science, resources.science_per_turn
@@ -225,7 +225,7 @@ fn setup_hud(
                         spawn_resource_item(
                             center,
                             HudLabel::Food,
-                            "🍎 食料",
+                            "\u{f023d} 食料",
                             &format!(
                                 "{} (+{})",
                                 resources.food, resources.food_per_turn
@@ -262,7 +262,7 @@ fn setup_hud(
                             ))
                             .with_children(|btn| {
                                 btn.spawn((
-                                    Text::new("⚙ 設定 / メニュー (ESC)"),
+                                    Text::new("\u{f013} 設定 / メニュー (ESC)"),
                                     TextFont {
                                         font: font_bold.clone().into(),
                                         font_size: FontSize::Px(13.0),

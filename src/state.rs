@@ -5,5 +5,6 @@ pub enum AppState {
     #[default]
     Title,
     InGame,
+    PauseMenu,
     Settings,
 }
