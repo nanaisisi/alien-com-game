@@ -1,5 +1,22 @@
 # ALIEN COM GAME
 
+## ゲーム内容
+
+4Xストラテジー、Civ:BEリスペクト。
+架空の入植惑星を部隊にした架空の人類の話。
+
+## 実装済み内容
+
+- UI
+- マップ
+
+## 今後の機能
+
+- 勢力システム
+- ユニットシステム
+- イベントシステム
+- その他いい感じのシステム
+
 ## 導入方法
 
 日本語・絵文字・アイコンフォントに UDEV Gothic (Nerd Fonts) を用いる。`assets/fonts/` に `UDEVGothicNF-Regular.ttf` および `UDEVGothicNF-Bold.ttf` を配置する。
