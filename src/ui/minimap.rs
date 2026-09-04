@@ -150,6 +150,7 @@ fn setup_minimap_ui(
             container
                 .spawn((
                     MinimapImageNode,
+                    Interaction::default(),
                     Node {
                         width: Val::Px(MINIMAP_WIDTH),
                         height: Val::Px(MINIMAP_HEIGHT),
@@ -179,6 +180,7 @@ fn setup_minimap_ui(
                         BorderColor::all(Color::srgb(1.0, 0.90, 0.30)), // 視認性の高いイエロー/ゴールド枠
                         BackgroundColor(Color::srgba(1.0, 0.90, 0.30, 0.12)), // 薄い半透明塗り
                         Visibility::Visible,
+                        Pickable::IGNORE,
                     ));
 
                     // 東西ラップ時の反対側カメラ視野枠（矩形）
@@ -197,6 +199,7 @@ fn setup_minimap_ui(
                         BorderColor::all(Color::srgb(1.0, 0.90, 0.30)),
                         BackgroundColor(Color::srgba(1.0, 0.90, 0.30, 0.12)),
                         Visibility::Hidden,
+                        Pickable::IGNORE,
                     ));
                 });
         });
@@ -331,7 +334,9 @@ fn update_minimap_viewport_system(
 
     // ワールド座標 X [-world_width/2 .. world_width/2] -> [0 .. 1]
     let norm_x = ((map_cam.current_focal_point.x / world_width) + 0.5).rem_euclid(1.0);
-    // ワールド座標 Z (北が -Z、南が +Z) -> [0 .. 1]
+    // ワールド座標 Z: 北（画面上部）が -Z、南（画面下部）が +Z
+    // ミニマップ上部 (top = 0) を北、下部 (top = MINIMAP_HEIGHT) を南に合わせるため
+    // -half_world_h (北) が norm_y = 0.0、+half_world_h (南) が norm_y = 1.0
     let half_world_h = world_height / 2.0;
     let norm_y = ((map_cam.current_focal_point.z + half_world_h) / world_height).clamp(0.0, 1.0);
 
@@ -398,13 +403,13 @@ fn handle_minimap_interaction_system(
     mouse_button: Res<ButtonInput<MouseButton>>,
     mut minimap_state: ResMut<MinimapState>,
     map_grid: Res<MapGrid>,
-    image_query: Query<(&GlobalTransform, &Node), With<MinimapImageNode>>,
+    image_query: Query<(&GlobalTransform, &Node, &Interaction), With<MinimapImageNode>>,
     mut camera_query: Query<&mut MapCamera>,
 ) {
     let Ok(window) = windows.single() else {
         return;
     };
-    let Ok((gt, node)) = image_query.single() else {
+    let Ok((gt, node, interaction)) = image_query.single() else {
         return;
     };
     let Ok(mut map_cam) = camera_query.single_mut() else {
@@ -422,15 +427,18 @@ fn handle_minimap_interaction_system(
         _ => Vec2::new(MINIMAP_WIDTH, MINIMAP_HEIGHT),
     };
 
+    // Bevy UIのGlobalTransform translationはノードの中心
     let min = Vec2::new(translation.x - size.x * 0.5, translation.y - size.y * 0.5);
-    let max = min + size;
 
+    // Bevy UIのInteractionシステムによるPressed判定、またはマウス押下時の矩形内判定
     let is_inside = cursor_pos.x >= min.x
-        && cursor_pos.x <= max.x
+        && cursor_pos.x <= min.x + size.x
         && cursor_pos.y >= min.y
-        && cursor_pos.y <= max.y;
+        && cursor_pos.y <= min.y + size.y;
 
-    if mouse_button.just_pressed(MouseButton::Left) && is_inside {
+    if *interaction == Interaction::Pressed
+        || (mouse_button.just_pressed(MouseButton::Left) && is_inside)
+    {
         minimap_state.is_dragging = true;
     }
 

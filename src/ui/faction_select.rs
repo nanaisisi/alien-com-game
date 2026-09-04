@@ -354,23 +354,21 @@ fn setup_faction_select_ui(
 
                             // 2. マップサイズ選択 & シード再生成ボタン行
                             settings_sec.spawn(Node {
-                                flex_direction: FlexDirection::Row,
-                                justify_content: JustifyContent::SpaceBetween,
-                                align_items: AlignItems::Center,
-                                margin: UiRect::top(Val::Px(4.0)),
+                                flex_direction: FlexDirection::Column,
+                                row_gap: Val::Px(6.0),
+                                margin: UiRect::top(Val::Px(2.0)),
                                 ..default()
                             })
-                            .with_children(|size_seed_row| {
-                                // サイズ選択
-                                size_seed_row.spawn(Node {
+                            .with_children(|size_sec| {
+                                size_sec.spawn(Node {
                                     flex_direction: FlexDirection::Row,
-                                    column_gap: Val::Px(6.0),
+                                    justify_content: JustifyContent::SpaceBetween,
                                     align_items: AlignItems::Center,
                                     ..default()
                                 })
-                                .with_children(|size_group| {
-                                    size_group.spawn((
-                                        Text::new("サイズ:"),
+                                .with_children(|header_row| {
+                                    header_row.spawn((
+                                        Text::new("マップサイズ:"),
                                         TextFont {
                                             font: font_regular.clone().into(),
                                             font_size: FontSize::Px(12.0),
@@ -379,6 +377,44 @@ fn setup_faction_select_ui(
                                         TextColor(TEXT_MUTED),
                                     ));
 
+                                    // シード再抽選ボタン
+                                    header_row.spawn((
+                                        Button,
+                                        SelectAction::RerollSeed,
+                                        Node {
+                                            padding: UiRect::axes(Val::Px(10.0), Val::Px(3.0)),
+                                            border: UiRect::all(Val::Px(1.0)),
+                                            border_radius: BorderRadius::all(Val::Px(4.0)),
+                                            align_items: AlignItems::Center,
+                                            ..default()
+                                        },
+                                        BorderColor::all(BORDER_COLOR),
+                                        BackgroundColor(PANEL_BG),
+                                    ))
+                                    .with_children(|btn| {
+                                        btn.spawn((
+                                            SeedDisplayText,
+                                            Text::new(format!("🎲 SEED: {}", map_config.seed)),
+                                            TextFont {
+                                                font: font_regular.clone().into(),
+                                                font_size: FontSize::Px(11.0),
+                                                ..default()
+                                            },
+                                            TextColor(TEXT_MAIN),
+                                        ));
+                                    });
+                                });
+
+                                // サイズ選択ボタン一覧 (7種、折り返し可能)
+                                size_sec.spawn(Node {
+                                    flex_direction: FlexDirection::Row,
+                                    flex_wrap: FlexWrap::Wrap,
+                                    row_gap: Val::Px(5.0),
+                                    column_gap: Val::Px(5.0),
+                                    align_items: AlignItems::Center,
+                                    ..default()
+                                })
+                                .with_children(|size_group| {
                                     for sz in MapSize::ALL {
                                         let is_active = sz == map_config.size;
                                         size_group.spawn((
@@ -386,7 +422,7 @@ fn setup_faction_select_ui(
                                             SelectAction::ChooseSize(sz),
                                             SizeButton(sz),
                                             Node {
-                                                padding: UiRect::axes(Val::Px(8.0), Val::Px(4.0)),
+                                                padding: UiRect::axes(Val::Px(7.0), Val::Px(4.0)),
                                                 border: UiRect::all(Val::Px(if is_active { 1.5 } else { 1.0 })),
                                                 border_radius: BorderRadius::all(Val::Px(4.0)),
                                                 ..default()
@@ -403,40 +439,13 @@ fn setup_faction_select_ui(
                                                 Text::new(sz.name_ja()),
                                                 TextFont {
                                                     font: font_regular.clone().into(),
-                                                    font_size: FontSize::Px(11.0),
+                                                    font_size: FontSize::Px(10.5),
                                                     ..default()
                                                 },
                                                 TextColor(if is_active { Color::WHITE } else { TEXT_MAIN }),
                                             ));
                                         });
                                     }
-                                });
-
-                                // シード再抽選ボタン
-                                size_seed_row.spawn((
-                                    Button,
-                                    SelectAction::RerollSeed,
-                                    Node {
-                                        padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
-                                        border: UiRect::all(Val::Px(1.0)),
-                                        border_radius: BorderRadius::all(Val::Px(4.0)),
-                                        align_items: AlignItems::Center,
-                                        ..default()
-                                    },
-                                    BorderColor::all(BORDER_COLOR),
-                                    BackgroundColor(PANEL_BG),
-                                ))
-                                .with_children(|btn| {
-                                    btn.spawn((
-                                        SeedDisplayText,
-                                        Text::new(format!("🎲 SEED: {}", map_config.seed)),
-                                        TextFont {
-                                            font: font_regular.clone().into(),
-                                            font_size: FontSize::Px(11.0),
-                                            ..default()
-                                        },
-                                        TextColor(TEXT_MAIN),
-                                    ));
                                 });
                             });
                         });

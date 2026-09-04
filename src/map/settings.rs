@@ -90,26 +90,46 @@ impl PlanetEnvironment {
     }
 }
 
-/// マップサイズ定義
+/// マップサイズ定義（Civ6系MOD基準）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Default)]
 pub enum MapSize {
-    /// 小型 (20x12)
+    /// 小型 (84x42)
     Small,
-    /// 標準 (28x16)
+    /// 標準 (96x48)
     #[default]
     Standard,
-    /// 大型 (36x20)
+    /// 大型 (108x54)
     Large,
+    /// 巨大 (120x60)
+    Huge,
+    /// 広大 (140x70)
+    Enormous,
+    /// 特大 (184x92)
+    Gigantic,
+    /// 過大 (200x100)
+    Ludicrous,
 }
 
 impl MapSize {
-    pub const ALL: [MapSize; 3] = [MapSize::Small, MapSize::Standard, MapSize::Large];
+    pub const ALL: [MapSize; 7] = [
+        MapSize::Small,
+        MapSize::Standard,
+        MapSize::Large,
+        MapSize::Huge,
+        MapSize::Enormous,
+        MapSize::Gigantic,
+        MapSize::Ludicrous,
+    ];
 
     pub fn dimensions(&self) -> (i32, i32) {
         match self {
-            Self::Small => (20, 12),
-            Self::Standard => (28, 16),
-            Self::Large => (36, 20),
+            Self::Small => (84, 42),
+            Self::Standard => (96, 48),
+            Self::Large => (108, 54),
+            Self::Huge => (120, 60),
+            Self::Enormous => (140, 70),
+            Self::Gigantic => (184, 92),
+            Self::Ludicrous => (200, 100),
         }
     }
 
@@ -123,9 +143,13 @@ impl MapSize {
 
     pub fn name_ja(&self) -> &'static str {
         match self {
-            Self::Small => "小型 (Small: 20x12)",
-            Self::Standard => "標準 (Standard: 28x16)",
-            Self::Large => "大型 (Large: 36x20)",
+            Self::Small => "小 (84x42)",
+            Self::Standard => "標準 (96x48)",
+            Self::Large => "大 (108x54)",
+            Self::Huge => "巨大 (120x60)",
+            Self::Enormous => "広大 (140x70)",
+            Self::Gigantic => "特大 (184x92)",
+            Self::Ludicrous => "過大 (200x100)",
         }
     }
 }
