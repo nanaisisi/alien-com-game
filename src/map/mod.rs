@@ -7,10 +7,13 @@ use self::terrain::TerrainType;
 
 pub mod hex;
 pub mod interaction;
+pub mod settings;
 pub mod terrain;
 
-use self::hex::{MAP_HEIGHT, MAP_WIDTH};
+pub use self::hex::{MAP_HEIGHT, MAP_WIDTH};
 pub use self::hex::{MAP_HEIGHT as GRID_HEIGHT, MAP_WIDTH as GRID_WIDTH};
+#[allow(unused_imports)]
+pub use self::settings::{MapConfig, MapSize, PlanetEnvironment};
 
 pub const HEX_RADIUS: f32 = 1.0;
 
@@ -19,6 +22,8 @@ pub const HEX_RADIUS: f32 = 1.0;
 pub struct MapGrid {
     pub tiles: HashMap<HexCoord, Entity>,
     pub terrain_data: HashMap<HexCoord, TerrainType>,
+    pub width: i32,
+    pub height: i32,
 }
 
 #[derive(Component)]
@@ -34,20 +39,21 @@ pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<MapGrid>()
+        app.init_resource::<MapConfig>()
+            .init_resource::<MapGrid>()
             .add_plugins(interaction::MapInteractionPlugin)
             .add_systems(OnEnter(AppState::InGame), generate_hex_map)
             .add_systems(OnEnter(AppState::Title), cleanup_hex_map);
     }
 }
 
-/// 周期的な円筒座標におけるハッシュ/疑似乱数
-fn cylinder_noise(col: i32, row: i32, seed: u32) -> f32 {
+/// 周期的な円筒座標におけるハッシュ/疑似乱数（マップ幅・高さ・シード可変）
+fn cylinder_noise_with_size(col: i32, row: i32, seed: u32, map_w: i32, map_h: i32) -> f32 {
     use std::f32::consts::PI;
-    let theta = (col as f32 / MAP_WIDTH as f32) * 2.0 * PI;
+    let theta = (col as f32 / map_w as f32) * 2.0 * PI;
     let cx = theta.cos();
     let cz = theta.sin();
-    let cy = row as f32 / (MAP_HEIGHT as f32 / 2.0);
+    let cy = row as f32 / (map_h as f32 / 2.0);
 
     // 複数オクターブの周期的波長
     let wave1 = (cx * 2.3 + cz * 1.7 + cy * 1.5 + (seed as f32 * 0.1)).sin();
@@ -56,6 +62,12 @@ fn cylinder_noise(col: i32, row: i32, seed: u32) -> f32 {
 
     let total = (wave1 + wave2 + wave3) / 1.75; // -1.0 .. 1.0 付近
     (total * 0.5 + 0.5).clamp(0.0, 1.0)
+}
+
+/// 周期的な円筒座標におけるハッシュ/疑似乱数（後方互換）
+#[allow(dead_code)]
+fn cylinder_noise(col: i32, row: i32, seed: u32) -> f32 {
+    cylinder_noise_with_size(col, row, seed, MAP_WIDTH, MAP_HEIGHT)
 }
 
 /// 六角柱の3Dメッシュを生成
@@ -70,6 +82,7 @@ pub fn create_hex_mesh(radius: f32, height: f32) -> Mesh {
 
 pub fn generate_hex_map(
     mut commands: Commands,
+    map_config: Res<MapConfig>,
     mut map_grid: ResMut<MapGrid>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -80,13 +93,20 @@ pub fn generate_hex_map(
         return;
     }
 
+    let map_w = map_config.width();
+    let map_h = map_config.height();
+    let env = map_config.environment;
+    let base_seed = map_config.seed;
+
     info!(
-        "Generating Cylindrical Overworld Hex Map (Width: {}, Height: {})...",
-        MAP_WIDTH, MAP_HEIGHT
+        "Generating Cylindrical Overworld Hex Map (Env: {:?}, Width: {}, Height: {}, Seed: {})...",
+        env, map_w, map_h, base_seed
     );
 
     map_grid.tiles.clear();
     map_grid.terrain_data.clear();
+    map_grid.width = map_w;
+    map_grid.height = map_h;
 
     // 地形ごとのマテリアルキャッシュ
     let mut mat_cache: HashMap<TerrainType, Handle<StandardMaterial>> = HashMap::new();
@@ -116,30 +136,30 @@ pub fn generate_hex_map(
     }
 
     // Step 1: 各タイルの標高(elevation)と陸地/海洋マスクを事前計算
-    // 南北の極地 (row が極端に端) は海洋に偏らせる
-    let half_h = MAP_HEIGHT / 2;
+    let half_h = map_h / 2;
     let mut elevations: HashMap<(i32, i32), f32> = HashMap::new();
     let mut is_land: HashMap<(i32, i32), bool> = HashMap::new();
+    let sea_threshold = env.sea_level_threshold();
 
     for row in -half_h..=half_h {
         let lat_factor = (row.abs() as f32 / half_h as f32).powf(1.8);
-        for col in 0..MAP_WIDTH {
-            let n = cylinder_noise(col, row, 1337);
+        for col in 0..map_w {
+            let n = cylinder_noise_with_size(col, row, base_seed, map_w, map_h);
             // 極地は海洋確率を上げるため標高を低減
             let elevation = (n - lat_factor * 0.4).clamp(0.0, 1.0);
             elevations.insert((col, row), elevation);
-            // 標高 0.42 未満は海洋 (Ocean)
-            is_land.insert((col, row), elevation >= 0.42);
+            is_land.insert((col, row), elevation >= sea_threshold);
         }
     }
 
     // Step 2: 地形タイプの決定
-    // 【重要】山岳(Mountains)は「海ではない」かつ「十分な標高」かつ「海岸線から一定以上離れた陸地」にのみ生成
     let mut terrain_map: HashMap<HexCoord, TerrainType> = HashMap::new();
+    let mountain_threshold = env.mountain_threshold();
+    let hill_threshold = env.hill_threshold();
 
     for row in -half_h..=half_h {
-        for col in 0..MAP_WIDTH {
-            let coord = HexCoord::from_col_row(col, row);
+        for col in 0..map_w {
+            let coord = HexCoord::from_col_row_with_width(col, row, map_w);
             let land = is_land[&(col, row)];
 
             if !land {
@@ -148,13 +168,13 @@ pub fn generate_hex_map(
             }
 
             let elev = elevations[&(col, row)];
-            let moisture = cylinder_noise(col, row, 9999);
-            let detail = cylinder_noise(col, row, 54321);
+            let moisture = cylinder_noise_with_size(col, row, base_seed.wrapping_add(8888), map_w, map_h);
+            let detail = cylinder_noise_with_size(col, row, base_seed.wrapping_add(54321), map_w, map_h);
 
             // 隣接セルに海洋があるかチェック (海岸線判定)
             let mut neighbors_have_ocean = false;
-            for n_coord in coord.neighbors() {
-                let (nc, nr) = n_coord.to_col_row();
+            for n_coord in coord.neighbors_with_width(map_w) {
+                let (nc, nr) = n_coord.to_col_row_with_width(map_w);
                 if let Some(&nl) = is_land.get(&(nc, nr)) {
                     if !nl {
                         neighbors_have_ocean = true;
@@ -167,34 +187,89 @@ pub fn generate_hex_map(
                 }
             }
 
-            let terrain = if !neighbors_have_ocean && elev > 0.72 {
-                // 海岸線に面しておらず、標高が高い内陸部のみ山岳に
-                TerrainType::Mountains
-            } else if elev > 0.60 {
-                // やや標高が高い場所は丘陵
-                TerrainType::Hills
-            } else if moisture > 0.65 {
-                // 湿潤・水気のある場所
-                if detail > 0.70 {
-                    TerrainType::ToxicSwamp
-                } else {
-                    TerrainType::Forest
+            let terrain = match env {
+                PlanetEnvironment::Terra => {
+                    if !neighbors_have_ocean && elev > mountain_threshold {
+                        TerrainType::Mountains
+                    } else if elev > hill_threshold {
+                        TerrainType::Hills
+                    } else if moisture > 0.65 {
+                        if detail > 0.70 {
+                            TerrainType::ToxicSwamp
+                        } else {
+                            TerrainType::Forest
+                        }
+                    } else if detail > 0.82 {
+                        TerrainType::CrystalFields
+                    } else if moisture < 0.35 {
+                        TerrainType::Plains
+                    } else {
+                        TerrainType::Forest
+                    }
                 }
-            } else if detail > 0.82 {
-                // 特殊資源地帯
-                TerrainType::CrystalFields
-            } else if moisture < 0.35 {
-                // 乾燥・平原
-                TerrainType::Plains
-            } else {
-                TerrainType::Forest
+                PlanetEnvironment::Arid => {
+                    // 乾燥砂漠: 海洋が少なく、平原・丘陵・結晶が多い。森林や湿地は極めて稀
+                    if !neighbors_have_ocean && elev > mountain_threshold {
+                        TerrainType::Mountains
+                    } else if elev > hill_threshold {
+                        TerrainType::Hills
+                    } else if detail > 0.72 {
+                        TerrainType::CrystalFields
+                    } else if moisture > 0.82 {
+                        TerrainType::Forest
+                    } else {
+                        TerrainType::Plains
+                    }
+                }
+                PlanetEnvironment::Archipelago => {
+                    // 海洋群島: 陸地が狭く、険しい孤島や砂浜・森林
+                    if !neighbors_have_ocean && elev > mountain_threshold {
+                        TerrainType::Mountains
+                    } else if elev > hill_threshold {
+                        TerrainType::Hills
+                    } else if moisture > 0.45 {
+                        TerrainType::Forest
+                    } else if detail > 0.78 {
+                        TerrainType::CrystalFields
+                    } else {
+                        TerrainType::Plains
+                    }
+                }
+                PlanetEnvironment::ToxicMarsh => {
+                    // 瘴気沼沢: 湿地と原生林が大部分を占める
+                    if !neighbors_have_ocean && elev > mountain_threshold {
+                        TerrainType::Mountains
+                    } else if elev > hill_threshold {
+                        TerrainType::Hills
+                    } else if detail > 0.85 {
+                        TerrainType::CrystalFields
+                    } else if moisture > 0.40 || detail > 0.45 {
+                        TerrainType::ToxicSwamp
+                    } else {
+                        TerrainType::Forest
+                    }
+                }
+                PlanetEnvironment::Crystalline => {
+                    // 結晶極地: 山脈と結晶鉱床が広がり、高低差が激しい
+                    if !neighbors_have_ocean && elev > mountain_threshold {
+                        TerrainType::Mountains
+                    } else if elev > hill_threshold {
+                        TerrainType::Hills
+                    } else if detail > 0.50 {
+                        TerrainType::CrystalFields
+                    } else if moisture < 0.40 {
+                        TerrainType::Plains
+                    } else {
+                        TerrainType::Forest
+                    }
+                }
             };
 
             terrain_map.insert(coord, terrain);
         }
     }
 
-    let world_width = hex::map_world_width(HEX_RADIUS);
+    let world_width = hex::map_world_width_with_width(HEX_RADIUS, map_w);
 
     commands
         .spawn((
@@ -213,8 +288,8 @@ pub fn generate_hex_map(
                 ))
                 .with_children(|section| {
                     for row in -half_h..=half_h {
-                        for col in 0..MAP_WIDTH {
-                            let coord = HexCoord::from_col_row(col, row);
+                        for col in 0..map_w {
+                            let coord = HexCoord::from_col_row_with_width(col, row, map_w);
                             let terrain = terrain_map[&coord];
                             let height = terrain.height();
                             let world_pos = coord.to_world_pos(HEX_RADIUS);
@@ -311,6 +386,42 @@ mod tests {
                 // 山岳は海洋に隣接してはならない（海上に孤立・突出しない）
                 if is_mountain {
                     assert!(!neighbors_have_ocean, "Mountain must not border ocean at {:?}", (col, row));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_planet_environments_and_sizes() {
+        for env in PlanetEnvironment::ALL {
+            for size in MapSize::ALL {
+                let (w, h) = size.dimensions();
+                let half_h = h / 2;
+                let sea_threshold = env.sea_level_threshold();
+
+                let mut ocean_count = 0;
+                let mut land_count = 0;
+
+                for row in -half_h..=half_h {
+                    for col in 0..w {
+                        let n = cylinder_noise_with_size(col, row, 1337, w, h);
+                        let lat_factor = (row.abs() as f32 / half_h as f32).powf(1.8);
+                        let elev = (n - lat_factor * 0.4).clamp(0.0, 1.0);
+                        if elev < sea_threshold {
+                            ocean_count += 1;
+                        } else {
+                            land_count += 1;
+                        }
+                    }
+                }
+
+                assert!(ocean_count + land_count > 0);
+                if env == PlanetEnvironment::Archipelago {
+                    // 群島は海が陸より多い
+                    assert!(ocean_count > land_count);
+                } else if env == PlanetEnvironment::Arid {
+                    // 乾燥砂漠は陸が海より圧倒的に多い
+                    assert!(land_count > ocean_count);
                 }
             }
         }

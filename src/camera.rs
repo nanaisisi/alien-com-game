@@ -93,6 +93,7 @@ fn pan_zoom_camera_system(
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
+    map_grid: Res<crate::map::MapGrid>,
     mut mouse_wheel: MessageReader<MouseWheel>,
     mut query: Query<(&mut Transform, &mut Projection, &mut MapCamera)>,
 ) {
@@ -185,11 +186,13 @@ fn pan_zoom_camera_system(
     }
 
     // 縦方向（Z軸）の移動範囲制限（極地付近で制限）
-    let max_z = (crate::map::GRID_HEIGHT as f32 * 1.5 * crate::map::HEX_RADIUS) * 0.5 + 4.0;
+    let grid_h = if map_grid.height > 0 { map_grid.height } else { crate::map::GRID_HEIGHT };
+    let max_z = (grid_h as f32 * 1.5 * crate::map::HEX_RADIUS) * 0.5 + 4.0;
     map_cam.target_focal_point.z = map_cam.target_focal_point.z.clamp(-max_z, max_z);
 
     // 横方向（X軸）のシームレスなループ（ラップアラウンド）
-    let world_width = crate::map::hex::map_world_width(crate::map::HEX_RADIUS);
+    let grid_w = if map_grid.width > 0 { map_grid.width } else { crate::map::GRID_WIDTH };
+    let world_width = crate::map::hex::map_world_width_with_width(crate::map::HEX_RADIUS, grid_w);
     if world_width > 0.0 {
         // target_focal_point.x を [0, world_width) または [-world_width/2, world_width/2) にラップ
         let half_w = world_width / 2.0;

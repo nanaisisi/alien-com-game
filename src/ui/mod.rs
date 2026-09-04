@@ -3,6 +3,7 @@ use bevy::prelude::*;
 pub mod diplomacy;
 pub mod faction_select;
 pub mod hud;
+pub mod minimap;
 pub mod pause;
 pub mod settings;
 pub mod title;
@@ -18,6 +19,7 @@ impl Plugin for GameUiPlugin {
             hud::InGameHudPlugin,
             diplomacy::DiplomacyUiPlugin,
             pause::PauseMenuPlugin,
+            minimap::MinimapPlugin,
         ));
     }
 }

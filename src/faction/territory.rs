@@ -46,18 +46,22 @@ pub fn setup_initial_faction_territories(
 
     info!("Initializing initial faction outposts and territories...");
 
+    let map_w = if map_grid.width > 0 { map_grid.width } else { MAP_WIDTH };
+    let map_h = if map_grid.height > 0 { map_grid.height } else { crate::map::hex::MAP_HEIGHT };
+    let half_h = map_h / 2;
+
     // 6派閥の理想的な上陸候補地（経度方向 col を均等に分割し、通行可能陸地を探索）
-    let col_step = MAP_WIDTH / 6;
+    let col_step = (map_w / 6).max(1);
     let mut initial_outposts = Vec::new();
 
     for (i, &faction) in FactionId::ALL.iter().enumerate() {
-        let base_col = (i as i32 * col_step + col_step / 2) % MAP_WIDTH;
+        let base_col = (i as i32 * col_step + col_step / 2) % map_w;
         
         // 陸地でかつ進入可能なタイルを検索
         let mut chosen_coord = None;
         for row_offset in [0, 1, -1, 2, -2, 3, -3, 4, -4] {
-            let row = row_offset;
-            let coord = HexCoord::from_col_row(base_col, row);
+            let row = row_offset.clamp(-half_h, half_h);
+            let coord = HexCoord::from_col_row_with_width(base_col, row, map_w);
             if let Some(&terrain) = map_grid.terrain_data.get(&coord)
                 && terrain.is_passable_ground() && terrain != TerrainType::ToxicSwamp {
                     chosen_coord = Some(coord);
@@ -67,17 +71,17 @@ pub fn setup_initial_faction_territories(
 
         // 見つからなければ平原などの通行可能タイルを広く探索
         let center_coord = chosen_coord.unwrap_or_else(|| {
-            for row in -5..=5 {
+            for row in -half_h..=half_h {
                 for dc in -3..=3 {
-                    let c = (base_col + dc).rem_euclid(MAP_WIDTH);
-                    let coord = HexCoord::from_col_row(c, row);
+                    let c = (base_col + dc).rem_euclid(map_w);
+                    let coord = HexCoord::from_col_row_with_width(c, row, map_w);
                     if let Some(&t) = map_grid.terrain_data.get(&coord)
                         && t.is_passable_ground() {
                             return coord;
                         }
                 }
             }
-            HexCoord::from_col_row(base_col, 0)
+            HexCoord::from_col_row_with_width(base_col, 0, map_w)
         });
 
         initial_outposts.push((faction, center_coord));
@@ -106,7 +110,7 @@ pub fn setup_initial_faction_territories(
         territory_map.tile_owners.insert(center, faction);
         claimed += 1;
 
-        for neighbor in center.neighbors() {
+        for neighbor in center.neighbors_with_width(map_w) {
             if map_grid.tiles.contains_key(&neighbor) {
                 territory_map.tile_owners.insert(neighbor, faction);
                 claimed += 1;

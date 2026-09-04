@@ -139,10 +139,10 @@ fn handle_tile_hover_and_click(
     let w = window.width();
     let h = window.height().max(1.0);
 
-    // UI領域（上部バー y <= 58, 左下パネル x <= 360 && y >= h - 250, 右下ボタン x >= w - 240 && y >= h - 100）上ではタイル操作を無効化
+    // UI領域（上部バー y <= 58, 左下パネル x <= 360 && y >= h - 260, 右下ボタン・ミニマップ x >= w - 260 && y >= h - 290）上ではタイル操作を無効化
     let is_over_top_bar = cursor_pos.y <= 58.0;
     let is_over_left_panel = cursor_pos.x <= 360.0 && cursor_pos.y >= (h - 260.0);
-    let is_over_right_panel = cursor_pos.x >= (w - 240.0) && cursor_pos.y >= (h - 100.0);
+    let is_over_right_panel = cursor_pos.x >= (w - 260.0) && cursor_pos.y >= (h - 290.0);
 
     if is_over_top_bar || is_over_left_panel || is_over_right_panel {
         hovered_tile.0 = None;
@@ -192,7 +192,11 @@ fn handle_tile_hover_and_click(
         let t = -normal.dot(ray.origin) / denom;
         if t >= 0.0 {
             let hit_point = ray.origin + *ray.direction * t;
-            let hex = HexCoord::from_world_pos(hit_point, HEX_RADIUS);
+            let hex = if map_grid.width > 0 {
+                HexCoord::from_world_pos_with_width(hit_point, HEX_RADIUS, map_grid.width)
+            } else {
+                HexCoord::from_world_pos(hit_point, HEX_RADIUS)
+            };
 
             if map_grid.tiles.contains_key(&hex) {
                 hovered_tile.0 = Some(hex);

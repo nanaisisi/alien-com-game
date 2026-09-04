@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::faction::types::{FactionId, PlayerFaction};
+use crate::map::settings::{MapConfig, MapSize, PlanetEnvironment};
 use crate::state::AppState;
 
 pub struct FactionSelectPlugin;
@@ -29,9 +30,12 @@ struct SelectedFactionMenu {
 #[derive(Component)]
 struct FactionSelectRoot;
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
 enum SelectAction {
     Choose(FactionId),
+    ChooseEnvironment(PlanetEnvironment),
+    ChooseSize(MapSize),
+    RerollSeed,
     Confirm,
     Back,
 }
@@ -43,7 +47,22 @@ struct DetailTitleText;
 struct DetailDescText;
 
 #[derive(Component)]
+struct DetailPanelRoot;
+
+#[derive(Component)]
 struct FactionCard(FactionId);
+
+#[derive(Component)]
+struct EnvButton(PlanetEnvironment);
+
+#[derive(Component)]
+struct SizeButton(MapSize);
+
+#[derive(Component)]
+struct SeedDisplayText;
+
+#[derive(Component)]
+struct EnvDescText;
 
 // カラー
 const BG_COLOR: Color = Color::srgba(0.04, 0.07, 0.12, 0.95);
@@ -57,6 +76,7 @@ fn setup_faction_select_ui(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     player_faction: Res<PlayerFaction>,
+    map_config: Res<MapConfig>,
     mut selected_menu: ResMut<SelectedFactionMenu>,
 ) {
     selected_menu.faction = player_faction.0;
@@ -73,7 +93,7 @@ fn setup_faction_select_ui(
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::SpaceBetween,
-                padding: UiRect::axes(Val::Px(40.0), Val::Px(30.0)),
+                padding: UiRect::axes(Val::Px(32.0), Val::Px(16.0)),
                 ..default()
             },
             BackgroundColor(BG_COLOR),
@@ -83,37 +103,37 @@ fn setup_faction_select_ui(
             root.spawn(Node {
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
-                row_gap: Val::Px(6.0),
+                row_gap: Val::Px(4.0),
                 ..default()
             })
             .with_children(|header| {
                 header.spawn((
-                    Text::new("FACTION SELECTION // 入植勢力選択"),
+                    Text::new("EXPEDITION CONFIG // 出撃勢力 & 探査環境設定"),
                     TextFont {
                         font: font_bold.clone().into(),
-                        font_size: FontSize::Px(32.0),
+                        font_size: FontSize::Px(26.0),
                         ..default()
                     },
                     TextColor(ACCENT_CYAN),
                 ));
 
                 header.spawn((
-                    Text::new("未知の惑星へ進出する母星の6大国家から指揮する勢力を選択してください"),
+                    Text::new("未知の惑星へ進出する指揮勢力と、開拓対象となる惑星環境を選択してください"),
                     TextFont {
                         font: font_regular.clone().into(),
-                        font_size: FontSize::Px(15.0),
+                        font_size: FontSize::Px(13.0),
                         ..default()
                     },
                     TextColor(TEXT_MUTED),
                 ));
             });
 
-            // 2. メインコンテンツ（左: 派閥グリッド, 右: 選択中の詳細）
+            // 2. メインコンテンツ（左: 派閥リスト, 右: 勢力詳細 + 惑星環境・マップ設定）
             root.spawn(Node {
                 width: Val::Percent(100.0),
-                height: Val::Px(420.0),
+                height: Val::Px(510.0),
                 flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(28.0),
+                column_gap: Val::Px(24.0),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Stretch,
                 ..default()
@@ -122,9 +142,9 @@ fn setup_faction_select_ui(
                 // 左: 6派閥カード一覧
                 content
                     .spawn(Node {
-                        width: Val::Px(480.0),
+                        width: Val::Px(450.0),
                         flex_direction: FlexDirection::Column,
-                        row_gap: Val::Px(10.0),
+                        row_gap: Val::Px(8.0),
                         justify_content: JustifyContent::Center,
                         ..default()
                     })
@@ -139,7 +159,7 @@ fn setup_faction_select_ui(
                                 FactionCard(faction),
                                 Node {
                                     width: Val::Percent(100.0),
-                                    padding: UiRect::axes(Val::Px(16.0), Val::Px(12.0)),
+                                    padding: UiRect::axes(Val::Px(14.0), Val::Px(10.0)),
                                     flex_direction: FlexDirection::Row,
                                     align_items: AlignItems::Center,
                                     justify_content: JustifyContent::SpaceBetween,
@@ -158,15 +178,15 @@ fn setup_faction_select_ui(
                                 card.spawn(Node {
                                     flex_direction: FlexDirection::Row,
                                     align_items: AlignItems::Center,
-                                    column_gap: Val::Px(12.0),
+                                    column_gap: Val::Px(10.0),
                                     ..default()
                                 })
                                 .with_children(|left| {
                                     // カラー識別マーカー
                                     left.spawn((
                                         Node {
-                                            width: Val::Px(12.0),
-                                            height: Val::Px(24.0),
+                                            width: Val::Px(10.0),
+                                            height: Val::Px(22.0),
                                             border_radius: BorderRadius::all(Val::Px(3.0)),
                                             ..default()
                                         },
@@ -177,7 +197,7 @@ fn setup_faction_select_ui(
                                         Text::new(format!("国{}【{}】", faction.code(), faction.name_ja())),
                                         TextFont {
                                             font: font_bold.clone().into(),
-                                            font_size: FontSize::Px(16.0),
+                                            font_size: FontSize::Px(15.0),
                                             ..default()
                                         },
                                         TextColor(TEXT_MAIN),
@@ -188,7 +208,7 @@ fn setup_faction_select_ui(
                                     Text::new(faction.name_en()),
                                     TextFont {
                                         font: font_regular.clone().into(),
-                                        font_size: FontSize::Px(13.0),
+                                        font_size: FontSize::Px(12.0),
                                         ..default()
                                     },
                                     TextColor(TEXT_MUTED),
@@ -197,63 +217,229 @@ fn setup_faction_select_ui(
                         }
                     });
 
-                // 右: 選択中派閥の詳細パネル
+                // 右: 勢力詳細 + 惑星環境・マップ設定パネル
                 content
                     .spawn((
+                        DetailPanelRoot,
                         Node {
-                            width: Val::Px(520.0),
+                            width: Val::Px(590.0),
                             flex_direction: FlexDirection::Column,
-                            row_gap: Val::Px(16.0),
-                            padding: UiRect::all(Val::Px(24.0)),
+                            row_gap: Val::Px(10.0),
+                            padding: UiRect::all(Val::Px(18.0)),
                             border: UiRect::all(Val::Px(1.5)),
                             border_radius: BorderRadius::all(Val::Px(8.0)),
+                            justify_content: JustifyContent::SpaceBetween,
                             ..default()
                         },
                         BorderColor::all(selected_menu.faction.primary_color()),
                         BackgroundColor(Color::srgba(0.06, 0.10, 0.16, 0.95)),
                     ))
                     .with_children(|panel| {
-                        // 派閥正式名称
+                        // 上部: 派閥情報
+                        panel.spawn(Node {
+                            flex_direction: FlexDirection::Column,
+                            row_gap: Val::Px(4.0),
+                            ..default()
+                        })
+                        .with_children(|faction_info| {
+                            // 派閥正式名称
+                            faction_info.spawn((
+                                DetailTitleText,
+                                Text::new(format!(
+                                    "{} ({})",
+                                    selected_menu.faction.formal_title(),
+                                    selected_menu.faction.name_ja()
+                                )),
+                                TextFont {
+                                    font: font_bold.clone().into(),
+                                    font_size: FontSize::Px(18.0),
+                                    ..default()
+                                },
+                                TextColor(selected_menu.faction.accent_color()),
+                            ));
+
+                            // 派閥説明
+                            faction_info.spawn((
+                                DetailDescText,
+                                Text::new(selected_menu.faction.description()),
+                                TextFont {
+                                    font: font_regular.clone().into(),
+                                    font_size: FontSize::Px(12.5),
+                                    ..default()
+                                },
+                                TextColor(TEXT_MAIN),
+                            ));
+                        });
+
+                        // 区切り線
                         panel.spawn((
-                            DetailTitleText,
-                            Text::new(format!(
-                                "{} ({})",
-                                selected_menu.faction.formal_title(),
-                                selected_menu.faction.name_ja()
-                            )),
-                            TextFont {
-                                font: font_bold.clone().into(),
-                                font_size: FontSize::Px(20.0),
+                            Node {
+                                width: Val::Percent(100.0),
+                                height: Val::Px(1.0),
                                 ..default()
                             },
-                            TextColor(selected_menu.faction.accent_color()),
+                            BackgroundColor(Color::srgba(0.25, 0.85, 0.75, 0.3)),
                         ));
 
-                        // 派閥説明
-                        panel.spawn((
-                            DetailDescText,
-                            Text::new(selected_menu.faction.description()),
-                            TextFont {
-                                font: font_regular.clone().into(),
-                                font_size: FontSize::Px(15.0),
-                                ..default()
-                            },
-                            TextColor(TEXT_MAIN),
-                        ));
+                        // 下部: 惑星環境・マップ設定セクション
+                        panel.spawn(Node {
+                            flex_direction: FlexDirection::Column,
+                            row_gap: Val::Px(8.0),
+                            ..default()
+                        })
+                        .with_children(|settings_sec| {
+                            settings_sec.spawn((
+                                Text::new("PLANET ENVIRONMENT // 探査環境 & マップ構成"),
+                                TextFont {
+                                    font: font_bold.clone().into(),
+                                    font_size: FontSize::Px(13.5),
+                                    ..default()
+                                },
+                                TextColor(ACCENT_CYAN),
+                            ));
 
-                        panel.spawn((
-                            Text::new(
-                                "【勢力特性】\n\
-                                 ・入植初期ボーナス: 指揮戦闘団 + 基礎資材\n\
-                                 ・母星文化圏に基づく独自の外交関係と戦略アフィニティ",
-                            ),
-                            TextFont {
-                                font: font_regular.clone().into(),
-                                font_size: FontSize::Px(13.0),
+                            // 1. 環境タイプボタン行
+                            settings_sec.spawn(Node {
+                                flex_direction: FlexDirection::Row,
+                                flex_wrap: FlexWrap::Wrap,
+                                row_gap: Val::Px(6.0),
+                                column_gap: Val::Px(6.0),
                                 ..default()
-                            },
-                            TextColor(TEXT_MUTED),
-                        ));
+                            })
+                            .with_children(|env_row| {
+                                for env in PlanetEnvironment::ALL {
+                                    let is_active = env == map_config.environment;
+                                    env_row.spawn((
+                                        Button,
+                                        SelectAction::ChooseEnvironment(env),
+                                        EnvButton(env),
+                                        Node {
+                                            padding: UiRect::axes(Val::Px(10.0), Val::Px(5.0)),
+                                            border: UiRect::all(Val::Px(if is_active { 2.0 } else { 1.0 })),
+                                            border_radius: BorderRadius::all(Val::Px(4.0)),
+                                            ..default()
+                                        },
+                                        BorderColor::all(if is_active { env.theme_color() } else { BORDER_COLOR }),
+                                        BackgroundColor(if is_active {
+                                            Color::srgba(0.18, 0.26, 0.38, 0.9)
+                                        } else {
+                                            PANEL_BG
+                                        }),
+                                    ))
+                                    .with_children(|btn| {
+                                        btn.spawn((
+                                            Text::new(env.name_ja()),
+                                            TextFont {
+                                                font: font_bold.clone().into(),
+                                                font_size: FontSize::Px(11.5),
+                                                ..default()
+                                            },
+                                            TextColor(if is_active { env.theme_color() } else { TEXT_MAIN }),
+                                        ));
+                                    });
+                                }
+                            });
+
+                            // 環境説明テキスト
+                            settings_sec.spawn((
+                                EnvDescText,
+                                Text::new(map_config.environment.description()),
+                                TextFont {
+                                    font: font_regular.clone().into(),
+                                    font_size: FontSize::Px(12.0),
+                                    ..default()
+                                },
+                                TextColor(TEXT_MUTED),
+                            ));
+
+                            // 2. マップサイズ選択 & シード再生成ボタン行
+                            settings_sec.spawn(Node {
+                                flex_direction: FlexDirection::Row,
+                                justify_content: JustifyContent::SpaceBetween,
+                                align_items: AlignItems::Center,
+                                margin: UiRect::top(Val::Px(4.0)),
+                                ..default()
+                            })
+                            .with_children(|size_seed_row| {
+                                // サイズ選択
+                                size_seed_row.spawn(Node {
+                                    flex_direction: FlexDirection::Row,
+                                    column_gap: Val::Px(6.0),
+                                    align_items: AlignItems::Center,
+                                    ..default()
+                                })
+                                .with_children(|size_group| {
+                                    size_group.spawn((
+                                        Text::new("サイズ:"),
+                                        TextFont {
+                                            font: font_regular.clone().into(),
+                                            font_size: FontSize::Px(12.0),
+                                            ..default()
+                                        },
+                                        TextColor(TEXT_MUTED),
+                                    ));
+
+                                    for sz in MapSize::ALL {
+                                        let is_active = sz == map_config.size;
+                                        size_group.spawn((
+                                            Button,
+                                            SelectAction::ChooseSize(sz),
+                                            SizeButton(sz),
+                                            Node {
+                                                padding: UiRect::axes(Val::Px(8.0), Val::Px(4.0)),
+                                                border: UiRect::all(Val::Px(if is_active { 1.5 } else { 1.0 })),
+                                                border_radius: BorderRadius::all(Val::Px(4.0)),
+                                                ..default()
+                                            },
+                                            BorderColor::all(if is_active { ACCENT_CYAN } else { BORDER_COLOR }),
+                                            BackgroundColor(if is_active {
+                                                Color::srgba(0.20, 0.35, 0.45, 0.9)
+                                            } else {
+                                                PANEL_BG
+                                            }),
+                                        ))
+                                        .with_children(|btn| {
+                                            btn.spawn((
+                                                Text::new(sz.name_ja()),
+                                                TextFont {
+                                                    font: font_regular.clone().into(),
+                                                    font_size: FontSize::Px(11.0),
+                                                    ..default()
+                                                },
+                                                TextColor(if is_active { Color::WHITE } else { TEXT_MAIN }),
+                                            ));
+                                        });
+                                    }
+                                });
+
+                                // シード再抽選ボタン
+                                size_seed_row.spawn((
+                                    Button,
+                                    SelectAction::RerollSeed,
+                                    Node {
+                                        padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
+                                        border: UiRect::all(Val::Px(1.0)),
+                                        border_radius: BorderRadius::all(Val::Px(4.0)),
+                                        align_items: AlignItems::Center,
+                                        ..default()
+                                    },
+                                    BorderColor::all(BORDER_COLOR),
+                                    BackgroundColor(PANEL_BG),
+                                ))
+                                .with_children(|btn| {
+                                    btn.spawn((
+                                        SeedDisplayText,
+                                        Text::new(format!("🎲 SEED: {}", map_config.seed)),
+                                        TextFont {
+                                            font: font_regular.clone().into(),
+                                            font_size: FontSize::Px(11.0),
+                                            ..default()
+                                        },
+                                        TextColor(TEXT_MAIN),
+                                    ));
+                                });
+                            });
+                        });
                     });
             });
 
@@ -271,7 +457,7 @@ fn setup_faction_select_ui(
                         SelectAction::Back,
                         Node {
                             width: Val::Px(160.0),
-                            height: Val::Px(46.0),
+                            height: Val::Px(44.0),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
                             border: UiRect::all(Val::Px(1.5)),
@@ -300,7 +486,7 @@ fn setup_faction_select_ui(
                         SelectAction::Confirm,
                         Node {
                             width: Val::Px(240.0),
-                            height: Val::Px(46.0),
+                            height: Val::Px(44.0),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
                             border: UiRect::all(Val::Px(2.0)),
@@ -344,9 +530,24 @@ type FactionSelectActionQuery<'world, 'state> = Query<
     (Changed<Interaction>, With<Button>),
 >;
 
+type DetailTitleTextQuery<'world, 'state> = Query<
+    'world,
+    'state,
+    (&'static mut Text, &'static mut TextColor),
+    (With<DetailTitleText>, Without<DetailDescText>),
+>;
+
+type DetailDescTextQuery<'world, 'state> = Query<
+    'world,
+    'state,
+    &'static mut Text,
+    (With<DetailDescText>, Without<DetailTitleText>),
+>;
+
 fn faction_select_button_system(
     mut interaction_query: FactionSelectInteractionQuery,
     selected_menu: Res<SelectedFactionMenu>,
+    map_config: Res<MapConfig>,
 ) {
     for (interaction, action, mut border_color, mut bg_color) in &mut interaction_query {
         match action {
@@ -368,6 +569,52 @@ fn faction_select_button_system(
                     }
                 }
             }
+            SelectAction::ChooseEnvironment(env) => {
+                let is_active = *env == map_config.environment;
+                match *interaction {
+                    Interaction::Pressed | Interaction::Hovered => {
+                        *border_color = BorderColor::all(env.theme_color());
+                        *bg_color = BackgroundColor(Color::srgba(0.22, 0.32, 0.45, 0.9));
+                    }
+                    Interaction::None => {
+                        if is_active {
+                            *border_color = BorderColor::all(env.theme_color());
+                            *bg_color = BackgroundColor(Color::srgba(0.18, 0.26, 0.38, 0.9));
+                        } else {
+                            *border_color = BorderColor::all(BORDER_COLOR);
+                            *bg_color = BackgroundColor(PANEL_BG);
+                        }
+                    }
+                }
+            }
+            SelectAction::ChooseSize(sz) => {
+                let is_active = *sz == map_config.size;
+                match *interaction {
+                    Interaction::Pressed | Interaction::Hovered => {
+                        *border_color = BorderColor::all(ACCENT_CYAN);
+                        *bg_color = BackgroundColor(Color::srgba(0.25, 0.40, 0.50, 0.9));
+                    }
+                    Interaction::None => {
+                        if is_active {
+                            *border_color = BorderColor::all(ACCENT_CYAN);
+                            *bg_color = BackgroundColor(Color::srgba(0.20, 0.35, 0.45, 0.9));
+                        } else {
+                            *border_color = BorderColor::all(BORDER_COLOR);
+                            *bg_color = BackgroundColor(PANEL_BG);
+                        }
+                    }
+                }
+            }
+            SelectAction::RerollSeed => match *interaction {
+                Interaction::Pressed | Interaction::Hovered => {
+                    *border_color = BorderColor::all(ACCENT_CYAN);
+                    *bg_color = BackgroundColor(Color::srgba(0.18, 0.28, 0.38, 0.9));
+                }
+                Interaction::None => {
+                    *border_color = BorderColor::all(BORDER_COLOR);
+                    *bg_color = BackgroundColor(PANEL_BG);
+                }
+            },
             SelectAction::Confirm => match *interaction {
                 Interaction::Pressed => {
                     *bg_color = BackgroundColor(Color::srgb(0.25, 0.65, 0.70));
@@ -393,14 +640,21 @@ fn faction_select_button_system(
     }
 }
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn faction_select_action_system(
     query: FactionSelectActionQuery,
     mut selected_menu: ResMut<SelectedFactionMenu>,
     mut player_faction: ResMut<PlayerFaction>,
+    mut map_config: ResMut<MapConfig>,
     mut next_state: ResMut<NextState<AppState>>,
-    mut title_query: Query<&mut Text, (With<DetailTitleText>, Without<DetailDescText>)>,
-    mut desc_query: Query<&mut Text, (With<DetailDescText>, Without<DetailTitleText>)>,
-    mut cards_query: Query<(&FactionCard, &mut BorderColor, &mut BackgroundColor)>,
+    mut title_query: DetailTitleTextQuery,
+    mut desc_query: DetailDescTextQuery,
+    mut env_desc_query: Query<&mut Text, (With<EnvDescText>, Without<DetailTitleText>, Without<DetailDescText>, Without<SeedDisplayText>)>,
+    mut seed_text_query: Query<&mut Text, (With<SeedDisplayText>, Without<DetailTitleText>, Without<DetailDescText>, Without<EnvDescText>)>,
+    mut cards_query: Query<(&FactionCard, &mut BorderColor, &mut BackgroundColor), (Without<EnvButton>, Without<SizeButton>)>,
+    mut env_btn_query: Query<(&EnvButton, &mut BorderColor, &mut BackgroundColor), (Without<FactionCard>, Without<SizeButton>)>,
+    mut size_btn_query: Query<(&SizeButton, &mut BorderColor, &mut BackgroundColor), (Without<FactionCard>, Without<EnvButton>)>,
+    mut panel_query: Query<&mut BorderColor, (With<DetailPanelRoot>, Without<FactionCard>, Without<EnvButton>, Without<SizeButton>)>,
 ) {
     for (interaction, action) in &query {
         if *interaction != Interaction::Pressed {
@@ -411,11 +665,16 @@ fn faction_select_action_system(
             SelectAction::Choose(faction) => {
                 selected_menu.faction = *faction;
 
-                if let Ok(mut text) = title_query.single_mut() {
+                if let Ok((mut text, mut text_color)) = title_query.single_mut() {
                     **text = format!("{} ({})", faction.formal_title(), faction.name_ja());
+                    *text_color = TextColor(faction.accent_color());
                 }
                 if let Ok(mut text) = desc_query.single_mut() {
                     **text = faction.description().to_string();
+                }
+
+                if let Ok(mut panel_border) = panel_query.single_mut() {
+                    *panel_border = BorderColor::all(faction.primary_color());
                 }
 
                 // カード枠のスタイル更新
@@ -428,6 +687,48 @@ fn faction_select_action_system(
                         *border_color = BorderColor::all(BORDER_COLOR);
                         *bg_color = BackgroundColor(PANEL_BG);
                     }
+                }
+            }
+            SelectAction::ChooseEnvironment(env) => {
+                map_config.environment = *env;
+
+                if let Ok(mut text) = env_desc_query.single_mut() {
+                    **text = env.description().to_string();
+                }
+
+                for (btn, mut border_color, mut bg_color) in &mut env_btn_query {
+                    let is_active = btn.0 == *env;
+                    if is_active {
+                        *border_color = BorderColor::all(btn.0.theme_color());
+                        *bg_color = BackgroundColor(Color::srgba(0.18, 0.26, 0.38, 0.9));
+                    } else {
+                        *border_color = BorderColor::all(BORDER_COLOR);
+                        *bg_color = BackgroundColor(PANEL_BG);
+                    }
+                }
+            }
+            SelectAction::ChooseSize(sz) => {
+                map_config.size = *sz;
+
+                for (btn, mut border_color, mut bg_color) in &mut size_btn_query {
+                    let is_active = btn.0 == *sz;
+                    if is_active {
+                        *border_color = BorderColor::all(ACCENT_CYAN);
+                        *bg_color = BackgroundColor(Color::srgba(0.20, 0.35, 0.45, 0.9));
+                    } else {
+                        *border_color = BorderColor::all(BORDER_COLOR);
+                        *bg_color = BackgroundColor(PANEL_BG);
+                    }
+                }
+            }
+            SelectAction::RerollSeed => {
+                // シンプルなLCGでシード値を変更
+                let new_seed = map_config.seed.wrapping_mul(1664525).wrapping_add(1013904223);
+                let display_seed = (new_seed % 90000) + 10000;
+                map_config.seed = display_seed;
+
+                if let Ok(mut text) = seed_text_query.single_mut() {
+                    **text = format!("🎲 SEED: {}", display_seed);
                 }
             }
             SelectAction::Confirm => {

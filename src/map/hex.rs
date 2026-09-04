@@ -30,9 +30,14 @@ impl HexCoord {
         Self { q, r: row }
     }
 
+    /// (col, row) のオフセット座標からHexCoordを作成（指定マップ幅でラップ）
+    pub fn from_col_row_with_width(col: i32, row: i32, map_width: i32) -> Self {
+        Self::from_col_row_unwrapped(col.rem_euclid(map_width), row)
+    }
+
     /// (col, row) のオフセット座標からHexCoordを作成
     pub fn from_col_row(col: i32, row: i32) -> Self {
-        Self::from_col_row_unwrapped(col.rem_euclid(MAP_WIDTH), row)
+        Self::from_col_row_with_width(col, row, MAP_WIDTH)
     }
 
     /// 横ループの正規化を行わない (col, row) のオフセット座標を取得
@@ -42,16 +47,27 @@ impl HexCoord {
         (col, row)
     }
 
+    /// (col, row) のオフセット座標を取得 (col は 0..map_width-1 に正規化)
+    pub fn to_col_row_with_width(self, map_width: i32) -> (i32, i32) {
+        let (col, row) = self.to_col_row_unwrapped();
+        (col.rem_euclid(map_width), row)
+    }
+
     /// (col, row) のオフセット座標を取得 (col は 0..MAP_WIDTH-1 に正規化)
     pub fn to_col_row(self) -> (i32, i32) {
-        let (col, row) = self.to_col_row_unwrapped();
-        (col.rem_euclid(MAP_WIDTH), row)
+        self.to_col_row_with_width(MAP_WIDTH)
+    }
+
+    /// 横ループを考慮して正規化された HexCoord を取得（指定マップ幅）
+    pub fn wrapped_with_width(self, map_width: i32) -> Self {
+        let (col, row) = self.to_col_row_with_width(map_width);
+        Self::from_col_row_with_width(col, row, map_width)
     }
 
     /// 横ループを考慮して正規化された HexCoord を取得
+    #[allow(dead_code)]
     pub fn wrapped(self) -> Self {
-        let (col, row) = self.to_col_row();
-        Self::from_col_row(col, row)
+        self.wrapped_with_width(MAP_WIDTH)
     }
 
     /// 立方体座標の s 成分 (q + r + s = 0)
@@ -60,14 +76,12 @@ impl HexCoord {
         -self.q - self.r
     }
 
-    /// 2つのヘックス間の距離（タイル数、横ループ考慮）
-    #[allow(dead_code)]
-    pub fn distance(self, other: HexCoord) -> i32 {
-        let (_c1, _r1) = self.to_col_row();
-        let (c2, r2) = other.to_col_row();
+    /// 2つのヘックス間の距離（タイル数、横ループ考慮、指定マップ幅）
+    pub fn distance_with_width(self, other: HexCoord, map_width: i32) -> i32 {
+        let (_c1, _r1) = self.to_col_row_with_width(map_width);
+        let (c2, r2) = other.to_col_row_with_width(map_width);
 
-        // 3つの可能性（そのまま、東へ1周、西へ1周）のうち最小の距離を取る
-        let offsets = [-MAP_WIDTH, 0, MAP_WIDTH];
+        let offsets = [-map_width, 0, map_width];
         let mut min_dist = i32::MAX;
 
         for offset in offsets {
@@ -83,8 +97,14 @@ impl HexCoord {
         min_dist
     }
 
-    /// 隣接する6つのヘックス座標を取得（横ループ考慮でラップ）
-    pub fn neighbors(self) -> [HexCoord; 6] {
+    /// 2つのヘックス間の距離（タイル数、横ループ考慮）
+    #[allow(dead_code)]
+    pub fn distance(self, other: HexCoord) -> i32 {
+        self.distance_with_width(other, MAP_WIDTH)
+    }
+
+    /// 隣接する6つのヘックス座標を取得（横ループ考慮でラップ、指定マップ幅）
+    pub fn neighbors_with_width(self, map_width: i32) -> [HexCoord; 6] {
         const DIRECTIONS: [(i32, i32); 6] = [
             (1, 0),
             (1, -1),
@@ -98,9 +118,15 @@ impl HexCoord {
         for i in 0..6 {
             let (dq, dr) = DIRECTIONS[i];
             let raw_coord = HexCoord::new(self.q + dq, self.r + dr);
-            res[i] = raw_coord.wrapped();
+            res[i] = raw_coord.wrapped_with_width(map_width);
         }
         res
+    }
+
+    /// 隣接する6つのヘックス座標を取得（横ループ考慮でラップ）
+    #[allow(dead_code)]
+    pub fn neighbors(self) -> [HexCoord; 6] {
+        self.neighbors_with_width(MAP_WIDTH)
     }
 
     /// ヘックス座標から 3D ワールド座標 (X, 0.0, Z) を計算
@@ -122,9 +148,8 @@ impl HexCoord {
         pos
     }
 
-    /// 3D ワールド座標 (X, Z) から最も近い HexCoord を逆算（Pointy-topped）
-    /// 横ループを考慮して正規化
-    pub fn from_world_pos(pos: Vec3, hex_radius: f32) -> Self {
+    /// 3D ワールド座標 (X, Z) から最も近い HexCoord を逆算（Pointy-topped、指定マップ幅）
+    pub fn from_world_pos_with_width(pos: Vec3, hex_radius: f32, map_width: i32) -> Self {
         let sqrt3 = 3.0f32.sqrt();
         let q_frac = (sqrt3 / 3.0 * pos.x - 1.0 / 3.0 * pos.z) / hex_radius;
         let r_frac = (2.0 / 3.0 * pos.z) / hex_radius;
@@ -144,14 +169,25 @@ impl HexCoord {
             r = -q - s;
         }
 
-        HexCoord::new(q, r).wrapped()
+        HexCoord::new(q, r).wrapped_with_width(map_width)
+    }
+
+    /// 3D ワールド座標 (X, Z) から最も近い HexCoord を逆算（Pointy-topped）
+    /// 横ループを考慮して正規化
+    pub fn from_world_pos(pos: Vec3, hex_radius: f32) -> Self {
+        Self::from_world_pos_with_width(pos, hex_radius, MAP_WIDTH)
     }
 }
 
-/// マップのワールド空間における1周分の横幅（X軸メートル）
-pub fn map_world_width(hex_radius: f32) -> f32 {
+/// 指定マップ幅における1周分のワールド横幅（X軸メートル）
+pub fn map_world_width_with_width(hex_radius: f32, map_width: i32) -> f32 {
     let sqrt3 = 3.0f32.sqrt();
-    hex_radius * sqrt3 * (MAP_WIDTH as f32)
+    hex_radius * sqrt3 * (map_width as f32)
+}
+
+/// マップのワールド空間における1周分の横幅（X軸メートル、デフォルト幅）
+pub fn map_world_width(hex_radius: f32) -> f32 {
+    map_world_width_with_width(hex_radius, MAP_WIDTH)
 }
 
 #[cfg(test)]

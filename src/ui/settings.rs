@@ -49,9 +49,11 @@ impl Default for FpsLimiterState {
 fn setup_environment_settings_system(
     mut settings: ResMut<GameSettings>,
     adapter_info: Option<Res<bevy::render::renderer::RenderAdapterInfo>>,
+    system_info: Option<Res<bevy::diagnostic::SystemInfo>>,
 ) {
     let adapter_ref = adapter_info.as_deref();
-    let env_settings = GameSettings::default_for_environment(adapter_ref);
+    let sys_ref = system_info.as_deref();
+    let env_settings = GameSettings::default_for_environment(adapter_ref, sys_ref);
     settings.fps_limit = env_settings.fps_limit;
     settings.shadows_enabled = env_settings.shadows_enabled;
     settings.anti_aliasing = env_settings.anti_aliasing;
@@ -182,27 +184,70 @@ pub struct GameSettings {
 }
 
 impl GameSettings {
-    /// 実行マシンのGPU環境（ディスクリートGPUか統合GPUか等）に応じたデフォルト設定を生成
-    pub fn default_for_environment(adapter_info: Option<&bevy::render::renderer::RenderAdapterInfo>) -> Self {
-        let (fps_limit, anti_aliasing, shadows_enabled) = match adapter_info {
-            Some(info) => {
-                // device_type は wgpu::DeviceType (DiscreteGpu, IntegratedGpu, Cpu, VirtualGpu, Other)
-                let type_str = format!("{:?}", info.device_type);
-                if type_str.contains("DiscreteGpu") {
-                    info!("Detected Discrete GPU ({}). Applying high quality graphics preset.", info.name);
-                    (FpsLimitMode::Fps60, AntiAliasingMode::Msaa4x, true)
-                } else if type_str.contains("IntegratedGpu") {
-                    info!("Detected Integrated GPU ({}). Applying medium quality graphics preset.", info.name);
-                    (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
-                } else if type_str.contains("Cpu") {
-                    info!("Detected CPU/Software renderer ({}). Applying lightweight graphics preset.", info.name);
-                    (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
-                } else {
-                    info!("Detected GPU ({}, type: {}). Applying standard graphics preset.", info.name, type_str);
-                    (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
+    /// 実行マシンのGPU環境やメモリ・CPU環境に応じたデフォルト設定を生成。
+    /// メモリ16GB未満または1コア以下の場合は問答無用でローグラフィックを適用する。
+    /// また devプロファイル（debug_assertions 有効時）でもローグラフィックを適用する。
+    pub fn default_for_environment(
+        adapter_info: Option<&bevy::render::renderer::RenderAdapterInfo>,
+        system_info: Option<&bevy::diagnostic::SystemInfo>,
+    ) -> Self {
+        // Bevyの SystemInfo (bevy_diagnostic) からメモリ量およびコア数を判定
+        // system_info.memory は "16.00 GiB" や "31.84 GiB" などの文字列
+        // system_info.core_count は "8" などの物理コア数文字列
+        let (mem_below_16gb, is_single_core) = if let Some(sys) = system_info {
+            let mem_gb = sys
+                .memory
+                .split_whitespace()
+                .next()
+                .and_then(|val| val.parse::<f64>().ok());
+            let is_below_16 = mem_gb.map(|gb| gb < 15.5).unwrap_or(false);
+
+            let cores = sys.core_count.parse::<usize>().unwrap_or(4);
+            let is_single = cores <= 1;
+
+            (is_below_16, is_single)
+        } else {
+            (false, false)
+        };
+
+        let (fps_limit, anti_aliasing, shadows_enabled) = if mem_below_16gb {
+            let mem_str = system_info.map(|s| s.memory.as_str()).unwrap_or("Unknown");
+            info!(
+                "System memory ({}) is below 16 GB threshold. Enforcing low graphics preset.",
+                mem_str
+            );
+            (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
+        } else if is_single_core {
+            let core_str = system_info.map(|s| s.core_count.as_str()).unwrap_or("1");
+            info!(
+                "System CPU count ({} core) is 1 core or less. Enforcing low graphics preset.",
+                core_str
+            );
+            (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
+        } else if cfg!(debug_assertions) {
+            info!("Running in dev/debug build. Applying low quality graphics preset for performance.");
+            (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
+        } else {
+            match adapter_info {
+                Some(info) => {
+                    // device_type は wgpu::DeviceType (DiscreteGpu, IntegratedGpu, Cpu, VirtualGpu, Other)
+                    let type_str = format!("{:?}", info.device_type);
+                    if type_str.contains("DiscreteGpu") {
+                        info!("Detected Discrete GPU ({}). Applying high quality graphics preset.", info.name);
+                        (FpsLimitMode::Fps60, AntiAliasingMode::Msaa4x, true)
+                    } else if type_str.contains("IntegratedGpu") {
+                        info!("Detected Integrated GPU ({}). Applying medium quality graphics preset.", info.name);
+                        (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
+                    } else if type_str.contains("Cpu") {
+                        info!("Detected CPU/Software renderer ({}). Applying lightweight graphics preset.", info.name);
+                        (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
+                    } else {
+                        info!("Detected GPU ({}, type: {}). Applying standard graphics preset.", info.name, type_str);
+                        (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
+                    }
                 }
+                None => (FpsLimitMode::Fps60, AntiAliasingMode::Msaa4x, true),
             }
-            None => (FpsLimitMode::Fps60, AntiAliasingMode::Msaa4x, true),
         };
 
         Self {
@@ -222,7 +267,7 @@ impl GameSettings {
 
 impl Default for GameSettings {
     fn default() -> Self {
-        Self::default_for_environment(None)
+        Self::default_for_environment(None, None)
     }
 }
 
@@ -1049,6 +1094,7 @@ struct SettingsButtonActionContext<'w, 's> {
     asset_server: Res<'w, AssetServer>,
     modal_query: Query<'w, 's, Entity, With<ReturnToTitleConfirmModal>>,
     adapter_info: Option<Res<'w, bevy::render::renderer::RenderAdapterInfo>>,
+    system_info: Option<Res<'w, bevy::diagnostic::SystemInfo>>,
 }
 
 fn settings_button_action_system(
@@ -1111,7 +1157,10 @@ fn settings_button_action_system(
                 }
                 SettingsButtonAction::ResetDefaults => {
                     info!("Resetting settings to system environment default values...");
-                    let defaults = GameSettings::default_for_environment(ctx.adapter_info.as_deref());
+                    let defaults = GameSettings::default_for_environment(
+                        ctx.adapter_info.as_deref(),
+                        ctx.system_info.as_deref(),
+                    );
                     ctx.settings.master_volume = defaults.master_volume;
                     ctx.settings.bgm_volume = defaults.bgm_volume;
                     ctx.settings.sfx_volume = defaults.sfx_volume;
@@ -1429,6 +1478,7 @@ struct SettingsNavState<'w> {
     settings: ResMut<'w, GameSettings>,
     next_state: ResMut<'w, NextState<AppState>>,
     adapter_info: Option<Res<'w, bevy::render::renderer::RenderAdapterInfo>>,
+    system_info: Option<Res<'w, bevy::diagnostic::SystemInfo>>,
 }
 
 /// 矢印キーおよび決定・キャンセルキーによる設定画面のキーボード操作システム
@@ -1652,7 +1702,10 @@ fn settings_keyboard_navigation_system(
             }
             SettingsFocusItem::ResetDefaults => {
                 info!("Resetting settings to system environment default values via Enter/Space...");
-                let defaults = GameSettings::default_for_environment(state.adapter_info.as_deref());
+                let defaults = GameSettings::default_for_environment(
+                    state.adapter_info.as_deref(),
+                    state.system_info.as_deref(),
+                );
                 state.settings.master_volume = defaults.master_volume;
                 state.settings.bgm_volume = defaults.bgm_volume;
                 state.settings.sfx_volume = defaults.sfx_volume;
