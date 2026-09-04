@@ -170,7 +170,7 @@ fn pan_zoom_camera_system(
                     let world_delta_z = delta.y * world_per_pixel / sin_angle;
 
                     // カーソルのドラッグに合わせてマップを直感的に掴んで動かす（ドラッグ方向と逆にカメラ移動）
-                    let drag_offset = Vec3::new(-world_delta_x, 0.0, world_delta_z);
+                    let drag_offset = Vec3::new(-world_delta_x, 0.0, -world_delta_z);
                     map_cam.target_focal_point += drag_offset;
                     map_cam.current_focal_point += drag_offset;
                 }
