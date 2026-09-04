@@ -4,7 +4,9 @@ use bevy::prelude::*;
 pub enum AppState {
     #[default]
     Title,
+    FactionSelect,
     InGame,
     PauseMenu,
     Settings,
 }
+

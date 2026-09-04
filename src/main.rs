@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 
 mod camera;
+mod faction;
 mod map;
 mod state;
 mod ui;
 mod world;
 
 use camera::CameraPlugin;
+use faction::FactionPlugin;
 use map::MapPlugin;
 use state::AppState;
 use ui::GameUiPlugin;
@@ -30,7 +32,6 @@ fn main() {
                 }),
         )
         .init_state::<AppState>()
-        .add_plugins((CameraPlugin, WorldPlugin, MapPlugin, GameUiPlugin))
+        .add_plugins((CameraPlugin, WorldPlugin, MapPlugin, FactionPlugin, GameUiPlugin))
         .run();
 }
-

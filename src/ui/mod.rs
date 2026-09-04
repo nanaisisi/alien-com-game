@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+pub mod diplomacy;
+pub mod faction_select;
 pub mod hud;
 pub mod pause;
 pub mod settings;
@@ -11,11 +13,14 @@ impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             title::TitleUiPlugin,
+            faction_select::FactionSelectPlugin,
             settings::SettingsUiPlugin,
             hud::InGameHudPlugin,
+            diplomacy::DiplomacyUiPlugin,
             pause::PauseMenuPlugin,
         ));
     }
 }
+
 
 

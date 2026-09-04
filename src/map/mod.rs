@@ -68,7 +68,7 @@ pub fn create_hex_mesh(radius: f32, height: f32) -> Mesh {
     cylinder.mesh().resolution(6).build()
 }
 
-fn generate_hex_map(
+pub fn generate_hex_map(
     mut commands: Commands,
     mut map_grid: ResMut<MapGrid>,
     mut meshes: ResMut<Assets<Mesh>>,

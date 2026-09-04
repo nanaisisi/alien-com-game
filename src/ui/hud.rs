@@ -58,6 +58,7 @@ struct HudRoot;
 #[derive(Component, Debug, Clone, Copy)]
 enum HudAction {
     EndTurn,
+    OpenDiplomacy,
     OpenMenu,
 }
 
@@ -89,6 +90,7 @@ fn setup_hud(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     resources: Res<FactionResources>,
+    player_faction: Res<crate::faction::types::PlayerFaction>,
     existing_hud: Query<Entity, With<HudRoot>>,
 ) {
     if !existing_hud.is_empty() {
@@ -139,26 +141,28 @@ fn setup_hud(
                         ..default()
                     })
                     .with_children(|left| {
+                        let f = player_faction.0;
+                        let f_badge_text = format!("国{}【{}】// {}", f.code(), f.name_ja(), f.name_en());
                         // 勢力名バッジ
                         left.spawn((
                             Node {
                                 padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
-                                border: UiRect::all(Val::Px(1.0)),
+                                border: UiRect::all(Val::Px(1.5)),
                                 border_radius: BorderRadius::all(Val::Px(4.0)),
                                 ..default()
                             },
-                            BackgroundColor(Color::srgba(0.12, 0.22, 0.32, 0.8)),
-                            BorderColor::all(ACCENT_CYAN),
+                            BackgroundColor(Color::srgba(0.12, 0.18, 0.26, 0.85)),
+                            BorderColor::all(f.primary_color()),
                         ))
                         .with_children(|badge| {
                             badge.spawn((
-                                Text::new("COLONY COMMAND // 植民司令部"),
+                                Text::new(f_badge_text),
                                 TextFont {
                                     font: font_bold.clone().into(),
                                     font_size: FontSize::Px(13.0),
                                     ..default()
                                 },
-                                TextColor(ACCENT_CYAN),
+                                TextColor(f.accent_color()),
                             ));
                         });
 
@@ -241,7 +245,7 @@ fn setup_hud(
                         );
                     });
 
-                // 右側: メニューボタン
+                // 右側: 外交・メニューボタン
                 top_bar
                     .spawn(Node {
                         flex_direction: FlexDirection::Row,
@@ -250,6 +254,35 @@ fn setup_hud(
                         ..default()
                     })
                     .with_children(|right| {
+                        // 外交ボタン
+                        right
+                            .spawn((
+                                Button,
+                                HudAction::OpenDiplomacy,
+                                Node {
+                                    padding: UiRect::axes(Val::Px(14.0), Val::Px(6.0)),
+                                    border: UiRect::all(Val::Px(1.5)),
+                                    border_radius: BorderRadius::all(Val::Px(6.0)),
+                                    align_items: AlignItems::Center,
+                                    justify_content: JustifyContent::Center,
+                                    ..default()
+                                },
+                                BorderColor::all(ACCENT_CYAN),
+                                BackgroundColor(Color::srgba(0.10, 0.25, 0.32, 0.85)),
+                            ))
+                            .with_children(|btn| {
+                                btn.spawn((
+                                    Text::new("惑星外交 (F)"),
+                                    TextFont {
+                                        font: font_bold.clone().into(),
+                                        font_size: FontSize::Px(13.0),
+                                        ..default()
+                                    },
+                                    TextColor(ACCENT_CYAN),
+                                ));
+                            });
+
+                        // 設定・メニューボタン
                         right
                             .spawn((
                                 Button,
@@ -267,7 +300,7 @@ fn setup_hud(
                             ))
                             .with_children(|btn| {
                                 btn.spawn((
-                                    Text::new("\u{f013} 設定 / メニュー (ESC)"),
+                                    Text::new("\u{f013} メニュー (ESC)"),
                                     TextFont {
                                         font: font_bold.clone().into(),
                                         font_size: FontSize::Px(13.0),
@@ -415,6 +448,20 @@ fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
                     *border_color = BorderColor::all(ACCENT_CYAN);
                 }
             },
+            HudAction::OpenDiplomacy => match *interaction {
+                Interaction::Pressed => {
+                    *bg_color = BackgroundColor(BUTTON_PRESSED);
+                    *border_color = BorderColor::all(Color::WHITE);
+                }
+                Interaction::Hovered => {
+                    *bg_color = BackgroundColor(Color::srgb(0.16, 0.35, 0.44));
+                    *border_color = BorderColor::all(Color::WHITE);
+                }
+                Interaction::None => {
+                    *bg_color = BackgroundColor(Color::srgba(0.10, 0.25, 0.32, 0.85));
+                    *border_color = BorderColor::all(ACCENT_CYAN);
+                }
+            },
             HudAction::OpenMenu => match *interaction {
                 Interaction::Pressed => {
                     *bg_color = BackgroundColor(BUTTON_PRESSED);
@@ -440,17 +487,41 @@ type ButtonActionQuery<'world, 'state> = Query<
     (Changed<Interaction>, With<Button>),
 >;
 
+#[allow(clippy::too_many_arguments)]
 fn hud_button_action_system(
     query: ButtonActionQuery,
     mut resources: ResMut<FactionResources>,
     mut settings: ResMut<crate::ui::settings::GameSettings>,
     mut next_state: ResMut<NextState<AppState>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    player_faction: Res<crate::faction::types::PlayerFaction>,
+    faction_mgr: Res<crate::faction::types::FactionManager>,
+    mut modal_state: ResMut<crate::ui::diplomacy::DiplomacyModalState>,
 ) {
     for (interaction, action) in &query {
         if *interaction == Interaction::Pressed {
             match action {
                 HudAction::EndTurn => {
                     advance_turn(&mut resources);
+                }
+                HudAction::OpenDiplomacy => {
+                    modal_state.is_open = !modal_state.is_open;
+                    if modal_state.is_open {
+                        if modal_state.selected_target.is_none() {
+                            modal_state.selected_target = crate::faction::types::FactionId::ALL
+                                .iter()
+                                .copied()
+                                .find(|&f| f != player_faction.0);
+                        }
+                        crate::ui::diplomacy::spawn_diplomacy_modal(
+                            &mut commands,
+                            &asset_server,
+                            player_faction.0,
+                            &modal_state,
+                            &faction_mgr,
+                        );
+                    }
                 }
                 HudAction::OpenMenu => {
                     info!("Opening Pause Menu...");

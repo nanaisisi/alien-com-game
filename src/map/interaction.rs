@@ -253,6 +253,7 @@ fn update_tile_highlight_system(
 fn update_info_panel_system(
     selected: Res<SelectedTile>,
     map_grid: Res<MapGrid>,
+    territory_map: Res<crate::faction::territory::TerritoryMap>,
     mut query: Query<&mut Text, With<InfoPanelText>>,
 ) {
     if !selected.is_changed() {
@@ -281,8 +282,15 @@ fn update_info_panel_system(
             let center_coord = HexCoord::from_col_row(crate::map::GRID_WIDTH / 2, 0);
             let dist_from_center = coord.distance(center_coord);
 
+            let owner_str = if let Some(owner) = territory_map.tile_owners.get(&coord) {
+                format!("国{}【{}】({})", owner.code(), owner.name_ja(), owner.formal_title())
+            } else {
+                "未領有・未開拓域 (Neutral Territory)".to_string()
+            };
+
             let info = format!(
                 "【ヘックス座標】\n  col: {}, row: {} (q: {}, r: {})\n  中心からの距離: {}\n\n\
+                 【領有勢力】\n  {}\n\n\
                  【地形種別】\n  {}\n\n\
                  【移動コスト】: {}\n\
                  【地上移動】: {}\n\n\
@@ -292,6 +300,7 @@ fn update_info_panel_system(
                 coord.q,
                 coord.r,
                 dist_from_center,
+                owner_str,
                 terrain.name(),
                 move_cost_str,
                 passable_str

@@ -270,8 +270,8 @@ fn execute_title_action(
 ) {
     match action {
         MenuButtonAction::NewGame => {
-            info!("Starting New Game...");
-            next_state.set(AppState::InGame);
+            info!("Transitioning to Faction Selection...");
+            next_state.set(AppState::FactionSelect);
         }
         MenuButtonAction::LoadGame => {
             info!("Load Game clicked (WIP)");
