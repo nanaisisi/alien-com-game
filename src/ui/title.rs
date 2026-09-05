@@ -52,16 +52,14 @@ const MENU_ACTIONS: [MenuButtonAction; 4] = [
 #[derive(Component)]
 struct TitleMenuButton(usize);
 
-// 配色テーマ: SF感のあるダークサイバー / ディープスペース調
-const NORMAL_BUTTON: Color = Color::srgb(0.12, 0.16, 0.22);
-const HOVERED_BUTTON: Color = Color::srgb(0.20, 0.32, 0.45);
-const PRESSED_BUTTON: Color = Color::srgb(0.15, 0.50, 0.65);
-const TEXT_COLOR: Color = Color::srgb(0.92, 0.95, 0.98);
-const ACCENT_COLOR: Color = Color::srgb(0.25, 0.85, 0.75);
+use super::theme::{
+    self, BUTTON_HOVERED as HOVERED_BUTTON, BUTTON_NORMAL as NORMAL_BUTTON,
+    BUTTON_PRESSED as PRESSED_BUTTON, ACCENT_COLOR, TEXT_MAIN as TEXT_COLOR,
+};
 
 fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
-    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
+    let font_regular = asset_server.load(theme::FONT_REGULAR);
+    let font_bold = asset_server.load(theme::FONT_BOLD);
 
     // タイトルルートコンテナ（全画面フルスクリーン）
     commands

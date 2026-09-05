@@ -282,18 +282,11 @@ pub enum SettingValueLabel {
     AntiAliasing,
 }
 
-// カラーテーマ（title.rsと統一感のあるSFダークサイバー調）
-pub const PANEL_BG: Color = Color::srgba(0.06, 0.09, 0.14, 0.94);
-pub const ROW_BG: Color = Color::srgba(0.10, 0.14, 0.20, 0.70);
-pub const NORMAL_BUTTON: Color = Color::srgb(0.14, 0.19, 0.26);
-pub const HOVERED_BUTTON: Color = Color::srgb(0.22, 0.35, 0.48);
-pub const PRESSED_BUTTON: Color = Color::srgb(0.18, 0.52, 0.68);
-pub const BORDER_COLOR: Color = Color::srgb(0.25, 0.38, 0.50);
-pub const ACCENT_COLOR: Color = Color::srgb(0.25, 0.85, 0.75);
-pub const TEXT_COLOR: Color = Color::srgb(0.92, 0.95, 0.98);
-
-// 警告・赤色ボタンカラー
-pub const DANGER_NORMAL_BUTTON: Color = Color::srgb(0.55, 0.15, 0.18);
-pub const DANGER_HOVERED_BUTTON: Color = Color::srgb(0.72, 0.22, 0.26);
-pub const DANGER_PRESSED_BUTTON: Color = Color::srgb(0.85, 0.30, 0.35);
-pub const DANGER_BORDER: Color = Color::srgb(0.80, 0.35, 0.35);
+// カラーテーマ（ui::theme より再エクスポート）
+pub use crate::ui::theme::{
+    ACCENT_COLOR, BORDER_COLOR, BORDER_DANGER as DANGER_BORDER,
+    BUTTON_DANGER_HOVERED as DANGER_HOVERED_BUTTON, BUTTON_DANGER_NORMAL as DANGER_NORMAL_BUTTON,
+    BUTTON_DANGER_PRESSED as DANGER_PRESSED_BUTTON, BUTTON_HOVERED as HOVERED_BUTTON,
+    BUTTON_NORMAL as NORMAL_BUTTON, BUTTON_PRESSED as PRESSED_BUTTON, PANEL_BG, ROW_BG,
+    TEXT_MAIN as TEXT_COLOR,
+};

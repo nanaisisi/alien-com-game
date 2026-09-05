@@ -71,16 +71,10 @@ enum HudLabel {
     Food,
 }
 
-// カラーテーマ（全体と統一したSFディープサイバー調）
-const HUD_BG: Color = Color::srgba(0.05, 0.08, 0.13, 0.92);
-const BORDER_COLOR: Color = Color::srgb(0.20, 0.35, 0.48);
-const ACCENT_CYAN: Color = Color::srgb(0.25, 0.85, 0.75);
-const TEXT_MAIN: Color = Color::srgb(0.92, 0.96, 0.98);
-const TEXT_MUTED: Color = Color::srgb(0.60, 0.72, 0.80);
-
-const BUTTON_NORMAL: Color = Color::srgb(0.12, 0.18, 0.26);
-const BUTTON_HOVER: Color = Color::srgb(0.18, 0.32, 0.46);
-const BUTTON_PRESSED: Color = Color::srgb(0.25, 0.55, 0.70);
+use super::theme::{
+    self, ACCENT_COLOR as ACCENT_CYAN, BORDER_COLOR, BUTTON_HOVERED as BUTTON_HOVER,
+    BUTTON_NORMAL, BUTTON_PRESSED, PANEL_BG as HUD_BG, TEXT_MAIN, TEXT_MUTED,
+};
 
 const END_TURN_NORMAL: Color = Color::srgb(0.10, 0.30, 0.35);
 const END_TURN_HOVER: Color = Color::srgb(0.16, 0.48, 0.55);
@@ -97,8 +91,8 @@ fn setup_hud(
         return;
     }
 
-    let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
-    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
+    let font_regular = asset_server.load(theme::FONT_REGULAR);
+    let font_bold = asset_server.load(theme::FONT_BOLD);
 
     commands
         .spawn((

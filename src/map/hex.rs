@@ -1,8 +1,12 @@
 use bevy::prelude::*;
 
-/// 横ループマップのサイズ定義
-pub const MAP_WIDTH: i32 = 28;  // 横方向タイル数（東西方向、ループする）
-pub const MAP_HEIGHT: i32 = 16; // 縦方向タイル数（南北方向、-MAP_HEIGHT/2 .. MAP_HEIGHT/2）
+/// デフォルト（テスト・フォールバック用）マップサイズ定義
+pub const DEFAULT_MAP_WIDTH: i32 = 28;
+pub const DEFAULT_MAP_HEIGHT: i32 = 16;
+
+/// 後方互換用エイリアス（動的マップサイズ時は MapGrid / MapConfig の幅を参照してください）
+pub const MAP_WIDTH: i32 = DEFAULT_MAP_WIDTH;
+pub const MAP_HEIGHT: i32 = DEFAULT_MAP_HEIGHT;
 
 /// 軸座標系 (Axial Coordinates: q, r)
 /// Pointy-topped (上が尖った六角形) を採用
@@ -35,7 +39,8 @@ impl HexCoord {
         Self::from_col_row_unwrapped(col.rem_euclid(map_width), row)
     }
 
-    /// (col, row) のオフセット座標からHexCoordを作成
+    /// (col, row) のオフセット座標からHexCoordを作成（デフォルト幅）
+    #[allow(dead_code)]
     pub fn from_col_row(col: i32, row: i32) -> Self {
         Self::from_col_row_with_width(col, row, MAP_WIDTH)
     }
@@ -53,7 +58,8 @@ impl HexCoord {
         (col.rem_euclid(map_width), row)
     }
 
-    /// (col, row) のオフセット座標を取得 (col は 0..MAP_WIDTH-1 に正規化)
+    /// (col, row) のオフセット座標を取得 (col は 0..MAP_WIDTH-1 に正規化、デフォルト幅)
+    #[allow(dead_code)]
     pub fn to_col_row(self) -> (i32, i32) {
         self.to_col_row_with_width(MAP_WIDTH)
     }

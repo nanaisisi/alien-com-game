@@ -50,12 +50,10 @@ struct TargetRelationText;
 #[derive(Component)]
 struct DiplomacyNoticeText;
 
-const MODAL_BG: Color = Color::srgba(0.04, 0.08, 0.14, 0.96);
-const CARD_BG: Color = Color::srgba(0.08, 0.14, 0.22, 0.85);
-const BORDER_COLOR: Color = Color::srgb(0.22, 0.38, 0.52);
-const ACCENT_CYAN: Color = Color::srgb(0.25, 0.85, 0.75);
-const TEXT_MAIN: Color = Color::srgb(0.92, 0.96, 0.98);
-const TEXT_MUTED: Color = Color::srgb(0.60, 0.72, 0.82);
+use super::theme::{
+    self, ACCENT_COLOR as ACCENT_CYAN, BORDER_COLOR, CARD_BG, OVERLAY_BG as MODAL_BG, TEXT_MAIN,
+    TEXT_MUTED,
+};
 
 fn toggle_diplomacy_modal_system(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -110,8 +108,8 @@ pub fn spawn_diplomacy_modal(
     modal_state: &DiplomacyModalState,
     faction_mgr: &FactionManager,
 ) {
-    let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
-    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
+    let font_regular = asset_server.load(theme::FONT_REGULAR);
+    let font_bold = asset_server.load(theme::FONT_BOLD);
 
     let target_f = modal_state
         .selected_target

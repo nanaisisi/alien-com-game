@@ -64,18 +64,21 @@ fn setup_minimap_ui(
     asset_server: Res<AssetServer>,
     mut images: ResMut<Assets<Image>>,
     mut minimap_state: ResMut<MinimapState>,
+    map_config: Res<crate::map::settings::MapConfig>,
     existing: Query<Entity, With<MinimapRoot>>,
 ) {
     if !existing.is_empty() {
         return;
     }
 
-    let font_regular = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
-    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
+    let font_regular = asset_server.load(crate::ui::theme::FONT_REGULAR);
+    let font_bold = asset_server.load(crate::ui::theme::FONT_BOLD);
 
     // 初期のプレースホルダー画像を作成（後ほど update_minimap_texture_system でマップデータから描画）
-    let img_width = (MAP_WIDTH as u32) * 8;
-    let img_height = (MAP_HEIGHT as u32) * 8;
+    let map_w = map_config.width();
+    let map_h = map_config.height();
+    let img_width = (map_w as u32) * 8;
+    let img_height = (map_h as u32) * 8;
     let mut image = Image::new_fill(
         Extent3d {
             width: img_width,
@@ -151,6 +154,7 @@ fn setup_minimap_ui(
                 .spawn((
                     MinimapImageNode,
                     Interaction::default(),
+                    bevy::ui::RelativeCursorPosition::default(),
                     Node {
                         width: Val::Px(MINIMAP_WIDTH),
                         height: Val::Px(MINIMAP_HEIGHT),
@@ -403,13 +407,18 @@ fn handle_minimap_interaction_system(
     mouse_button: Res<ButtonInput<MouseButton>>,
     mut minimap_state: ResMut<MinimapState>,
     map_grid: Res<MapGrid>,
-    image_query: Query<(&GlobalTransform, &Node, &Interaction), With<MinimapImageNode>>,
+    image_query: Query<(
+        &GlobalTransform,
+        &Node,
+        &Interaction,
+        &bevy::ui::RelativeCursorPosition,
+    ), With<MinimapImageNode>>,
     mut camera_query: Query<&mut MapCamera>,
 ) {
     let Ok(window) = windows.single() else {
         return;
     };
-    let Ok((gt, node, interaction)) = image_query.single() else {
+    let Ok((gt, node, interaction, rel_cursor)) = image_query.single() else {
         return;
     };
     let Ok(mut map_cam) = camera_query.single_mut() else {
@@ -427,14 +436,15 @@ fn handle_minimap_interaction_system(
         _ => Vec2::new(MINIMAP_WIDTH, MINIMAP_HEIGHT),
     };
 
-    // Bevy UIのGlobalTransform translationはノードの中心
+    // ノードの左上と右下のスクリーン座標（Bevy UI GlobalTransformはノードの中心）
     let min = Vec2::new(translation.x - size.x * 0.5, translation.y - size.y * 0.5);
 
-    // Bevy UIのInteractionシステムによるPressed判定、またはマウス押下時の矩形内判定
-    let is_inside = cursor_pos.x >= min.x
-        && cursor_pos.x <= min.x + size.x
-        && cursor_pos.y >= min.y
-        && cursor_pos.y <= min.y + size.y;
+    // Bevy UIのInteractionシステムによる判定、またはマウス押下時の矩形内判定
+    let is_inside = rel_cursor.normalized.is_some()
+        || (cursor_pos.x >= min.x
+            && cursor_pos.x <= min.x + size.x
+            && cursor_pos.y >= min.y
+            && cursor_pos.y <= min.y + size.y);
 
     if *interaction == Interaction::Pressed
         || (mouse_button.just_pressed(MouseButton::Left) && is_inside)
@@ -447,8 +457,15 @@ fn handle_minimap_interaction_system(
     }
 
     if minimap_state.is_dragging && mouse_button.pressed(MouseButton::Left) {
-        let norm_x = ((cursor_pos.x - min.x) / size.x).clamp(0.0, 1.0);
-        let norm_y = ((cursor_pos.y - min.y) / size.y).clamp(0.0, 1.0);
+        // RelativeCursorPosition::normalized (0.0..1.0) が取得できれば最優先で使用。
+        // ドラッグで外側に少しはみ出た場合でも cursor_pos と min/size から正確にクランプ計算。
+        let (norm_x, norm_y) = if let Some(normalized) = rel_cursor.normalized {
+            (normalized.x.clamp(0.0, 1.0), normalized.y.clamp(0.0, 1.0))
+        } else {
+            let nx = ((cursor_pos.x - min.x) / size.x).clamp(0.0, 1.0);
+            let ny = ((cursor_pos.y - min.y) / size.y).clamp(0.0, 1.0);
+            (nx, ny)
+        };
 
         let map_w = if map_grid.width > 0 { map_grid.width } else { MAP_WIDTH };
         let map_h = if map_grid.height > 0 { map_grid.height } else { MAP_HEIGHT };

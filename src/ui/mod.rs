@@ -6,6 +6,7 @@ pub mod hud;
 pub mod minimap;
 pub mod pause;
 pub mod settings;
+pub mod theme;
 pub mod title;
 
 pub struct GameUiPlugin;

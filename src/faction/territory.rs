@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use super::types::{FactionId, FactionManager};
-use crate::map::hex::{HexCoord, MAP_WIDTH};
+use crate::map::hex::HexCoord;
 use crate::map::terrain::TerrainType;
 use crate::map::MapGrid;
 
@@ -32,6 +32,7 @@ pub struct TerritoryMap {
 pub fn setup_initial_faction_territories(
     mut commands: Commands,
     map_grid: Res<MapGrid>,
+    map_config: Res<crate::map::settings::MapConfig>,
     mut territory_map: ResMut<TerritoryMap>,
     mut faction_manager: ResMut<FactionManager>,
 ) {
@@ -46,8 +47,8 @@ pub fn setup_initial_faction_territories(
 
     info!("Initializing initial faction outposts and territories...");
 
-    let map_w = if map_grid.width > 0 { map_grid.width } else { MAP_WIDTH };
-    let map_h = if map_grid.height > 0 { map_grid.height } else { crate::map::hex::MAP_HEIGHT };
+    let map_w = if map_grid.width > 0 { map_grid.width } else { map_config.width() };
+    let map_h = if map_grid.height > 0 { map_grid.height } else { map_config.height() };
     let half_h = map_h / 2;
 
     // 6派閥の理想的な上陸候補地（経度方向 col を均等に分割し、通行可能陸地を探索）

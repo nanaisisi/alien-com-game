@@ -58,8 +58,8 @@ fn setup_interaction_ui(
         return;
     }
 
-    let font = asset_server.load("fonts/UDEVGothicNF-Regular.ttf");
-    let font_bold = asset_server.load("fonts/UDEVGothicNF-Bold.ttf");
+    let font = asset_server.load(crate::ui::theme::FONT_REGULAR);
+    let font_bold = asset_server.load(crate::ui::theme::FONT_BOLD);
 
     // 左下に配置する半透明情報パネル
     commands
@@ -77,8 +77,8 @@ fn setup_interaction_ui(
                 border_radius: BorderRadius::all(Val::Px(8.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.06, 0.10, 0.16, 0.90)),
-            BorderColor::all(Color::srgb(0.25, 0.85, 0.75)),
+            BackgroundColor(crate::ui::theme::PANEL_BG),
+            BorderColor::all(crate::ui::theme::ACCENT_COLOR),
         ))
         .with_children(|parent| {
             // パネル見出し
@@ -139,10 +139,11 @@ fn handle_tile_hover_and_click(
     let w = window.width();
     let h = window.height().max(1.0);
 
-    // UI領域（上部バー y <= 58, 左下パネル x <= 360 && y >= h - 260, 右下ボタン・ミニマップ x >= w - 260 && y >= h - 290）上ではタイル操作を無効化
+    // UI領域（上部バー y <= 58, 左下パネル x <= 360 && y >= h - 260, 右下ボタン・ミニマップ x >= w - 280 && y >= h - 310）上、
+    // またはミニマップドラッグ中ではタイル操作を無効化
     let is_over_top_bar = cursor_pos.y <= 58.0;
     let is_over_left_panel = cursor_pos.x <= 360.0 && cursor_pos.y >= (h - 260.0);
-    let is_over_right_panel = cursor_pos.x >= (w - 260.0) && cursor_pos.y >= (h - 290.0);
+    let is_over_right_panel = cursor_pos.x >= (w - 280.0) && cursor_pos.y >= (h - 310.0);
 
     if is_over_top_bar || is_over_left_panel || is_over_right_panel {
         hovered_tile.0 = None;
@@ -172,7 +173,7 @@ fn handle_tile_hover_and_click(
                 let world_delta_x = delta.x * world_per_pixel;
                 let world_delta_z = delta.y * world_per_pixel / sin_angle;
 
-                let drag_offset = Vec3::new(-world_delta_x, 0.0, world_delta_z);
+                let drag_offset = Vec3::new(-world_delta_x, 0.0, -world_delta_z);
                 map_cam.target_focal_point += drag_offset;
                 map_cam.current_focal_point += drag_offset;
             }
@@ -282,9 +283,10 @@ fn update_info_panel_system(
                 format!("{:.1}", terrain.movement_cost())
             };
 
-            let (col, row) = coord.to_col_row();
-            let center_coord = HexCoord::from_col_row(crate::map::GRID_WIDTH / 2, 0);
-            let dist_from_center = coord.distance(center_coord);
+            let map_w = if map_grid.width > 0 { map_grid.width } else { crate::map::GRID_WIDTH };
+            let (col, row) = coord.to_col_row_with_width(map_w);
+            let center_coord = HexCoord::from_col_row_with_width(map_w / 2, 0, map_w);
+            let dist_from_center = coord.distance_with_width(center_coord, map_w);
 
             let owner_str = if let Some(owner) = territory_map.tile_owners.get(&coord) {
                 format!("国{}【{}】({})", owner.code(), owner.name_ja(), owner.formal_title())

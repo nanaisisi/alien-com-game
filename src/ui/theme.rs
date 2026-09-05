@@ -1,0 +1,49 @@
+use bevy::prelude::*;
+
+// -----------------------------------------------------------------------------
+// フォントリソース定数
+// -----------------------------------------------------------------------------
+pub const FONT_REGULAR: &str = "fonts/UDEVGothicNF-Regular.ttf";
+pub const FONT_BOLD: &str = "fonts/UDEVGothicNF-Bold.ttf";
+
+// -----------------------------------------------------------------------------
+// 基本パレット（SFサイバー / ディープスペース調）
+// -----------------------------------------------------------------------------
+/// 全画面オーバーレイ（背後を暗く透かす背景）
+pub const OVERLAY_BG: Color = Color::srgba(0.02, 0.04, 0.07, 0.82);
+
+/// パネルの主背景色
+pub const PANEL_BG: Color = Color::srgba(0.06, 0.09, 0.14, 0.95);
+
+/// カード・サブパネルの背景色
+pub const CARD_BG: Color = Color::srgba(0.08, 0.14, 0.22, 0.85);
+
+/// 行・リスト項目の背景色
+pub const ROW_BG: Color = Color::srgba(0.10, 0.14, 0.20, 0.70);
+
+/// 通常の境界線カラー
+pub const BORDER_COLOR: Color = Color::srgb(0.22, 0.38, 0.52);
+
+/// ハイライト／アクティブな境界線・アクセントシアン
+pub const ACCENT_COLOR: Color = Color::srgb(0.25, 0.85, 0.75);
+
+/// テキスト主色（高コントラスト白）
+pub const TEXT_MAIN: Color = Color::srgb(0.92, 0.96, 0.98);
+
+/// テキスト補助色（淡い水色・グレー）
+pub const TEXT_MUTED: Color = Color::srgb(0.60, 0.72, 0.82);
+
+// -----------------------------------------------------------------------------
+// ボタン状態カラー（通常ボタン）
+// -----------------------------------------------------------------------------
+pub const BUTTON_NORMAL: Color = Color::srgb(0.12, 0.16, 0.22);
+pub const BUTTON_HOVERED: Color = Color::srgb(0.20, 0.32, 0.45);
+pub const BUTTON_PRESSED: Color = Color::srgb(0.15, 0.50, 0.65);
+
+// -----------------------------------------------------------------------------
+// ボタン状態カラー（警告・危険ボタン: 破棄/終了/キャンセル等）
+// -----------------------------------------------------------------------------
+pub const BUTTON_DANGER_NORMAL: Color = Color::srgb(0.55, 0.15, 0.18);
+pub const BUTTON_DANGER_HOVERED: Color = Color::srgb(0.72, 0.22, 0.26);
+pub const BUTTON_DANGER_PRESSED: Color = Color::srgb(0.85, 0.30, 0.35);
+pub const BORDER_DANGER: Color = Color::srgb(0.80, 0.35, 0.35);
