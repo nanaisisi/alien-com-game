@@ -4,8 +4,11 @@ use super::types::*;
 use crate::ui::theme::UiTheme;
 
 pub fn setup_pause_menu_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font_regular = asset_server.load(UiTheme::FONTS.regular);
-    let font_bold = asset_server.load(UiTheme::FONTS.bold);
+    let font_regular = asset_server.load(UiTheme::fonts().regular());
+    let font_bold = asset_server.load(UiTheme::fonts().bold());
+    let surfaces = UiTheme::surfaces();
+    let text = UiTheme::text();
+    let standard_btn = UiTheme::button(false);
 
     // 全画面オーバーレイ（背後のゲーム画面をうっすら暗く透かす）
     commands
@@ -18,7 +21,7 @@ pub fn setup_pause_menu_ui(mut commands: Commands, asset_server: Res<AssetServer
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.02, 0.04, 0.07, 0.82)),
+            BackgroundColor(surfaces.overlay()),
             GlobalZIndex(80),
         ))
         .with_children(|root| {
@@ -34,8 +37,8 @@ pub fn setup_pause_menu_ui(mut commands: Commands, asset_server: Res<AssetServer
                     border_radius: BorderRadius::all(Val::Px(12.0)),
                     ..default()
                 },
-                BorderColor::all(UiTheme::SURFACES.border),
-                BackgroundColor(UiTheme::SURFACES.panel),
+                BorderColor::all(surfaces.border()),
+                BackgroundColor(surfaces.panel()),
             ))
             .with_children(|panel| {
                 // ヘッダータイトル
@@ -46,7 +49,7 @@ pub fn setup_pause_menu_ui(mut commands: Commands, asset_server: Res<AssetServer
                         font_size: FontSize::Px(26.0),
                         ..default()
                     },
-                    TextColor(UiTheme::SURFACES.accent),
+                    TextColor(surfaces.accent()),
                 ));
 
                 // 区切り線
@@ -60,7 +63,7 @@ pub fn setup_pause_menu_ui(mut commands: Commands, asset_server: Res<AssetServer
                     BackgroundColor(Color::srgba(0.25, 0.38, 0.50, 0.5)),
                 ));
 
-                // 縦並びボタンリスト
+                // ボタン定義リスト
                 let buttons_info = [
                     (
                         "ゲームに戻る (RESUME)",
@@ -106,9 +109,9 @@ pub fn setup_pause_menu_ui(mut commands: Commands, asset_server: Res<AssetServer
                             BorderColor::all(if is_danger_type {
                                 Color::srgb(0.55, 0.25, 0.25)
                             } else {
-                                UiTheme::SURFACES.border
+                                surfaces.border()
                             }),
-                            BackgroundColor(UiTheme::BUTTONS.standard.normal),
+                            BackgroundColor(standard_btn.normal()),
                         ))
                         .with_children(|btn| {
                             btn.spawn((
@@ -121,7 +124,7 @@ pub fn setup_pause_menu_ui(mut commands: Commands, asset_server: Res<AssetServer
                                 TextColor(if is_danger_type {
                                     Color::srgb(0.95, 0.75, 0.75)
                                 } else {
-                                    UiTheme::TEXT.main
+                                    text.main()
                                 }),
                             ));
                         });
@@ -150,8 +153,12 @@ pub fn spawn_pause_confirm_modal(
     asset_server: &AssetServer,
     modal_type: PauseModalType,
 ) {
-    let font_regular = asset_server.load(UiTheme::FONTS.regular);
-    let font_bold = asset_server.load(UiTheme::FONTS.bold);
+    let font_regular = asset_server.load(UiTheme::fonts().regular());
+    let font_bold = asset_server.load(UiTheme::fonts().bold());
+    let surfaces = UiTheme::surfaces();
+    let text = UiTheme::text();
+    let danger_btn = UiTheme::button(true);
+    let standard_btn = UiTheme::button(false);
 
     let (title_text, desc_text, confirm_btn_text) = match modal_type {
         PauseModalType::ReturnToTitle => (
@@ -193,7 +200,7 @@ pub fn spawn_pause_confirm_modal(
                         border_radius: BorderRadius::all(Val::Px(12.0)),
                         ..default()
                     },
-                    BorderColor::all(UiTheme::BUTTONS.danger.border),
+                    BorderColor::all(danger_btn.border()),
                     BackgroundColor(Color::srgba(0.08, 0.05, 0.06, 0.98)),
                 ))
                 .with_children(|modal| {
@@ -224,7 +231,7 @@ pub fn spawn_pause_confirm_modal(
                                     font_size: FontSize::Px(17.0),
                                     ..default()
                                 },
-                                TextColor(UiTheme::TEXT.main),
+                                TextColor(text.main()),
                             ));
 
                             msg_container.spawn((
@@ -264,8 +271,8 @@ pub fn spawn_pause_confirm_modal(
                                         border_radius: BorderRadius::all(Val::Px(8.0)),
                                         ..default()
                                     },
-                                    BorderColor::all(UiTheme::BUTTONS.danger.border),
-                                    BackgroundColor(UiTheme::BUTTONS.danger.normal),
+                                    BorderColor::all(danger_btn.border()),
+                                    BackgroundColor(danger_btn.normal()),
                                 ))
                                 .with_children(|btn| {
                                     btn.spawn((
@@ -273,7 +280,7 @@ pub fn spawn_pause_confirm_modal(
                                         TextFont {
                                             font: font_bold.clone().into(),
                                             font_size: FontSize::Px(14.0),
-                                            ..default()
+                                             ..default()
                                         },
                                         TextColor(Color::srgb(1.0, 0.9, 0.9)),
                                     ));
@@ -294,8 +301,8 @@ pub fn spawn_pause_confirm_modal(
                                         border_radius: BorderRadius::all(Val::Px(8.0)),
                                         ..default()
                                     },
-                                    BorderColor::all(UiTheme::SURFACES.accent),
-                                    BackgroundColor(UiTheme::BUTTONS.standard.normal),
+                                    BorderColor::all(surfaces.accent()),
+                                    BackgroundColor(standard_btn.normal()),
                                 ))
                                 .with_children(|btn| {
                                     btn.spawn((
@@ -305,7 +312,7 @@ pub fn spawn_pause_confirm_modal(
                                             font_size: FontSize::Px(14.0),
                                             ..default()
                                         },
-                                        TextColor(UiTheme::TEXT.main),
+                                        TextColor(text.main()),
                                     ));
                                 });
                         });

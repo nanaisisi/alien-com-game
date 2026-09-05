@@ -60,8 +60,9 @@ fn setup_interaction_ui(
         return;
     }
 
-    let font = asset_server.load(UiTheme::FONTS.regular);
-    let font_bold = asset_server.load(UiTheme::FONTS.bold);
+    let font = asset_server.load(UiTheme::fonts().regular());
+    let font_bold = asset_server.load(UiTheme::fonts().bold());
+    let surfaces = UiTheme::surfaces();
 
     // 左下に配置する半透明情報パネル
     commands
@@ -80,8 +81,8 @@ fn setup_interaction_ui(
                 border_radius: BorderRadius::all(Val::Px(8.0)),
                 ..default()
             },
-            BackgroundColor(UiTheme::SURFACES.panel),
-            BorderColor::all(UiTheme::SURFACES.accent),
+            BackgroundColor(surfaces.panel()),
+            BorderColor::all(surfaces.accent()),
         ))
         .with_children(|parent| {
             // パネル見出し
@@ -92,7 +93,7 @@ fn setup_interaction_ui(
                     font_size: FontSize::Px(14.0),
                     ..default()
                 },
-                TextColor(UiTheme::SURFACES.accent),
+                TextColor(surfaces.accent()),
             ));
 
             // 詳細テキスト

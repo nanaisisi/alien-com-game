@@ -95,10 +95,118 @@ pub struct FontTheme {
     pub bold: &'static str,
 }
 
+impl ButtonStyle {
+    #[inline]
+    pub const fn normal(&self) -> Color {
+        self.normal
+    }
+
+    #[inline]
+    pub const fn hovered(&self) -> Color {
+        self.hovered
+    }
+
+    #[inline]
+    pub const fn pressed(&self) -> Color {
+        self.pressed
+    }
+
+    #[inline]
+    pub const fn border(&self) -> Color {
+        self.border
+    }
+}
+
+#[allow(dead_code)]
+impl ButtonTheme {
+    #[inline]
+    pub const fn standard(&self) -> &ButtonStyle {
+        &self.standard
+    }
+
+    #[inline]
+    pub const fn danger(&self) -> &ButtonStyle {
+        &self.danger
+    }
+
+    #[inline]
+    pub const fn get(&self, danger: bool) -> &ButtonStyle {
+        if danger {
+            &self.danger
+        } else {
+            &self.standard
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl SurfaceTheme {
+    #[inline]
+    pub const fn overlay(&self) -> Color {
+        self.overlay
+    }
+
+    #[inline]
+    pub const fn panel(&self) -> Color {
+        self.panel
+    }
+
+    #[inline]
+    pub const fn card(&self) -> Color {
+        self.card
+    }
+
+    #[inline]
+    pub const fn row(&self) -> Color {
+        self.row
+    }
+
+    #[inline]
+    pub const fn border(&self) -> Color {
+        self.border
+    }
+
+    #[inline]
+    pub const fn accent(&self) -> Color {
+        self.accent
+    }
+}
+
+#[allow(dead_code)]
+impl TextTheme {
+    #[inline]
+    pub const fn main(&self) -> Color {
+        self.main
+    }
+
+    #[inline]
+    pub const fn muted(&self) -> Color {
+        self.muted
+    }
+
+    #[inline]
+    pub const fn accent(&self) -> Color {
+        self.accent
+    }
+}
+
+impl FontTheme {
+    #[inline]
+    pub const fn regular(&self) -> &'static str {
+        self.regular
+    }
+
+    #[inline]
+    pub const fn bold(&self) -> &'static str {
+        self.bold
+    }
+}
+
 /// 統一UIテーマインターフェース
 #[derive(Debug, Clone, Copy, Default)]
 pub struct UiTheme;
 
+#[allow(dead_code)]
 impl UiTheme {
     pub const BUTTONS: ButtonTheme = ButtonTheme {
         standard: ButtonStyle {
@@ -134,4 +242,29 @@ impl UiTheme {
         regular: FONT_REGULAR,
         bold: FONT_BOLD,
     };
+
+    #[inline]
+    pub const fn buttons() -> &'static ButtonTheme {
+        &Self::BUTTONS
+    }
+
+    #[inline]
+    pub const fn button(danger: bool) -> &'static ButtonStyle {
+        Self::BUTTONS.get(danger)
+    }
+
+    #[inline]
+    pub const fn surfaces() -> &'static SurfaceTheme {
+        &Self::SURFACES
+    }
+
+    #[inline]
+    pub const fn text() -> &'static TextTheme {
+        &Self::TEXT
+    }
+
+    #[inline]
+    pub const fn fonts() -> &'static FontTheme {
+        &Self::FONTS
+    }
 }

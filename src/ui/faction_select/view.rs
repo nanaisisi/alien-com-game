@@ -14,8 +14,10 @@ pub fn setup_faction_select_ui(
 ) {
     selected_menu.faction = player_faction.0;
 
-    let font_regular = asset_server.load(UiTheme::FONTS.regular);
-    let font_bold = asset_server.load(UiTheme::FONTS.bold);
+    let font_regular = asset_server.load(UiTheme::fonts().regular());
+    let font_bold = asset_server.load(UiTheme::fonts().bold());
+    let surfaces = UiTheme::surfaces();
+    let text = UiTheme::text();
 
     commands
         .spawn((
@@ -29,7 +31,7 @@ pub fn setup_faction_select_ui(
                 padding: UiRect::axes(Val::Px(32.0), Val::Px(16.0)),
                 ..default()
             },
-            BackgroundColor(UiTheme::SURFACES.overlay),
+            BackgroundColor(surfaces.overlay()),
         ))
         .with_children(|root| {
             // 1. ヘッダー
@@ -47,7 +49,7 @@ pub fn setup_faction_select_ui(
                         font_size: FontSize::Px(26.0),
                         ..default()
                     },
-                    TextColor(UiTheme::SURFACES.accent),
+                    TextColor(surfaces.accent()),
                 ));
 
                 header.spawn((
@@ -57,7 +59,7 @@ pub fn setup_faction_select_ui(
                         font_size: FontSize::Px(13.0),
                         ..default()
                     },
-                    TextColor(UiTheme::TEXT.muted),
+                    TextColor(text.muted()),
                 ));
             });
 
@@ -100,11 +102,11 @@ pub fn setup_faction_select_ui(
                                     border_radius: BorderRadius::all(Val::Px(6.0)),
                                     ..default()
                                 },
-                                BorderColor::all(if is_active { f_col } else { UiTheme::SURFACES.border }),
+                                BorderColor::all(if is_active { f_col } else { surfaces.border() }),
                                 BackgroundColor(if is_active {
                                     Color::srgba(0.15, 0.22, 0.32, 0.9)
                                 } else {
-                                    UiTheme::SURFACES.card
+                                    surfaces.card()
                                 }),
                             ))
                             .with_children(|card| {
@@ -133,7 +135,7 @@ pub fn setup_faction_select_ui(
                                             font_size: FontSize::Px(15.0),
                                             ..default()
                                         },
-                                        TextColor(UiTheme::TEXT.main),
+                                        TextColor(text.main()),
                                     ));
                                 });
 
@@ -144,7 +146,7 @@ pub fn setup_faction_select_ui(
                                         font_size: FontSize::Px(12.0),
                                         ..default()
                                     },
-                                    TextColor(UiTheme::TEXT.muted),
+                                    TextColor(text.muted()),
                                 ));
                             });
                         }
@@ -200,7 +202,7 @@ pub fn setup_faction_select_ui(
                                     font_size: FontSize::Px(12.5),
                                     ..default()
                                 },
-                                TextColor(UiTheme::TEXT.main),
+                                TextColor(text.main()),
                             ));
                         });
 
@@ -228,7 +230,7 @@ pub fn setup_faction_select_ui(
                                     font_size: FontSize::Px(13.5),
                                     ..default()
                                 },
-                                TextColor(UiTheme::SURFACES.accent),
+                                TextColor(surfaces.accent()),
                             ));
 
                             // 1. 環境タイプボタン行
@@ -252,11 +254,11 @@ pub fn setup_faction_select_ui(
                                             border_radius: BorderRadius::all(Val::Px(4.0)),
                                             ..default()
                                         },
-                                        BorderColor::all(if is_active { env.theme_color() } else { UiTheme::SURFACES.border }),
+                                        BorderColor::all(if is_active { env.theme_color() } else { surfaces.border() }),
                                         BackgroundColor(if is_active {
                                             Color::srgba(0.18, 0.26, 0.38, 0.9)
                                         } else {
-                                            UiTheme::SURFACES.card
+                                            surfaces.card()
                                         }),
                                     ))
                                     .with_children(|btn| {
@@ -267,7 +269,7 @@ pub fn setup_faction_select_ui(
                                                 font_size: FontSize::Px(11.5),
                                                 ..default()
                                             },
-                                            TextColor(if is_active { env.theme_color() } else { UiTheme::TEXT.main }),
+                                            TextColor(if is_active { env.theme_color() } else { text.main() }),
                                         ));
                                     });
                                 }
@@ -282,7 +284,7 @@ pub fn setup_faction_select_ui(
                                     font_size: FontSize::Px(12.0),
                                     ..default()
                                 },
-                                TextColor(UiTheme::TEXT.muted),
+                                TextColor(text.muted()),
                             ));
 
                             // 2. マップサイズ選択 & シード再生成ボタン行
@@ -307,7 +309,7 @@ pub fn setup_faction_select_ui(
                                             font_size: FontSize::Px(12.0),
                                             ..default()
                                         },
-                                        TextColor(UiTheme::TEXT.muted),
+                                        TextColor(text.muted()),
                                     ));
 
                                     // シード再抽選ボタン
@@ -321,8 +323,8 @@ pub fn setup_faction_select_ui(
                                             align_items: AlignItems::Center,
                                             ..default()
                                         },
-                                        BorderColor::all(UiTheme::SURFACES.border),
-                                        BackgroundColor(UiTheme::SURFACES.card),
+                                        BorderColor::all(surfaces.border()),
+                                        BackgroundColor(surfaces.card()),
                                     ))
                                     .with_children(|btn| {
                                         btn.spawn((
@@ -333,7 +335,7 @@ pub fn setup_faction_select_ui(
                                                 font_size: FontSize::Px(11.0),
                                                 ..default()
                                             },
-                                            TextColor(UiTheme::TEXT.main),
+                                            TextColor(text.main()),
                                         ));
                                     });
                                 });
@@ -360,11 +362,11 @@ pub fn setup_faction_select_ui(
                                                 border_radius: BorderRadius::all(Val::Px(4.0)),
                                                 ..default()
                                             },
-                                            BorderColor::all(if is_active { UiTheme::SURFACES.accent } else { UiTheme::SURFACES.border }),
+                                            BorderColor::all(if is_active { surfaces.accent() } else { surfaces.border() }),
                                             BackgroundColor(if is_active {
                                                 Color::srgba(0.20, 0.35, 0.45, 0.9)
                                             } else {
-                                                UiTheme::SURFACES.card
+                                                surfaces.card()
                                             }),
                                         ))
                                         .with_children(|btn| {
@@ -375,7 +377,7 @@ pub fn setup_faction_select_ui(
                                                     font_size: FontSize::Px(10.5),
                                                     ..default()
                                                 },
-                                                TextColor(if is_active { Color::WHITE } else { UiTheme::TEXT.main }),
+                                                TextColor(if is_active { Color::WHITE } else { text.main() }),
                                             ));
                                         });
                                     }
@@ -406,8 +408,8 @@ pub fn setup_faction_select_ui(
                             border_radius: BorderRadius::all(Val::Px(6.0)),
                             ..default()
                         },
-                        BorderColor::all(UiTheme::SURFACES.border),
-                        BackgroundColor(UiTheme::SURFACES.card),
+                        BorderColor::all(surfaces.border()),
+                        BackgroundColor(surfaces.card()),
                     ))
                     .with_children(|btn| {
                         btn.spawn((
@@ -417,7 +419,7 @@ pub fn setup_faction_select_ui(
                                 font_size: FontSize::Px(15.0),
                                 ..default()
                             },
-                            TextColor(UiTheme::TEXT.muted),
+                            TextColor(text.muted()),
                         ));
                     });
 
@@ -435,7 +437,7 @@ pub fn setup_faction_select_ui(
                             border_radius: BorderRadius::all(Val::Px(6.0)),
                             ..default()
                         },
-                        BorderColor::all(UiTheme::SURFACES.accent),
+                        BorderColor::all(surfaces.accent()),
                         BackgroundColor(Color::srgb(0.12, 0.35, 0.40)),
                     ))
                     .with_children(|btn| {

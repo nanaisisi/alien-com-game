@@ -65,25 +65,28 @@ pub fn button_interaction_system(
 
     let current_selected = focus.selected_index;
 
+    let standard_btn = UiTheme::button(false);
+    let surfaces = UiTheme::surfaces();
+
     // スタイルの同期
     for (interaction, mut bg_color, mut border_color, menu_btn) in &mut interaction_query {
         let is_selected = current_selected == Some(menu_btn.0);
 
         match *interaction {
             Interaction::Pressed => {
-                *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.pressed);
-                *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                *bg_color = BackgroundColor(standard_btn.pressed());
+                *border_color = BorderColor::all(surfaces.accent());
             }
             Interaction::Hovered => {
-                *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
-                *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                *bg_color = BackgroundColor(standard_btn.hovered());
+                *border_color = BorderColor::all(surfaces.accent());
             }
             Interaction::None => {
                 if is_selected {
-                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
-                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                    *bg_color = BackgroundColor(standard_btn.hovered());
+                    *border_color = BorderColor::all(surfaces.accent());
                 } else {
-                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
+                    *bg_color = BackgroundColor(standard_btn.normal());
                     *border_color = BorderColor::all(Color::srgb(0.25, 0.38, 0.50));
                 }
             }

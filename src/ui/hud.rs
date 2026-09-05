@@ -89,8 +89,10 @@ fn setup_hud(
         return;
     }
 
-    let font_regular = asset_server.load(UiTheme::FONTS.regular);
-    let font_bold = asset_server.load(UiTheme::FONTS.bold);
+    let font_regular = asset_server.load(UiTheme::fonts().regular());
+    let font_bold = asset_server.load(UiTheme::fonts().bold());
+    let surfaces = UiTheme::surfaces();
+    let text = UiTheme::text();
 
     commands
         .spawn((
@@ -121,8 +123,8 @@ fn setup_hud(
                     border: UiRect::bottom(Val::Px(1.5)),
                     ..default()
                 },
-                BackgroundColor(UiTheme::SURFACES.panel),
-                BorderColor::all(UiTheme::SURFACES.border),
+                BackgroundColor(surfaces.panel()),
+                BorderColor::all(surfaces.border()),
             ))
             .with_children(|top_bar| {
                 // 左側: ターン表示 & 勢力名
@@ -168,7 +170,7 @@ fn setup_hud(
                                 font_size: FontSize::Px(18.0),
                                 ..default()
                             },
-                            TextColor(UiTheme::TEXT.main),
+                            TextColor(text.main()),
                         ));
                     });
 
@@ -288,8 +290,8 @@ fn setup_hud(
                                     justify_content: JustifyContent::Center,
                                     ..default()
                                 },
-                                BorderColor::all(UiTheme::SURFACES.border),
-                                BackgroundColor(UiTheme::BUTTONS.standard.normal),
+                                BorderColor::all(surfaces.border()),
+                                BackgroundColor(UiTheme::button(false).normal()),
                             ))
                             .with_children(|btn| {
                                 btn.spawn((
@@ -299,7 +301,7 @@ fn setup_hud(
                                         font_size: FontSize::Px(13.0),
                                         ..default()
                                     },
-                                    TextColor(UiTheme::TEXT.main),
+                                    TextColor(text.main()),
                                 ));
                             });
                     });
@@ -337,7 +339,7 @@ fn setup_hud(
                             row_gap: Val::Px(2.0),
                             ..default()
                         },
-                        BorderColor::all(UiTheme::SURFACES.accent),
+                        BorderColor::all(surfaces.accent()),
                         BackgroundColor(END_TURN_NORMAL),
                     ))
                     .with_children(|btn| {
@@ -348,7 +350,7 @@ fn setup_hud(
                                 font_size: FontSize::Px(18.0),
                                 ..default()
                             },
-                            TextColor(UiTheme::SURFACES.accent),
+                            TextColor(surfaces.accent()),
                         ));
 
                         btn.spawn((
@@ -358,7 +360,7 @@ fn setup_hud(
                                 font_size: FontSize::Px(11.0),
                                 ..default()
                             },
-                            TextColor(UiTheme::TEXT.muted),
+                            TextColor(Color::srgb(0.70, 0.85, 0.90)),
                         ));
                     });
             });
@@ -374,6 +376,8 @@ fn spawn_resource_item(
     font_regular: &Handle<Font>,
     font_bold: &Handle<Font>,
 ) {
+    let text = UiTheme::text();
+
     parent
         .spawn(Node {
             flex_direction: FlexDirection::Row,
@@ -407,7 +411,7 @@ fn spawn_resource_item(
                     font_size: FontSize::Px(13.0),
                     ..default()
                 },
-                TextColor(UiTheme::TEXT.main),
+                TextColor(text.main()),
             ));
         });
 }
@@ -426,6 +430,9 @@ type ButtonInteractionQuery<'world, 'state> = Query<
 >;
 
 fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
+    let surfaces = UiTheme::surfaces();
+    let standard_btn = UiTheme::button(false);
+
     for (interaction, mut bg_color, mut border_color, action) in &mut query {
         match action {
             HudAction::EndTurn => match *interaction {
@@ -439,12 +446,12 @@ fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
                 }
                 Interaction::None => {
                     *bg_color = BackgroundColor(END_TURN_NORMAL);
-                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                    *border_color = BorderColor::all(surfaces.accent());
                 }
             },
             HudAction::OpenDiplomacy => match *interaction {
                 Interaction::Pressed => {
-                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.pressed);
+                    *bg_color = BackgroundColor(standard_btn.pressed());
                     *border_color = BorderColor::all(Color::WHITE);
                 }
                 Interaction::Hovered => {
@@ -453,21 +460,21 @@ fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
                 }
                 Interaction::None => {
                     *bg_color = BackgroundColor(Color::srgba(0.10, 0.25, 0.32, 0.85));
-                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                    *border_color = BorderColor::all(surfaces.accent());
                 }
             },
             HudAction::OpenMenu => match *interaction {
                 Interaction::Pressed => {
-                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.pressed);
-                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                    *bg_color = BackgroundColor(standard_btn.pressed());
+                    *border_color = BorderColor::all(surfaces.accent());
                 }
                 Interaction::Hovered => {
-                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
-                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                    *bg_color = BackgroundColor(standard_btn.hovered());
+                    *border_color = BorderColor::all(surfaces.accent());
                 }
                 Interaction::None => {
-                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
-                    *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                    *bg_color = BackgroundColor(standard_btn.normal());
+                    *border_color = BorderColor::all(surfaces.border());
                 }
             },
         }

@@ -105,8 +105,10 @@ pub fn spawn_diplomacy_modal(
     modal_state: &DiplomacyModalState,
     faction_mgr: &FactionManager,
 ) {
-    let font_regular = asset_server.load(UiTheme::FONTS.regular);
-    let font_bold = asset_server.load(UiTheme::FONTS.bold);
+    let font_regular = asset_server.load(UiTheme::fonts().regular());
+    let font_bold = asset_server.load(UiTheme::fonts().bold());
+    let surfaces = UiTheme::surfaces();
+    let text = UiTheme::text();
 
     let target_f = modal_state.selected_target.unwrap_or(player_faction);
 
@@ -139,8 +141,8 @@ pub fn spawn_diplomacy_modal(
                         row_gap: Val::Px(16.0),
                         ..default()
                     },
-                    BorderColor::all(UiTheme::SURFACES.accent),
-                    BackgroundColor(UiTheme::SURFACES.overlay),
+                    BorderColor::all(surfaces.accent()),
+                    BackgroundColor(surfaces.overlay()),
                 ))
                 .with_children(|window| {
                     // 1. ダイアログヘッダー
@@ -153,7 +155,7 @@ pub fn spawn_diplomacy_modal(
                             border: UiRect::bottom(Val::Px(1.5)),
                             ..default()
                         })
-                        .insert(BorderColor::all(UiTheme::SURFACES.border))
+                        .insert(BorderColor::all(surfaces.border()))
                         .with_children(|header| {
                             header.spawn((
                                 Text::new("PLANETARY DIPLOMACY // 惑星外交・各派閥関係"),
@@ -162,7 +164,7 @@ pub fn spawn_diplomacy_modal(
                                     font_size: FontSize::Px(22.0),
                                     ..default()
                                 },
-                                TextColor(UiTheme::SURFACES.accent),
+                                TextColor(surfaces.accent()),
                             ));
 
                             header
@@ -175,8 +177,8 @@ pub fn spawn_diplomacy_modal(
                                         border_radius: BorderRadius::all(Val::Px(4.0)),
                                         ..default()
                                     },
-                                    BorderColor::all(UiTheme::SURFACES.border),
-                                    BackgroundColor(UiTheme::SURFACES.card),
+                                    BorderColor::all(surfaces.border()),
+                                    BackgroundColor(surfaces.card()),
                                 ))
                                 .with_children(|btn| {
                                     btn.spawn((
@@ -186,7 +188,7 @@ pub fn spawn_diplomacy_modal(
                                             font_size: FontSize::Px(13.0),
                                             ..default()
                                         },
-                                        TextColor(UiTheme::TEXT.main),
+                                        TextColor(text.main()),
                                     ));
                                 });
                         });
@@ -234,12 +236,12 @@ pub fn spawn_diplomacy_modal(
                                         BorderColor::all(if is_selected {
                                             color
                                         } else {
-                                            UiTheme::SURFACES.border
+                                            surfaces.border()
                                         }),
                                         BackgroundColor(if is_selected {
                                             Color::srgba(0.14, 0.22, 0.34, 0.9)
                                         } else {
-                                            UiTheme::SURFACES.card
+                                            surfaces.card()
                                         }),
                                     ))
                                     .with_children(|item| {
@@ -273,7 +275,7 @@ pub fn spawn_diplomacy_modal(
                                                     font_size: FontSize::Px(14.0),
                                                     ..default()
                                                 },
-                                                TextColor(UiTheme::TEXT.main),
+                                                TextColor(text.main()),
                                             ));
                                         });
 
@@ -334,7 +336,7 @@ pub fn spawn_diplomacy_modal(
                                         font_size: FontSize::Px(14.0),
                                         ..default()
                                     },
-                                    TextColor(UiTheme::TEXT.main),
+                                    TextColor(text.main()),
                                 ));
 
                                 right.spawn((
@@ -362,7 +364,7 @@ pub fn spawn_diplomacy_modal(
                                         font_size: FontSize::Px(13.0),
                                         ..default()
                                     },
-                                    TextColor(UiTheme::TEXT.muted),
+                                    TextColor(text.muted()),
                                 ));
 
                                 // 外交アクションボタン
@@ -382,7 +384,7 @@ pub fn spawn_diplomacy_modal(
                                             border_radius: BorderRadius::all(Val::Px(4.0)),
                                             ..default()
                                         },
-                                        BorderColor::all(UiTheme::SURFACES.accent),
+                                        BorderColor::all(surfaces.accent()),
                                         BackgroundColor(Color::srgb(0.12, 0.25, 0.32)),
                                     ))
                                     .with_children(|b| {
@@ -393,7 +395,7 @@ pub fn spawn_diplomacy_modal(
                                                 font_size: FontSize::Px(13.0),
                                                 ..default()
                                             },
-                                            TextColor(UiTheme::SURFACES.accent),
+                                            TextColor(surfaces.accent()),
                                         ));
                                     });
 
@@ -406,8 +408,8 @@ pub fn spawn_diplomacy_modal(
                                             border_radius: BorderRadius::all(Val::Px(4.0)),
                                             ..default()
                                         },
-                                        BorderColor::all(UiTheme::SURFACES.border),
-                                        BackgroundColor(UiTheme::SURFACES.card),
+                                        BorderColor::all(surfaces.border()),
+                                        BackgroundColor(surfaces.card()),
                                     ))
                                     .with_children(|b| {
                                         b.spawn((
@@ -417,7 +419,7 @@ pub fn spawn_diplomacy_modal(
                                                 font_size: FontSize::Px(13.0),
                                                 ..default()
                                             },
-                                            TextColor(UiTheme::TEXT.main),
+                                            TextColor(text.main()),
                                         ));
                                     });
                                 });
@@ -447,6 +449,8 @@ type DiplomacyActionQuery<'world, 'state> = Query<
 >;
 
 fn diplomacy_button_system(mut query: DiplomacyButtonInteractionQuery) {
+    let surfaces = UiTheme::surfaces();
+
     for (interaction, action, mut bg_color, mut border_color) in &mut query {
         match *interaction {
             Interaction::Pressed => {
@@ -454,17 +458,17 @@ fn diplomacy_button_system(mut query: DiplomacyButtonInteractionQuery) {
             }
             Interaction::Hovered => {
                 *bg_color = BackgroundColor(Color::srgb(0.16, 0.28, 0.38));
-                *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                *border_color = BorderColor::all(surfaces.accent());
             }
             Interaction::None => {
                 match action {
                     DiplomacyButtonAction::SendGift => {
                         *bg_color = BackgroundColor(Color::srgb(0.12, 0.25, 0.32));
-                        *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                        *border_color = BorderColor::all(surfaces.accent());
                     }
                     _ => {
-                        *bg_color = BackgroundColor(UiTheme::SURFACES.card);
-                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                        *bg_color = BackgroundColor(surfaces.card());
+                        *border_color = BorderColor::all(surfaces.border());
                     }
                 }
             }

@@ -44,6 +44,8 @@ pub fn faction_select_button_system(
     selected_menu: Res<SelectedFactionMenu>,
     map_config: Res<MapConfig>,
 ) {
+    let surfaces = UiTheme::surfaces();
+
     for (interaction, action, mut border_color, mut bg_color) in &mut interaction_query {
         match action {
             SelectAction::Choose(f) => {
@@ -58,8 +60,8 @@ pub fn faction_select_button_system(
                             *border_color = BorderColor::all(f.primary_color());
                             *bg_color = BackgroundColor(Color::srgba(0.15, 0.22, 0.32, 0.9));
                         } else {
-                            *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                            *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                            *border_color = BorderColor::all(surfaces.border());
+                            *bg_color = BackgroundColor(surfaces.card());
                         }
                     }
                 }
@@ -76,8 +78,8 @@ pub fn faction_select_button_system(
                             *border_color = BorderColor::all(env.theme_color());
                             *bg_color = BackgroundColor(Color::srgba(0.18, 0.26, 0.38, 0.9));
                         } else {
-                            *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                            *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                            *border_color = BorderColor::all(surfaces.border());
+                            *bg_color = BackgroundColor(surfaces.card());
                         }
                     }
                 }
@@ -86,28 +88,28 @@ pub fn faction_select_button_system(
                 let is_active = *sz == map_config.size;
                 match *interaction {
                     Interaction::Pressed | Interaction::Hovered => {
-                        *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                        *border_color = BorderColor::all(surfaces.accent());
                         *bg_color = BackgroundColor(Color::srgba(0.25, 0.40, 0.50, 0.9));
                     }
                     Interaction::None => {
                         if is_active {
-                            *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                            *border_color = BorderColor::all(surfaces.accent());
                             *bg_color = BackgroundColor(Color::srgba(0.20, 0.35, 0.45, 0.9));
                         } else {
-                            *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                            *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                            *border_color = BorderColor::all(surfaces.border());
+                            *bg_color = BackgroundColor(surfaces.card());
                         }
                     }
                 }
             }
             SelectAction::RerollSeed => match *interaction {
                 Interaction::Pressed | Interaction::Hovered => {
-                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                    *border_color = BorderColor::all(surfaces.accent());
                     *bg_color = BackgroundColor(Color::srgba(0.18, 0.28, 0.38, 0.9));
                 }
                 Interaction::None => {
-                    *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                    *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                    *border_color = BorderColor::all(surfaces.border());
+                    *bg_color = BackgroundColor(surfaces.card());
                 }
             },
             SelectAction::Confirm => match *interaction {
@@ -123,12 +125,12 @@ pub fn faction_select_button_system(
             },
             SelectAction::Back => match *interaction {
                 Interaction::Pressed | Interaction::Hovered => {
-                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                    *border_color = BorderColor::all(surfaces.accent());
                     *bg_color = BackgroundColor(Color::srgb(0.15, 0.24, 0.35));
                 }
                 Interaction::None => {
-                    *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                    *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                    *border_color = BorderColor::all(surfaces.border());
+                    *bg_color = BackgroundColor(surfaces.card());
                 }
             },
         }
@@ -172,6 +174,8 @@ pub fn faction_select_action_system(
                     *panel_border = BorderColor::all(faction.primary_color());
                 }
 
+                let surfaces = UiTheme::surfaces();
+
                 // カード枠のスタイル更新
                 for (card, mut border_color, mut bg_color) in &mut cards_query {
                     let is_active = card.0 == *faction;
@@ -179,8 +183,8 @@ pub fn faction_select_action_system(
                         *border_color = BorderColor::all(card.0.primary_color());
                         *bg_color = BackgroundColor(Color::srgba(0.15, 0.22, 0.32, 0.9));
                     } else {
-                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                        *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                        *border_color = BorderColor::all(surfaces.border());
+                        *bg_color = BackgroundColor(surfaces.card());
                     }
                 }
             }
@@ -191,28 +195,30 @@ pub fn faction_select_action_system(
                     **text = env.description().to_string();
                 }
 
+                let surfaces = UiTheme::surfaces();
                 for (btn, mut border_color, mut bg_color) in &mut env_btn_query {
                     let is_active = btn.0 == *env;
                     if is_active {
                         *border_color = BorderColor::all(btn.0.theme_color());
                         *bg_color = BackgroundColor(Color::srgba(0.18, 0.26, 0.38, 0.9));
                     } else {
-                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                        *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                        *border_color = BorderColor::all(surfaces.border());
+                        *bg_color = BackgroundColor(surfaces.card());
                     }
                 }
             }
             SelectAction::ChooseSize(sz) => {
                 map_config.size = *sz;
 
+                let surfaces = UiTheme::surfaces();
                 for (btn, mut border_color, mut bg_color) in &mut size_btn_query {
                     let is_active = btn.0 == *sz;
                     if is_active {
-                        *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                        *border_color = BorderColor::all(surfaces.accent());
                         *bg_color = BackgroundColor(Color::srgba(0.20, 0.35, 0.45, 0.9));
                     } else {
-                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
-                        *bg_color = BackgroundColor(UiTheme::SURFACES.card);
+                        *border_color = BorderColor::all(surfaces.border());
+                        *bg_color = BackgroundColor(surfaces.card());
                     }
                 }
             }

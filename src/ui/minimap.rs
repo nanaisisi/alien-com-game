@@ -71,8 +71,8 @@ fn setup_minimap_ui(
         return;
     }
 
-    let font_regular = asset_server.load(UiTheme::FONTS.regular);
-    let font_bold = asset_server.load(UiTheme::FONTS.bold);
+    let font_regular = asset_server.load(UiTheme::fonts().regular());
+    let font_bold = asset_server.load(UiTheme::fonts().bold());
 
     // 初期のプレースホルダー画像を作成（後ほど update_minimap_texture_system でマップデータから描画）
     let map_w = map_config.width();
