@@ -42,7 +42,9 @@
 
 cargo clippy --fix  --all --allow-dirty
 
-cargo coupling --japanese --ai --web
+cargo coupling --ai
+
+cargo coupling --japanese --web
 
 ## License
 

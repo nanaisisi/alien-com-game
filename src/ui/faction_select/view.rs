@@ -3,10 +3,7 @@ use bevy::prelude::*;
 use super::types::*;
 use crate::faction::types::{FactionId, PlayerFaction};
 use crate::map::settings::{MapConfig, MapSize, PlanetEnvironment};
-use crate::ui::theme::{
-    self, ACCENT_COLOR as ACCENT_CYAN, BORDER_COLOR, CARD_BG as PANEL_BG, OVERLAY_BG as BG_COLOR,
-    TEXT_MAIN, TEXT_MUTED,
-};
+use crate::ui::theme::UiTheme;
 
 pub fn setup_faction_select_ui(
     mut commands: Commands,
@@ -17,8 +14,8 @@ pub fn setup_faction_select_ui(
 ) {
     selected_menu.faction = player_faction.0;
 
-    let font_regular = asset_server.load(theme::FONT_REGULAR);
-    let font_bold = asset_server.load(theme::FONT_BOLD);
+    let font_regular = asset_server.load(UiTheme::FONTS.regular);
+    let font_bold = asset_server.load(UiTheme::FONTS.bold);
 
     commands
         .spawn((
@@ -32,7 +29,7 @@ pub fn setup_faction_select_ui(
                 padding: UiRect::axes(Val::Px(32.0), Val::Px(16.0)),
                 ..default()
             },
-            BackgroundColor(BG_COLOR),
+            BackgroundColor(UiTheme::SURFACES.overlay),
         ))
         .with_children(|root| {
             // 1. ヘッダー
@@ -50,7 +47,7 @@ pub fn setup_faction_select_ui(
                         font_size: FontSize::Px(26.0),
                         ..default()
                     },
-                    TextColor(ACCENT_CYAN),
+                    TextColor(UiTheme::SURFACES.accent),
                 ));
 
                 header.spawn((
@@ -60,7 +57,7 @@ pub fn setup_faction_select_ui(
                         font_size: FontSize::Px(13.0),
                         ..default()
                     },
-                    TextColor(TEXT_MUTED),
+                    TextColor(UiTheme::TEXT.muted),
                 ));
             });
 
@@ -103,11 +100,11 @@ pub fn setup_faction_select_ui(
                                     border_radius: BorderRadius::all(Val::Px(6.0)),
                                     ..default()
                                 },
-                                BorderColor::all(if is_active { f_col } else { BORDER_COLOR }),
+                                BorderColor::all(if is_active { f_col } else { UiTheme::SURFACES.border }),
                                 BackgroundColor(if is_active {
                                     Color::srgba(0.15, 0.22, 0.32, 0.9)
                                 } else {
-                                    PANEL_BG
+                                    UiTheme::SURFACES.card
                                 }),
                             ))
                             .with_children(|card| {
@@ -136,7 +133,7 @@ pub fn setup_faction_select_ui(
                                             font_size: FontSize::Px(15.0),
                                             ..default()
                                         },
-                                        TextColor(TEXT_MAIN),
+                                        TextColor(UiTheme::TEXT.main),
                                     ));
                                 });
 
@@ -147,7 +144,7 @@ pub fn setup_faction_select_ui(
                                         font_size: FontSize::Px(12.0),
                                         ..default()
                                     },
-                                    TextColor(TEXT_MUTED),
+                                    TextColor(UiTheme::TEXT.muted),
                                 ));
                             });
                         }
@@ -203,7 +200,7 @@ pub fn setup_faction_select_ui(
                                     font_size: FontSize::Px(12.5),
                                     ..default()
                                 },
-                                TextColor(TEXT_MAIN),
+                                TextColor(UiTheme::TEXT.main),
                             ));
                         });
 
@@ -231,7 +228,7 @@ pub fn setup_faction_select_ui(
                                     font_size: FontSize::Px(13.5),
                                     ..default()
                                 },
-                                TextColor(ACCENT_CYAN),
+                                TextColor(UiTheme::SURFACES.accent),
                             ));
 
                             // 1. 環境タイプボタン行
@@ -255,11 +252,11 @@ pub fn setup_faction_select_ui(
                                             border_radius: BorderRadius::all(Val::Px(4.0)),
                                             ..default()
                                         },
-                                        BorderColor::all(if is_active { env.theme_color() } else { BORDER_COLOR }),
+                                        BorderColor::all(if is_active { env.theme_color() } else { UiTheme::SURFACES.border }),
                                         BackgroundColor(if is_active {
                                             Color::srgba(0.18, 0.26, 0.38, 0.9)
                                         } else {
-                                            PANEL_BG
+                                            UiTheme::SURFACES.card
                                         }),
                                     ))
                                     .with_children(|btn| {
@@ -270,7 +267,7 @@ pub fn setup_faction_select_ui(
                                                 font_size: FontSize::Px(11.5),
                                                 ..default()
                                             },
-                                            TextColor(if is_active { env.theme_color() } else { TEXT_MAIN }),
+                                            TextColor(if is_active { env.theme_color() } else { UiTheme::TEXT.main }),
                                         ));
                                     });
                                 }
@@ -285,7 +282,7 @@ pub fn setup_faction_select_ui(
                                     font_size: FontSize::Px(12.0),
                                     ..default()
                                 },
-                                TextColor(TEXT_MUTED),
+                                TextColor(UiTheme::TEXT.muted),
                             ));
 
                             // 2. マップサイズ選択 & シード再生成ボタン行
@@ -310,7 +307,7 @@ pub fn setup_faction_select_ui(
                                             font_size: FontSize::Px(12.0),
                                             ..default()
                                         },
-                                        TextColor(TEXT_MUTED),
+                                        TextColor(UiTheme::TEXT.muted),
                                     ));
 
                                     // シード再抽選ボタン
@@ -324,8 +321,8 @@ pub fn setup_faction_select_ui(
                                             align_items: AlignItems::Center,
                                             ..default()
                                         },
-                                        BorderColor::all(BORDER_COLOR),
-                                        BackgroundColor(PANEL_BG),
+                                        BorderColor::all(UiTheme::SURFACES.border),
+                                        BackgroundColor(UiTheme::SURFACES.card),
                                     ))
                                     .with_children(|btn| {
                                         btn.spawn((
@@ -336,7 +333,7 @@ pub fn setup_faction_select_ui(
                                                 font_size: FontSize::Px(11.0),
                                                 ..default()
                                             },
-                                            TextColor(TEXT_MAIN),
+                                            TextColor(UiTheme::TEXT.main),
                                         ));
                                     });
                                 });
@@ -363,11 +360,11 @@ pub fn setup_faction_select_ui(
                                                 border_radius: BorderRadius::all(Val::Px(4.0)),
                                                 ..default()
                                             },
-                                            BorderColor::all(if is_active { ACCENT_CYAN } else { BORDER_COLOR }),
+                                            BorderColor::all(if is_active { UiTheme::SURFACES.accent } else { UiTheme::SURFACES.border }),
                                             BackgroundColor(if is_active {
                                                 Color::srgba(0.20, 0.35, 0.45, 0.9)
                                             } else {
-                                                PANEL_BG
+                                                UiTheme::SURFACES.card
                                             }),
                                         ))
                                         .with_children(|btn| {
@@ -378,7 +375,7 @@ pub fn setup_faction_select_ui(
                                                     font_size: FontSize::Px(10.5),
                                                     ..default()
                                                 },
-                                                TextColor(if is_active { Color::WHITE } else { TEXT_MAIN }),
+                                                TextColor(if is_active { Color::WHITE } else { UiTheme::TEXT.main }),
                                             ));
                                         });
                                     }
@@ -409,8 +406,8 @@ pub fn setup_faction_select_ui(
                             border_radius: BorderRadius::all(Val::Px(6.0)),
                             ..default()
                         },
-                        BorderColor::all(BORDER_COLOR),
-                        BackgroundColor(PANEL_BG),
+                        BorderColor::all(UiTheme::SURFACES.border),
+                        BackgroundColor(UiTheme::SURFACES.card),
                     ))
                     .with_children(|btn| {
                         btn.spawn((
@@ -420,7 +417,7 @@ pub fn setup_faction_select_ui(
                                 font_size: FontSize::Px(15.0),
                                 ..default()
                             },
-                            TextColor(TEXT_MUTED),
+                            TextColor(UiTheme::TEXT.muted),
                         ));
                     });
 
@@ -438,7 +435,7 @@ pub fn setup_faction_select_ui(
                             border_radius: BorderRadius::all(Val::Px(6.0)),
                             ..default()
                         },
-                        BorderColor::all(ACCENT_CYAN),
+                        BorderColor::all(UiTheme::SURFACES.accent),
                         BackgroundColor(Color::srgb(0.12, 0.35, 0.40)),
                     ))
                     .with_children(|btn| {

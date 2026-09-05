@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+use crate::faction::{FactionId, FactionManager, PlayerFaction};
 use crate::state::AppState;
 
 pub struct InGameHudPlugin;
@@ -71,10 +72,7 @@ enum HudLabel {
     Food,
 }
 
-use super::theme::{
-    self, ACCENT_COLOR as ACCENT_CYAN, BORDER_COLOR, BUTTON_HOVERED as BUTTON_HOVER,
-    BUTTON_NORMAL, BUTTON_PRESSED, PANEL_BG as HUD_BG, TEXT_MAIN, TEXT_MUTED,
-};
+use crate::ui::theme::UiTheme;
 
 const END_TURN_NORMAL: Color = Color::srgb(0.10, 0.30, 0.35);
 const END_TURN_HOVER: Color = Color::srgb(0.16, 0.48, 0.55);
@@ -84,15 +82,15 @@ fn setup_hud(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     resources: Res<FactionResources>,
-    player_faction: Res<crate::faction::types::PlayerFaction>,
+    player_faction: Res<PlayerFaction>,
     existing_hud: Query<Entity, With<HudRoot>>,
 ) {
     if !existing_hud.is_empty() {
         return;
     }
 
-    let font_regular = asset_server.load(theme::FONT_REGULAR);
-    let font_bold = asset_server.load(theme::FONT_BOLD);
+    let font_regular = asset_server.load(UiTheme::FONTS.regular);
+    let font_bold = asset_server.load(UiTheme::FONTS.bold);
 
     commands
         .spawn((
@@ -109,6 +107,7 @@ fn setup_hud(
             // 1. トップバー（リソース & ターン & メニュー）
             // ==========================================
             root.spawn((
+                crate::ui::UiBlockMapInteraction,
                 Node {
                     position_type: PositionType::Absolute,
                     top: Val::Px(0.0),
@@ -122,8 +121,8 @@ fn setup_hud(
                     border: UiRect::bottom(Val::Px(1.5)),
                     ..default()
                 },
-                BackgroundColor(HUD_BG),
-                BorderColor::all(BORDER_COLOR),
+                BackgroundColor(UiTheme::SURFACES.panel),
+                BorderColor::all(UiTheme::SURFACES.border),
             ))
             .with_children(|top_bar| {
                 // 左側: ターン表示 & 勢力名
@@ -169,7 +168,7 @@ fn setup_hud(
                                 font_size: FontSize::Px(18.0),
                                 ..default()
                             },
-                            TextColor(TEXT_MAIN),
+                            TextColor(UiTheme::TEXT.main),
                         ));
                     });
 
@@ -178,7 +177,7 @@ fn setup_hud(
                     .spawn(Node {
                         flex_direction: FlexDirection::Row,
                         align_items: AlignItems::Center,
-                        column_gap: Val::Px(20.0),
+                        column_gap: Val::Px(28.0),
                         ..default()
                     })
                     .with_children(|center| {
@@ -186,12 +185,12 @@ fn setup_hud(
                         spawn_resource_item(
                             center,
                             HudLabel::Energy,
-                            "\u{f0e7} 電力",
+                            "\u{f0e7} エネルギー",
                             &format!(
                                 "{} (+{})",
                                 resources.energy, resources.energy_per_turn
                             ),
-                            Color::srgb(0.95, 0.80, 0.25),
+                            Color::srgb(0.95, 0.75, 0.20),
                             &font_regular,
                             &font_bold,
                         );
@@ -200,21 +199,21 @@ fn setup_hud(
                         spawn_resource_item(
                             center,
                             HudLabel::Production,
-                            "\u{f013} 工業",
+                            "\u{f0ad} 生産力",
                             &format!(
                                 "{} (+{})",
                                 resources.production, resources.production_per_turn
                             ),
-                            Color::srgb(0.90, 0.55, 0.25),
+                            Color::srgb(0.95, 0.45, 0.25),
                             &font_regular,
                             &font_bold,
                         );
 
-                        // 科学
+                        // 科学力
                         spawn_resource_item(
                             center,
                             HudLabel::Science,
-                            "\u{f0c3} 科学",
+                            "\u{f0c3} 科学力",
                             &format!(
                                 "{} (+{})",
                                 resources.science, resources.science_per_turn
@@ -261,7 +260,7 @@ fn setup_hud(
                                     justify_content: JustifyContent::Center,
                                     ..default()
                                 },
-                                BorderColor::all(ACCENT_CYAN),
+                                BorderColor::all(UiTheme::SURFACES.accent),
                                 BackgroundColor(Color::srgba(0.10, 0.25, 0.32, 0.85)),
                             ))
                             .with_children(|btn| {
@@ -272,7 +271,7 @@ fn setup_hud(
                                         font_size: FontSize::Px(13.0),
                                         ..default()
                                     },
-                                    TextColor(ACCENT_CYAN),
+                                    TextColor(UiTheme::SURFACES.accent),
                                 ));
                             });
 
@@ -289,8 +288,8 @@ fn setup_hud(
                                     justify_content: JustifyContent::Center,
                                     ..default()
                                 },
-                                BorderColor::all(BORDER_COLOR),
-                                BackgroundColor(BUTTON_NORMAL),
+                                BorderColor::all(UiTheme::SURFACES.border),
+                                BackgroundColor(UiTheme::BUTTONS.standard.normal),
                             ))
                             .with_children(|btn| {
                                 btn.spawn((
@@ -300,7 +299,7 @@ fn setup_hud(
                                         font_size: FontSize::Px(13.0),
                                         ..default()
                                     },
-                                    TextColor(TEXT_MAIN),
+                                    TextColor(UiTheme::TEXT.main),
                                 ));
                             });
                     });
@@ -310,6 +309,7 @@ fn setup_hud(
             // 2. 右下: ターン終了ボタン
             // ==========================================
             root.spawn((
+                crate::ui::UiBlockMapInteraction,
                 Node {
                     position_type: PositionType::Absolute,
                     bottom: Val::Px(24.0),
@@ -337,7 +337,7 @@ fn setup_hud(
                             row_gap: Val::Px(2.0),
                             ..default()
                         },
-                        BorderColor::all(ACCENT_CYAN),
+                        BorderColor::all(UiTheme::SURFACES.accent),
                         BackgroundColor(END_TURN_NORMAL),
                     ))
                     .with_children(|btn| {
@@ -348,7 +348,7 @@ fn setup_hud(
                                 font_size: FontSize::Px(18.0),
                                 ..default()
                             },
-                            TextColor(ACCENT_CYAN),
+                            TextColor(UiTheme::SURFACES.accent),
                         ));
 
                         btn.spawn((
@@ -358,7 +358,7 @@ fn setup_hud(
                                 font_size: FontSize::Px(11.0),
                                 ..default()
                             },
-                            TextColor(TEXT_MUTED),
+                            TextColor(UiTheme::TEXT.muted),
                         ));
                     });
             });
@@ -407,7 +407,7 @@ fn spawn_resource_item(
                     font_size: FontSize::Px(13.0),
                     ..default()
                 },
-                TextColor(TEXT_MAIN),
+                TextColor(UiTheme::TEXT.main),
             ));
         });
 }
@@ -439,12 +439,12 @@ fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
                 }
                 Interaction::None => {
                     *bg_color = BackgroundColor(END_TURN_NORMAL);
-                    *border_color = BorderColor::all(ACCENT_CYAN);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                 }
             },
             HudAction::OpenDiplomacy => match *interaction {
                 Interaction::Pressed => {
-                    *bg_color = BackgroundColor(BUTTON_PRESSED);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.pressed);
                     *border_color = BorderColor::all(Color::WHITE);
                 }
                 Interaction::Hovered => {
@@ -453,21 +453,21 @@ fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
                 }
                 Interaction::None => {
                     *bg_color = BackgroundColor(Color::srgba(0.10, 0.25, 0.32, 0.85));
-                    *border_color = BorderColor::all(ACCENT_CYAN);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                 }
             },
             HudAction::OpenMenu => match *interaction {
                 Interaction::Pressed => {
-                    *bg_color = BackgroundColor(BUTTON_PRESSED);
-                    *border_color = BorderColor::all(ACCENT_CYAN);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.pressed);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                 }
                 Interaction::Hovered => {
-                    *bg_color = BackgroundColor(BUTTON_HOVER);
-                    *border_color = BorderColor::all(ACCENT_CYAN);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                 }
                 Interaction::None => {
-                    *bg_color = BackgroundColor(BUTTON_NORMAL);
-                    *border_color = BorderColor::all(BORDER_COLOR);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.border);
                 }
             },
         }
@@ -489,8 +489,8 @@ fn hud_button_action_system(
     mut next_state: ResMut<NextState<AppState>>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    player_faction: Res<crate::faction::types::PlayerFaction>,
-    faction_mgr: Res<crate::faction::types::FactionManager>,
+    player_faction: Res<PlayerFaction>,
+    faction_mgr: Res<FactionManager>,
     mut modal_state: ResMut<crate::ui::diplomacy::DiplomacyModalState>,
 ) {
     for (interaction, action) in &query {
@@ -503,7 +503,7 @@ fn hud_button_action_system(
                     modal_state.is_open = !modal_state.is_open;
                     if modal_state.is_open {
                         if modal_state.selected_target.is_none() {
-                            modal_state.selected_target = crate::faction::types::FactionId::ALL
+                            modal_state.selected_target = FactionId::ALL
                                 .iter()
                                 .copied()
                                 .find(|&f| f != player_faction.0);

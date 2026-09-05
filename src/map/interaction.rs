@@ -4,7 +4,9 @@ use bevy::window::PrimaryWindow;
 use super::hex::HexCoord;
 use super::{HexTile, MapGrid, HEX_RADIUS};
 use crate::camera::MapCamera;
+use crate::faction::TerritoryMap;
 use crate::state::AppState;
+use crate::ui::theme::UiTheme;
 
 pub struct MapInteractionPlugin;
 
@@ -58,13 +60,14 @@ fn setup_interaction_ui(
         return;
     }
 
-    let font = asset_server.load(crate::ui::theme::FONT_REGULAR);
-    let font_bold = asset_server.load(crate::ui::theme::FONT_BOLD);
+    let font = asset_server.load(UiTheme::FONTS.regular);
+    let font_bold = asset_server.load(UiTheme::FONTS.bold);
 
     // 左下に配置する半透明情報パネル
     commands
         .spawn((
             InfoPanelRoot,
+            crate::ui::UiBlockMapInteraction,
             Node {
                 position_type: PositionType::Absolute,
                 left: Val::Px(24.0),
@@ -77,8 +80,8 @@ fn setup_interaction_ui(
                 border_radius: BorderRadius::all(Val::Px(8.0)),
                 ..default()
             },
-            BackgroundColor(crate::ui::theme::PANEL_BG),
-            BorderColor::all(crate::ui::theme::ACCENT_COLOR),
+            BackgroundColor(UiTheme::SURFACES.panel),
+            BorderColor::all(UiTheme::SURFACES.accent),
         ))
         .with_children(|parent| {
             // パネル見出し
@@ -89,7 +92,7 @@ fn setup_interaction_ui(
                     font_size: FontSize::Px(14.0),
                     ..default()
                 },
-                TextColor(Color::srgb(0.25, 0.85, 0.75)),
+                TextColor(UiTheme::SURFACES.accent),
             ));
 
             // 詳細テキスト
@@ -122,6 +125,8 @@ fn handle_tile_hover_and_click(
     mut selected_tile: ResMut<SelectedTile>,
     mut drag_tracker: ResMut<LeftDragTracker>,
     mut map_camera_query: Query<&mut MapCamera>,
+    ui_blockers: Query<(&GlobalTransform, &Node), With<crate::ui::UiBlockMapInteraction>>,
+    minimap_state: Option<Res<crate::ui::minimap::MinimapState>>,
 ) {
     let Ok(window) = windows.single() else {
         return;
@@ -136,16 +141,42 @@ fn handle_tile_hover_and_click(
         return;
     };
 
-    let w = window.width();
     let h = window.height().max(1.0);
 
-    // UI領域（上部バー y <= 58, 左下パネル x <= 360 && y >= h - 260, 右下ボタン・ミニマップ x >= w - 280 && y >= h - 310）上、
-    // またはミニマップドラッグ中ではタイル操作を無効化
-    let is_over_top_bar = cursor_pos.y <= 58.0;
-    let is_over_left_panel = cursor_pos.x <= 360.0 && cursor_pos.y >= (h - 260.0);
-    let is_over_right_panel = cursor_pos.x >= (w - 280.0) && cursor_pos.y >= (h - 310.0);
+    // ミニマップドラッグ中か判定
+    let is_minimap_dragging = minimap_state.as_ref().map_or(false, |s| s.is_dragging);
 
-    if is_over_top_bar || is_over_left_panel || is_over_right_panel {
+    // UIブロッカー要素（上部バー、情報パネル、アクションボタン、ミニマップ等）の上にカーソルがあるか動的に判定
+    let is_over_ui = is_minimap_dragging || ui_blockers.iter().any(|(gt, node)| {
+        let translation = gt.translation();
+        // BevyのGlobalTransform (Ui) は要素の中心を表す
+        // Nodeに具体的なサイズ(Px)が指定されている場合はそれを優先、無ければ割合から計算
+        let width = match node.width {
+            Val::Px(px) => px,
+            Val::Percent(pct) => window.width() * (pct / 100.0),
+            _ => 0.0,
+        };
+        let height = match node.height {
+            Val::Px(px) => px,
+            Val::Percent(pct) => window.height() * (pct / 100.0),
+            _ => 0.0,
+        };
+
+        if width <= 0.0 || height <= 0.0 {
+            return false;
+        }
+
+        let half_w = width * 0.5;
+        let half_h = height * 0.5;
+        let min_x = translation.x - half_w;
+        let max_x = translation.x + half_w;
+        let min_y = translation.y - half_h;
+        let max_y = translation.y + half_h;
+
+        cursor_pos.x >= min_x && cursor_pos.x <= max_x && cursor_pos.y >= min_y && cursor_pos.y <= max_y
+    });
+
+    if is_over_ui {
         hovered_tile.0 = None;
         if mouse_button.just_released(MouseButton::Left) {
             drag_tracker.press_pos = None;
@@ -258,7 +289,7 @@ fn update_tile_highlight_system(
 fn update_info_panel_system(
     selected: Res<SelectedTile>,
     map_grid: Res<MapGrid>,
-    territory_map: Res<crate::faction::territory::TerritoryMap>,
+    territory_map: Res<TerritoryMap>,
     mut query: Query<&mut Text, With<InfoPanelText>>,
 ) {
     if !selected.is_changed() {

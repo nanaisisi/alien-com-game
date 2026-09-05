@@ -6,10 +6,7 @@ use super::types::*;
 use super::view::spawn_pause_confirm_modal;
 use crate::state::AppState;
 use crate::ui::settings::GameSettings;
-use crate::ui::theme::{
-    ACCENT_COLOR, BORDER_COLOR, BORDER_DANGER, BUTTON_DANGER_HOVERED, BUTTON_DANGER_NORMAL,
-    BUTTON_DANGER_PRESSED, BUTTON_HOVERED, BUTTON_NORMAL, BUTTON_PRESSED,
-};
+use crate::ui::theme::UiTheme;
 
 #[derive(SystemParam)]
 pub struct PauseNavContext<'w, 's> {
@@ -172,32 +169,32 @@ pub fn pause_button_interaction_system(mut query: PauseButtonInteractionQuery) {
         match *interaction {
             Interaction::Pressed => {
                 if is_danger {
-                    *bg_color = BackgroundColor(BUTTON_DANGER_PRESSED);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.danger.pressed);
                     *border_color = BorderColor::all(Color::WHITE);
                 } else {
-                    *bg_color = BackgroundColor(BUTTON_PRESSED);
-                    *border_color = BorderColor::all(ACCENT_COLOR);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.pressed);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                 }
             }
             Interaction::Hovered => {
                 if is_danger {
-                    *bg_color = BackgroundColor(BUTTON_DANGER_HOVERED);
-                    *border_color = BorderColor::all(BORDER_DANGER);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.danger.hovered);
+                    *border_color = BorderColor::all(UiTheme::BUTTONS.danger.border);
                 } else {
-                    *bg_color = BackgroundColor(BUTTON_HOVERED);
-                    *border_color = BorderColor::all(ACCENT_COLOR);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                 }
             }
             Interaction::None => {
                 if matches!(action, PauseButtonAction::ConfirmModal) {
-                    *bg_color = BackgroundColor(BUTTON_DANGER_NORMAL);
-                    *border_color = BorderColor::all(BORDER_DANGER);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.danger.normal);
+                    *border_color = BorderColor::all(UiTheme::BUTTONS.danger.border);
                 } else if is_danger {
-                    *bg_color = BackgroundColor(BUTTON_NORMAL);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
                     *border_color = BorderColor::all(Color::srgb(0.55, 0.25, 0.25));
                 } else {
-                    *bg_color = BackgroundColor(BUTTON_NORMAL);
-                    *border_color = BorderColor::all(BORDER_COLOR);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.border);
                 }
             }
         }
@@ -312,19 +309,19 @@ pub fn update_pause_focus_highlight_system(
                 PauseModalFocusItem::Confirm => {
                     if is_focused {
                         *border_color = BorderColor::all(Color::WHITE);
-                        *bg_color = BackgroundColor(BUTTON_DANGER_HOVERED);
+                        *bg_color = BackgroundColor(UiTheme::BUTTONS.danger.hovered);
                     } else {
-                        *border_color = BorderColor::all(BORDER_DANGER);
-                        *bg_color = BackgroundColor(BUTTON_DANGER_NORMAL);
+                        *border_color = BorderColor::all(UiTheme::BUTTONS.danger.border);
+                        *bg_color = BackgroundColor(UiTheme::BUTTONS.danger.normal);
                     }
                 }
                 PauseModalFocusItem::Cancel => {
                     if is_focused {
-                        *border_color = BorderColor::all(ACCENT_COLOR);
-                        *bg_color = BackgroundColor(BUTTON_HOVERED);
+                        *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                        *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
                     } else {
-                        *border_color = BorderColor::all(BORDER_COLOR);
-                        *bg_color = BackgroundColor(BUTTON_NORMAL);
+                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                        *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
                     }
                 }
             }
@@ -339,18 +336,18 @@ pub fn update_pause_focus_highlight_system(
 
             if is_danger {
                 if is_focused {
-                    *border_color = BorderColor::all(BORDER_DANGER);
-                    *bg_color = BackgroundColor(BUTTON_DANGER_HOVERED);
+                    *border_color = BorderColor::all(UiTheme::BUTTONS.danger.border);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.danger.hovered);
                 } else {
                     *border_color = BorderColor::all(Color::srgb(0.55, 0.25, 0.25));
-                    *bg_color = BackgroundColor(BUTTON_NORMAL);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
                 }
             } else if is_focused {
-                *border_color = BorderColor::all(ACCENT_COLOR);
-                *bg_color = BackgroundColor(BUTTON_HOVERED);
+                *border_color = BorderColor::all(UiTheme::SURFACES.accent);
+                *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
             } else {
-                *border_color = BorderColor::all(BORDER_COLOR);
-                *bg_color = BackgroundColor(BUTTON_NORMAL);
+                *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
             }
         }
     }

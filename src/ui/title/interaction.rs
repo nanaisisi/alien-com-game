@@ -3,10 +3,7 @@ use bevy::prelude::*;
 
 use super::types::*;
 use crate::state::AppState;
-use crate::ui::theme::{
-    ACCENT_COLOR, BUTTON_HOVERED as HOVERED_BUTTON, BUTTON_NORMAL as NORMAL_BUTTON,
-    BUTTON_PRESSED as PRESSED_BUTTON,
-};
+use crate::ui::theme::UiTheme;
 
 pub fn title_keyboard_navigation_system(
     keys: Res<ButtonInput<KeyCode>>,
@@ -74,19 +71,19 @@ pub fn button_interaction_system(
 
         match *interaction {
             Interaction::Pressed => {
-                *bg_color = BackgroundColor(PRESSED_BUTTON);
-                *border_color = BorderColor::all(ACCENT_COLOR);
+                *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.pressed);
+                *border_color = BorderColor::all(UiTheme::SURFACES.accent);
             }
             Interaction::Hovered => {
-                *bg_color = BackgroundColor(HOVERED_BUTTON);
-                *border_color = BorderColor::all(ACCENT_COLOR);
+                *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
+                *border_color = BorderColor::all(UiTheme::SURFACES.accent);
             }
             Interaction::None => {
                 if is_selected {
-                    *bg_color = BackgroundColor(HOVERED_BUTTON);
-                    *border_color = BorderColor::all(ACCENT_COLOR);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.hovered);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                 } else {
-                    *bg_color = BackgroundColor(NORMAL_BUTTON);
+                    *bg_color = BackgroundColor(UiTheme::BUTTONS.standard.normal);
                     *border_color = BorderColor::all(Color::srgb(0.25, 0.38, 0.50));
                 }
             }

@@ -4,7 +4,7 @@ use super::types::*;
 use crate::faction::types::PlayerFaction;
 use crate::map::settings::MapConfig;
 use crate::state::AppState;
-use crate::ui::theme::{ACCENT_COLOR as ACCENT_CYAN, BORDER_COLOR, CARD_BG as PANEL_BG};
+use crate::ui::theme::UiTheme;
 
 pub type FactionSelectInteractionQuery<'world, 'state> = Query<
     'world,
@@ -58,8 +58,8 @@ pub fn faction_select_button_system(
                             *border_color = BorderColor::all(f.primary_color());
                             *bg_color = BackgroundColor(Color::srgba(0.15, 0.22, 0.32, 0.9));
                         } else {
-                            *border_color = BorderColor::all(BORDER_COLOR);
-                            *bg_color = BackgroundColor(PANEL_BG);
+                            *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                            *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                         }
                     }
                 }
@@ -76,8 +76,8 @@ pub fn faction_select_button_system(
                             *border_color = BorderColor::all(env.theme_color());
                             *bg_color = BackgroundColor(Color::srgba(0.18, 0.26, 0.38, 0.9));
                         } else {
-                            *border_color = BorderColor::all(BORDER_COLOR);
-                            *bg_color = BackgroundColor(PANEL_BG);
+                            *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                            *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                         }
                     }
                 }
@@ -86,28 +86,28 @@ pub fn faction_select_button_system(
                 let is_active = *sz == map_config.size;
                 match *interaction {
                     Interaction::Pressed | Interaction::Hovered => {
-                        *border_color = BorderColor::all(ACCENT_CYAN);
+                        *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                         *bg_color = BackgroundColor(Color::srgba(0.25, 0.40, 0.50, 0.9));
                     }
                     Interaction::None => {
                         if is_active {
-                            *border_color = BorderColor::all(ACCENT_CYAN);
+                            *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                             *bg_color = BackgroundColor(Color::srgba(0.20, 0.35, 0.45, 0.9));
                         } else {
-                            *border_color = BorderColor::all(BORDER_COLOR);
-                            *bg_color = BackgroundColor(PANEL_BG);
+                            *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                            *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                         }
                     }
                 }
             }
             SelectAction::RerollSeed => match *interaction {
                 Interaction::Pressed | Interaction::Hovered => {
-                    *border_color = BorderColor::all(ACCENT_CYAN);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                     *bg_color = BackgroundColor(Color::srgba(0.18, 0.28, 0.38, 0.9));
                 }
                 Interaction::None => {
-                    *border_color = BorderColor::all(BORDER_COLOR);
-                    *bg_color = BackgroundColor(PANEL_BG);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                    *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                 }
             },
             SelectAction::Confirm => match *interaction {
@@ -123,12 +123,12 @@ pub fn faction_select_button_system(
             },
             SelectAction::Back => match *interaction {
                 Interaction::Pressed | Interaction::Hovered => {
-                    *border_color = BorderColor::all(ACCENT_CYAN);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                     *bg_color = BackgroundColor(Color::srgb(0.15, 0.24, 0.35));
                 }
                 Interaction::None => {
-                    *border_color = BorderColor::all(BORDER_COLOR);
-                    *bg_color = BackgroundColor(PANEL_BG);
+                    *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                    *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                 }
             },
         }
@@ -179,8 +179,8 @@ pub fn faction_select_action_system(
                         *border_color = BorderColor::all(card.0.primary_color());
                         *bg_color = BackgroundColor(Color::srgba(0.15, 0.22, 0.32, 0.9));
                     } else {
-                        *border_color = BorderColor::all(BORDER_COLOR);
-                        *bg_color = BackgroundColor(PANEL_BG);
+                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                        *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                     }
                 }
             }
@@ -197,8 +197,8 @@ pub fn faction_select_action_system(
                         *border_color = BorderColor::all(btn.0.theme_color());
                         *bg_color = BackgroundColor(Color::srgba(0.18, 0.26, 0.38, 0.9));
                     } else {
-                        *border_color = BorderColor::all(BORDER_COLOR);
-                        *bg_color = BackgroundColor(PANEL_BG);
+                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                        *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                     }
                 }
             }
@@ -208,11 +208,11 @@ pub fn faction_select_action_system(
                 for (btn, mut border_color, mut bg_color) in &mut size_btn_query {
                     let is_active = btn.0 == *sz;
                     if is_active {
-                        *border_color = BorderColor::all(ACCENT_CYAN);
+                        *border_color = BorderColor::all(UiTheme::SURFACES.accent);
                         *bg_color = BackgroundColor(Color::srgba(0.20, 0.35, 0.45, 0.9));
                     } else {
-                        *border_color = BorderColor::all(BORDER_COLOR);
-                        *bg_color = BackgroundColor(PANEL_BG);
+                        *border_color = BorderColor::all(UiTheme::SURFACES.border);
+                        *bg_color = BackgroundColor(UiTheme::SURFACES.card);
                     }
                 }
             }

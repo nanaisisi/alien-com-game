@@ -1,13 +1,15 @@
 use bevy::prelude::*;
 
-use self::territory::{
-    cleanup_territories, setup_initial_faction_territories, TerritoryMap, TileTerritory,
-};
-use self::types::{DiplomaticRelation, FactionId, FactionManager, PlayerFaction};
 use crate::state::AppState;
 
 pub mod territory;
 pub mod types;
+
+pub use territory::{
+    cleanup_territories, setup_initial_faction_territories, FactionOutpost, TerritoryMap,
+    TileTerritory,
+};
+pub use types::{DiplomaticRelation, FactionId, FactionManager, PlayerFaction};
 
 pub struct FactionPlugin;
 

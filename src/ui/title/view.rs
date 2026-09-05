@@ -1,14 +1,11 @@
 use bevy::prelude::*;
 
 use super::types::*;
-use crate::ui::theme::{
-    self, ACCENT_COLOR, BUTTON_HOVERED as HOVERED_BUTTON, BUTTON_NORMAL as NORMAL_BUTTON,
-    TEXT_MAIN as TEXT_COLOR,
-};
+use crate::ui::theme::UiTheme;
 
 pub fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font_regular = asset_server.load(theme::FONT_REGULAR);
-    let font_bold = asset_server.load(theme::FONT_BOLD);
+    let font_regular = asset_server.load(UiTheme::FONTS.regular);
+    let font_bold = asset_server.load(UiTheme::FONTS.bold);
 
     // タイトルルートコンテナ（全画面フルスクリーン）
     commands
@@ -44,7 +41,7 @@ pub fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                             font_size: FontSize::Px(52.0),
                             ..default()
                         },
-                        TextColor(ACCENT_COLOR),
+                        TextColor(UiTheme::SURFACES.accent),
                     ));
 
                     // サブタイトル
@@ -83,14 +80,14 @@ pub fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         },
                         BorderColor::all(if idx == 0 {
-                            ACCENT_COLOR
+                            UiTheme::SURFACES.accent
                         } else {
                             Color::srgb(0.25, 0.38, 0.50)
                         }),
                         BackgroundColor(if idx == 0 {
-                            HOVERED_BUTTON
+                            UiTheme::BUTTONS.standard.hovered
                         } else {
-                            NORMAL_BUTTON
+                            UiTheme::BUTTONS.standard.normal
                         }),
                     ))
                     .with_children(|btn| {
@@ -101,7 +98,7 @@ pub fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 font_size: FontSize::Px(18.0),
                                 ..default()
                             },
-                            TextColor(TEXT_COLOR),
+                            TextColor(UiTheme::TEXT.main),
                         ));
                     });
             }

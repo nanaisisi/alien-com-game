@@ -47,3 +47,91 @@ pub const BUTTON_DANGER_NORMAL: Color = Color::srgb(0.55, 0.15, 0.18);
 pub const BUTTON_DANGER_HOVERED: Color = Color::srgb(0.72, 0.22, 0.26);
 pub const BUTTON_DANGER_PRESSED: Color = Color::srgb(0.85, 0.30, 0.35);
 pub const BORDER_DANGER: Color = Color::srgb(0.80, 0.35, 0.35);
+
+// -----------------------------------------------------------------------------
+// 構造化テーマ（求心性結合の緩和と役割ごとの凝集度向上）
+// -----------------------------------------------------------------------------
+
+/// ボタン関連のカラースタイル
+#[derive(Debug, Clone, Copy)]
+pub struct ButtonStyle {
+    pub normal: Color,
+    pub hovered: Color,
+    pub pressed: Color,
+    pub border: Color,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ButtonTheme {
+    pub standard: ButtonStyle,
+    pub danger: ButtonStyle,
+}
+
+/// 面・背景・枠線関連のカラースタイル
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy)]
+pub struct SurfaceTheme {
+    pub overlay: Color,
+    pub panel: Color,
+    pub card: Color,
+    pub row: Color,
+    pub border: Color,
+    pub accent: Color,
+}
+
+/// テキスト文字色スタイル
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy)]
+pub struct TextTheme {
+    pub main: Color,
+    pub muted: Color,
+    pub accent: Color,
+}
+
+/// フォントファイルパス
+#[derive(Debug, Clone, Copy)]
+pub struct FontTheme {
+    pub regular: &'static str,
+    pub bold: &'static str,
+}
+
+/// 統一UIテーマインターフェース
+#[derive(Debug, Clone, Copy, Default)]
+pub struct UiTheme;
+
+impl UiTheme {
+    pub const BUTTONS: ButtonTheme = ButtonTheme {
+        standard: ButtonStyle {
+            normal: BUTTON_NORMAL,
+            hovered: BUTTON_HOVERED,
+            pressed: BUTTON_PRESSED,
+            border: BORDER_COLOR,
+        },
+        danger: ButtonStyle {
+            normal: BUTTON_DANGER_NORMAL,
+            hovered: BUTTON_DANGER_HOVERED,
+            pressed: BUTTON_DANGER_PRESSED,
+            border: BORDER_DANGER,
+        },
+    };
+
+    pub const SURFACES: SurfaceTheme = SurfaceTheme {
+        overlay: OVERLAY_BG,
+        panel: PANEL_BG,
+        card: CARD_BG,
+        row: ROW_BG,
+        border: BORDER_COLOR,
+        accent: ACCENT_COLOR,
+    };
+
+    pub const TEXT: TextTheme = TextTheme {
+        main: TEXT_MAIN,
+        muted: TEXT_MUTED,
+        accent: ACCENT_COLOR,
+    };
+
+    pub const FONTS: FontTheme = FontTheme {
+        regular: FONT_REGULAR,
+        bold: FONT_BOLD,
+    };
+}

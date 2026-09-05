@@ -4,12 +4,12 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::window::PrimaryWindow;
 
 use crate::camera::MapCamera;
-use crate::faction::territory::{FactionOutpost, TerritoryMap};
-use crate::faction::types::PlayerFaction;
+use crate::faction::{FactionOutpost, PlayerFaction, TerritoryMap};
 use crate::map::hex::{self, HexCoord, MAP_HEIGHT, MAP_WIDTH};
 use crate::map::terrain::TerrainType;
 use crate::map::{MapGrid, HEX_RADIUS};
 use crate::state::AppState;
+use crate::ui::theme::UiTheme;
 
 pub struct MinimapPlugin;
 
@@ -71,8 +71,8 @@ fn setup_minimap_ui(
         return;
     }
 
-    let font_regular = asset_server.load(crate::ui::theme::FONT_REGULAR);
-    let font_bold = asset_server.load(crate::ui::theme::FONT_BOLD);
+    let font_regular = asset_server.load(UiTheme::FONTS.regular);
+    let font_bold = asset_server.load(UiTheme::FONTS.bold);
 
     // 初期のプレースホルダー画像を作成（後ほど update_minimap_texture_system でマップデータから描画）
     let map_w = map_config.width();
@@ -99,6 +99,7 @@ fn setup_minimap_ui(
     commands
         .spawn((
             MinimapRoot,
+            crate::ui::UiBlockMapInteraction,
             Node {
                 position_type: PositionType::Absolute,
                 bottom: Val::Px(96.0),

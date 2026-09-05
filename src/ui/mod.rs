@@ -25,5 +25,10 @@ impl Plugin for GameUiPlugin {
     }
 }
 
+/// マーカーコンポーネント: このUI要素の上にマウスカーソルがある場合、
+/// タイルのホバー・選択やドラッグ操作などマップインタラクションをブロックする。
+#[derive(Component, Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct UiBlockMapInteraction;
+
 
 
