@@ -28,6 +28,19 @@ pub struct TerritoryMap {
     pub tile_owners: HashMap<HexCoord, FactionId>,
 }
 
+impl TerritoryMap {
+    #[inline]
+    pub fn get_owner(&self, coord: &HexCoord) -> Option<FactionId> {
+        self.tile_owners.get(coord).copied()
+    }
+
+    #[allow(dead_code)]
+    #[inline]
+    pub fn is_owned_by(&self, coord: &HexCoord, faction: FactionId) -> bool {
+        self.get_owner(coord) == Some(faction)
+    }
+}
+
 /// 各派閥の初期着陸位置と領土の初期化システム
 pub fn setup_initial_faction_territories(
     mut commands: Commands,
