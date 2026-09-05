@@ -324,6 +324,7 @@ fn update_minimap_texture_system(
 
 /// カメラの現在位置とズーム率に合わせて、ミニマップ上の視野矩形を更新（東西ラップ時の入れ違い・反対側表示に対応）
 fn update_minimap_viewport_system(
+    windows: Query<&Window, With<PrimaryWindow>>,
     map_camera_query: Query<&MapCamera>,
     map_grid: Res<MapGrid>,
     mut box_query: Query<(&MinimapCameraBoxPart, &mut Node, &mut Visibility)>,
@@ -355,16 +356,32 @@ fn update_minimap_viewport_system(
     };
 
     // カメラの視野の幅と高さをミニマップ上のピクセルサイズに換算
-    // 画面アスペクト比 16:9 を想定
-    let aspect_ratio = 16.0 / 9.0;
+    let aspect_ratio = if let Ok(win) = windows.single() {
+        if win.height() > 0.0 {
+            win.width() / win.height()
+        } else {
+            16.0 / 9.0
+        }
+    } else {
+        16.0 / 9.0
+    };
+
     let cam_viewport_h = map_cam.current_viewport_height;
     let cam_w = cam_viewport_h * aspect_ratio;
     // カメラの傾斜（Y=14, Z=12）を考慮して地表面上での実質的な視野長さを計算
     let sin_angle = 14.0 / (14.0_f32.powi(2) + 12.0_f32.powi(2)).sqrt();
     let cam_h = cam_viewport_h / sin_angle;
 
-    let box_w = ((cam_w / world_width) * MINIMAP_WIDTH).clamp(16.0, MINIMAP_WIDTH);
-    let box_h = ((cam_h / world_height) * MINIMAP_HEIGHT).clamp(12.0, MINIMAP_HEIGHT);
+    // ミニマップ上のピクセルサイズ（極端な最小値による正方形化を防ぐため、アスペクト比を保持して最小サイズを制限）
+    let raw_box_w = (cam_w / world_width) * MINIMAP_WIDTH;
+    let raw_box_h = (cam_h / world_height) * MINIMAP_HEIGHT;
+    let min_scale = if raw_box_w > 0.0 && raw_box_h > 0.0 {
+        (16.0 / raw_box_w).max(10.0 / raw_box_h).max(1.0)
+    } else {
+        1.0
+    };
+    let box_w = (raw_box_w * min_scale).min(MINIMAP_WIDTH);
+    let box_h = (raw_box_h * min_scale).min(MINIMAP_HEIGHT);
 
     let center_px_x = norm_x * MINIMAP_WIDTH;
     let center_px_y = norm_y * MINIMAP_HEIGHT;
