@@ -249,9 +249,11 @@ fn update_minimap_texture_system(
     let mut pixels = vec![0u8; w * h * 4];
 
     // 各ピクセル (px, py) がどの HexCoord (col, row) に該当するかを計算して着色
+    // ミニマップ上端 (py = 0) を画面上部（-Z, row = -half_h）、下端 (py = h - 1) を画面下部（+Z, row = +half_h）
+    // 左端 (px = 0) を col = 0、右端 (px = w - 1) を col = map_w - 1
     for py in 0..h {
         let norm_y = py as f32 / h as f32;
-        let row = half_h - ((norm_y * (map_h as f32)) as i32).clamp(0, map_h - 1);
+        let row = -half_h + ((norm_y * (map_h as f32)) as i32).clamp(0, map_h - 1);
 
         for px in 0..w {
             let norm_x = px as f32 / w as f32;
@@ -288,7 +290,7 @@ fn update_minimap_texture_system(
     for outpost in &outposts_query {
         let (col, row) = outpost.coord.to_col_row_with_width(map_w);
         let center_x = ((col as f32 + 0.5) / (map_w as f32) * (w as f32)) as i32;
-        let center_y = (((half_h - row) as f32 + 0.5) / (map_h as f32) * (h as f32)) as i32;
+        let center_y = (((row + half_h) as f32 + 0.5) / (map_h as f32) * (h as f32)) as i32;
 
         let is_player = outpost.faction == player_faction.0;
         let highlight_c = if is_player {
@@ -337,19 +339,29 @@ fn update_minimap_viewport_system(
     let world_width = hex::map_world_width_with_width(HEX_RADIUS, map_w);
     let world_height = (map_h as f32) * 1.5 * HEX_RADIUS;
 
-    // ワールド座標 X [-world_width/2 .. world_width/2] -> [0 .. 1]
-    let norm_x = ((map_cam.current_focal_point.x / world_width) + 0.5).rem_euclid(1.0);
-    // ワールド座標 Z: 北（画面上部）が -Z、南（画面下部）が +Z
-    // ミニマップ上部 (top = 0) を北、下部 (top = MINIMAP_HEIGHT) を南に合わせるため
-    // -half_world_h (北) が norm_y = 0.0、+half_world_h (南) が norm_y = 1.0
+    // ワールド座標 X とミニマップ X の対応：
+    // col = 0 がミニマップ左端 (norm_x = 0)、col = map_w が右端 (norm_x = 1)
+    // カメラの current_focal_point.x は [-world_width/2, world_width/2] にあるため、
+    // 正のワールド座標系 [0, world_width] に正規化してミニマップ上の割合を求める
+    let norm_x = (map_cam.current_focal_point.x / world_width).rem_euclid(1.0);
+    // ワールド座標 Z とミニマップ Y の対応：
+    // ミニマップ上端 (top = 0) が row = -half_h (画面奥・上部: Z = -half_world_h)
+    // ミニマップ下端 (top = MINIMAP_HEIGHT) が row = +half_h (画面手前・下部: Z = +half_world_h)
     let half_world_h = world_height / 2.0;
-    let norm_y = ((map_cam.current_focal_point.z + half_world_h) / world_height).clamp(0.0, 1.0);
+    let norm_y = if half_world_h > 0.0 {
+        ((map_cam.current_focal_point.z + half_world_h) / world_height).clamp(0.0, 1.0)
+    } else {
+        0.5
+    };
 
     // カメラの視野の幅と高さをミニマップ上のピクセルサイズに換算
     // 画面アスペクト比 16:9 を想定
     let aspect_ratio = 16.0 / 9.0;
-    let cam_h = map_cam.current_viewport_height;
-    let cam_w = cam_h * aspect_ratio;
+    let cam_viewport_h = map_cam.current_viewport_height;
+    let cam_w = cam_viewport_h * aspect_ratio;
+    // カメラの傾斜（Y=14, Z=12）を考慮して地表面上での実質的な視野長さを計算
+    let sin_angle = 14.0 / (14.0_f32.powi(2) + 12.0_f32.powi(2)).sqrt();
+    let cam_h = cam_viewport_h / sin_angle;
 
     let box_w = ((cam_w / world_width) * MINIMAP_WIDTH).clamp(16.0, MINIMAP_WIDTH);
     let box_h = ((cam_h / world_height) * MINIMAP_HEIGHT).clamp(12.0, MINIMAP_HEIGHT);
@@ -474,7 +486,13 @@ fn handle_minimap_interaction_system(
         let world_width = hex::map_world_width_with_width(HEX_RADIUS, map_w);
         let world_height = (map_h as f32) * 1.5 * HEX_RADIUS;
 
-        let world_x = (norm_x - 0.5) * world_width;
+        // ミニマップ左端 (norm_x = 0.0) が X = 0、右端 (norm_x = 1.0) が X = world_width
+        // cameraのwrap範囲 [-world_width/2, world_width/2] に合わせる
+        let mut world_x = norm_x * world_width;
+        if world_x > world_width / 2.0 {
+            world_x -= world_width;
+        }
+        // 上端 (norm_y = 0.0) が -half_world_h (-Z)、下端 (norm_y = 1.0) が +half_world_h (+Z)
         let world_z = (norm_y - 0.5) * world_height;
 
         let target = Vec3::new(world_x, 0.0, world_z);
