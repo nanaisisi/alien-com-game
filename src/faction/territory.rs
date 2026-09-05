@@ -13,7 +13,6 @@ pub struct TileTerritory {
 }
 
 /// 派閥の開拓拠点・前哨基地
-#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub struct FactionOutpost {
     pub faction: FactionId,
@@ -34,7 +33,7 @@ impl TerritoryMap {
         self.tile_owners.get(coord).copied()
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     #[inline]
     pub fn is_owned_by(&self, coord: &HexCoord, faction: FactionId) -> bool {
         self.get_owner(coord) == Some(faction)
@@ -148,5 +147,24 @@ pub fn cleanup_territories(
     territory_map.tile_owners.clear();
     for entity in &outposts {
         commands.entity(entity).despawn();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_territory_map_ownership() {
+        let mut map = TerritoryMap::default();
+        let coord = HexCoord::new(3, 4);
+
+        assert_eq!(map.get_owner(&coord), None);
+        assert!(!map.is_owned_by(&coord, FactionId::Empire));
+
+        map.tile_owners.insert(coord, FactionId::Empire);
+        assert_eq!(map.get_owner(&coord), Some(FactionId::Empire));
+        assert!(map.is_owned_by(&coord, FactionId::Empire));
+        assert!(!map.is_owned_by(&coord, FactionId::Federation));
     }
 }

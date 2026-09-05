@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
 
-use super::hex::{self, HexCoord, MAP_HEIGHT, MAP_WIDTH};
+use super::hex::{self, HexCoord};
 #[allow(unused_imports)]
 use super::settings::{MapConfig, MapSize, PlanetEnvironment};
 use super::terrain::TerrainType;
@@ -22,12 +22,6 @@ pub fn cylinder_noise_with_size(col: i32, row: i32, seed: u32, map_w: i32, map_h
 
     let total = (wave1 + wave2 + wave3) / 1.75; // -1.0 .. 1.0 付近
     (total * 0.5 + 0.5).clamp(0.0, 1.0)
-}
-
-/// 周期的な円筒座標におけるハッシュ/疑似乱数（後方互換）
-#[allow(dead_code)]
-pub fn cylinder_noise(col: i32, row: i32, seed: u32) -> f32 {
-    cylinder_noise_with_size(col, row, seed, MAP_WIDTH, MAP_HEIGHT)
 }
 
 /// 六角柱の3Dメッシュを生成
@@ -299,6 +293,7 @@ pub fn cleanup_hex_map(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::map::hex::{MAP_HEIGHT, MAP_WIDTH};
 
     #[test]
     fn test_no_mountains_in_ocean() {
@@ -309,7 +304,7 @@ mod tests {
         for row in -half_h..=half_h {
             let lat_factor = (row.abs() as f32 / half_h as f32).powf(1.8);
             for col in 0..MAP_WIDTH {
-                let n = cylinder_noise(col, row, 1337);
+                let n = cylinder_noise_with_size(col, row, 1337, MAP_WIDTH, MAP_HEIGHT);
                 let elevation = (n - lat_factor * 0.4).clamp(0.0, 1.0);
                 elevations.insert((col, row), elevation);
                 is_land.insert((col, row), elevation >= 0.42);

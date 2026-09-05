@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::faction::TerritoryMap;
+use crate::faction::{FactionOutpost, TerritoryMap};
 use crate::map::hex::HexCoord;
 use crate::map::interaction::SelectedTile;
 use crate::map::MapGrid;
@@ -100,6 +100,7 @@ pub fn update_info_panel_system(
     selected: Res<SelectedTile>,
     map_grid: Res<MapGrid>,
     territory_map: Res<TerritoryMap>,
+    outposts_query: Query<&FactionOutpost>,
     mut query: Query<&mut Text, With<InfoPanelText>>,
 ) {
     if !selected.is_changed() {
@@ -144,9 +145,15 @@ pub fn update_info_panel_system(
                 "未領有・未開拓域 (Neutral Territory)".to_string()
             };
 
+            let outpost_str = if let Some(outpost) = outposts_query.iter().find(|o| o.coord == coord) {
+                format!("\n\n【前哨拠点】\n  {} (Lv.{})", outpost.name, outpost.level)
+            } else {
+                String::new()
+            };
+
             let info = format!(
                 "【ヘックス座標】\n  col: {}, row: {} (q: {}, r: {})\n  中心からの距離: {}\n\n\
-                 【領有勢力】\n  {}\n\n\
+                 【領有勢力】\n  {}{}\n\n\
                  【地形種別】\n  {}\n\n\
                  【移動コスト】: {}\n\
                  【地上移動】: {}\n\n\
@@ -157,6 +164,7 @@ pub fn update_info_panel_system(
                 coord.r,
                 dist_from_center,
                 owner_str,
+                outpost_str,
                 terrain.name(),
                 move_cost_str,
                 passable_str

@@ -39,8 +39,8 @@ impl HexCoord {
         Self::from_col_row_unwrapped(col.rem_euclid(map_width), row)
     }
 
-    /// (col, row) のオフセット座標からHexCoordを作成（デフォルト幅）
-    #[allow(dead_code)]
+    /// (col, row) のオフセット座標からHexCoordを作成（デフォルト幅、テスト用）
+    #[cfg(test)]
     pub fn from_col_row(col: i32, row: i32) -> Self {
         Self::from_col_row_with_width(col, row, MAP_WIDTH)
     }
@@ -58,8 +58,8 @@ impl HexCoord {
         (col.rem_euclid(map_width), row)
     }
 
-    /// (col, row) のオフセット座標を取得 (col は 0..MAP_WIDTH-1 に正規化、デフォルト幅)
-    #[allow(dead_code)]
+    /// (col, row) のオフセット座標を取得 (col は 0..MAP_WIDTH-1 に正規化、デフォルト幅、テスト用)
+    #[cfg(test)]
     pub fn to_col_row(self) -> (i32, i32) {
         self.to_col_row_with_width(MAP_WIDTH)
     }
@@ -68,12 +68,6 @@ impl HexCoord {
     pub fn wrapped_with_width(self, map_width: i32) -> Self {
         let (col, row) = self.to_col_row_with_width(map_width);
         Self::from_col_row_with_width(col, row, map_width)
-    }
-
-    /// 横ループを考慮して正規化された HexCoord を取得
-    #[allow(dead_code)]
-    pub fn wrapped(self) -> Self {
-        self.wrapped_with_width(MAP_WIDTH)
     }
 
     /// 立方体座標の s 成分 (q + r + s = 0)
@@ -103,8 +97,8 @@ impl HexCoord {
         min_dist
     }
 
-    /// 2つのヘックス間の距離（タイル数、横ループ考慮）
-    #[allow(dead_code)]
+    /// 2つのヘックス間の距離（タイル数、横ループ考慮、テスト用）
+    #[cfg(test)]
     pub fn distance(self, other: HexCoord) -> i32 {
         self.distance_with_width(other, MAP_WIDTH)
     }
@@ -129,8 +123,8 @@ impl HexCoord {
         res
     }
 
-    /// 隣接する6つのヘックス座標を取得（横ループ考慮でラップ）
-    #[allow(dead_code)]
+    /// 隣接する6つのヘックス座標を取得（横ループ考慮でラップ、テスト用）
+    #[cfg(test)]
     pub fn neighbors(self) -> [HexCoord; 6] {
         self.neighbors_with_width(MAP_WIDTH)
     }
@@ -144,14 +138,6 @@ impl HexCoord {
         let x = hex_radius * sqrt3 * (self.q as f32 + self.r as f32 / 2.0);
         let z = hex_radius * 1.5 * (self.r as f32);
         Vec3::new(x, 0.0, z)
-    }
-
-    /// 横ループの周回オフセット（-1, 0, 1 など）を加味したワールド座標を計算
-    #[allow(dead_code)]
-    pub fn to_world_pos_with_wrap(self, hex_radius: f32, wrap_offset: i32) -> Vec3 {
-        let mut pos = self.to_world_pos(hex_radius);
-        pos.x += wrap_offset as f32 * map_world_width(hex_radius);
-        pos
     }
 
     /// 3D ワールド座標 (X, Z) から最も近い HexCoord を逆算（Pointy-topped、指定マップ幅）
@@ -189,11 +175,6 @@ impl HexCoord {
 pub fn map_world_width_with_width(hex_radius: f32, map_width: i32) -> f32 {
     let sqrt3 = 3.0f32.sqrt();
     hex_radius * sqrt3 * (map_width as f32)
-}
-
-/// マップのワールド空間における1周分の横幅（X軸メートル、デフォルト幅）
-pub fn map_world_width(hex_radius: f32) -> f32 {
-    map_world_width_with_width(hex_radius, MAP_WIDTH)
 }
 
 #[cfg(test)]
