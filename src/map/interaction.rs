@@ -68,7 +68,7 @@ fn handle_tile_hover_and_click(
     let h = window.height().max(1.0);
 
     // ミニマップドラッグ中か判定
-    let is_minimap_dragging = minimap_state.as_ref().map_or(false, |s| s.is_dragging);
+    let is_minimap_dragging = minimap_state.as_ref().is_some_and(|s| s.is_dragging);
 
     // UIブロッカー要素（上部バー、情報パネル、アクションボタン、ミニマップ等）の上にカーソルがあるか動的に判定
     let is_over_ui = is_minimap_dragging || ui_blockers.iter().any(|(gt, node)| {
