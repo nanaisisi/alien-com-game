@@ -38,6 +38,12 @@
 - GPU: VRAM8GB以上(2020年以降)
 - SSD: 空き容量100GB以上(2020年以降)
 
+## コマンド集
+
+cargo clippy --fix  --all --allow-dirty
+
+cargo coupling --japanese --ai --web
+
 ## License
 
 アセットに使用している外部素材のフォントを除いたファイルは、MITまたはApache2.0ライセンスとする。
