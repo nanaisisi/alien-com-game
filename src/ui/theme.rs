@@ -268,3 +268,34 @@ impl UiTheme {
         &Self::FONTS
     }
 }
+
+/// 安定したUIテーマ公開インターフェース（求心性結合の安定化トレイト）
+#[allow(dead_code)]
+pub trait ThemeInterface {
+    fn button(&self, danger: bool) -> &'static ButtonStyle;
+    fn surfaces(&self) -> &'static SurfaceTheme;
+    fn text(&self) -> &'static TextTheme;
+    fn fonts(&self) -> &'static FontTheme;
+}
+
+impl ThemeInterface for UiTheme {
+    #[inline]
+    fn button(&self, danger: bool) -> &'static ButtonStyle {
+        Self::button(danger)
+    }
+
+    #[inline]
+    fn surfaces(&self) -> &'static SurfaceTheme {
+        Self::surfaces()
+    }
+
+    #[inline]
+    fn text(&self) -> &'static TextTheme {
+        Self::text()
+    }
+
+    #[inline]
+    fn fonts(&self) -> &'static FontTheme {
+        Self::fonts()
+    }
+}
