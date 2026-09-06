@@ -21,9 +21,10 @@ impl Plugin for MinimapPlugin {
                 Update,
                 (
                     update_minimap_texture_system,
-                    update_minimap_viewport_system,
                     handle_minimap_interaction_system,
+                    update_minimap_viewport_system,
                 )
+                    .chain()
                     .run_if(in_state(AppState::InGame)),
             )
             .add_systems(OnEnter(AppState::Title), cleanup_minimap_ui);
@@ -105,6 +106,7 @@ fn setup_minimap_ui(
                 bottom: Val::Px(96.0),
                 right: Val::Px(24.0),
                 width: Val::Px(MINIMAP_WIDTH + 16.0),
+                height: Val::Px(MINIMAP_HEIGHT + 44.0),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 padding: UiRect::all(Val::Px(8.0)),
@@ -115,6 +117,7 @@ fn setup_minimap_ui(
             },
             BackgroundColor(Color::srgba(0.05, 0.08, 0.14, 0.94)),
             BorderColor::all(MINIMAP_BORDER_COLOR),
+            Pickable::IGNORE,
         ))
         .with_children(|container| {
             // ヘッダーバー（タイトル & 座標表示）
@@ -153,6 +156,7 @@ fn setup_minimap_ui(
             // マップ描画フレーム（実際の画像 + カメラ視界枠）
             container
                 .spawn((
+                    Button,
                     MinimapImageNode,
                     Interaction::default(),
                     bevy::ui::RelativeCursorPosition::default(),
@@ -439,7 +443,7 @@ fn handle_minimap_interaction_system(
     map_grid: Res<MapGrid>,
     image_query: Query<(
         &GlobalTransform,
-        &Node,
+        &ComputedNode,
         &Interaction,
         &bevy::ui::RelativeCursorPosition,
     ), With<MinimapImageNode>>,
@@ -448,7 +452,7 @@ fn handle_minimap_interaction_system(
     let Ok(window) = windows.single() else {
         return;
     };
-    let Ok((gt, node, interaction, rel_cursor)) = image_query.single() else {
+    let Ok((gt, computed_node, interaction, rel_cursor)) = image_query.single() else {
         return;
     };
     let Ok(mut map_cam) = camera_query.single_mut() else {
@@ -460,21 +464,22 @@ fn handle_minimap_interaction_system(
         return;
     };
 
-    let translation = gt.translation();
-    let size = match (node.width, node.height) {
-        (Val::Px(w), Val::Px(h)) => Vec2::new(w, h),
-        _ => Vec2::new(MINIMAP_WIDTH, MINIMAP_HEIGHT),
-    };
+    let size = computed_node.size();
+    if size.x <= 0.0 || size.y <= 0.0 {
+        return;
+    }
 
     // ノードの左上と右下のスクリーン座標（Bevy UI GlobalTransformはノードの中心）
-    let min = Vec2::new(translation.x - size.x * 0.5, translation.y - size.y * 0.5);
+    let center = gt.translation().truncate();
+    let min = center - size * 0.5;
+    let max = center + size * 0.5;
 
-    // Bevy UIのInteractionシステムによる判定、またはマウス押下時の矩形内判定
+    // カーソルがミニマップ画像領域内にあるかどうかの判定
     let is_inside = rel_cursor.normalized.is_some()
         || (cursor_pos.x >= min.x
-            && cursor_pos.x <= min.x + size.x
+            && cursor_pos.x <= max.x
             && cursor_pos.y >= min.y
-            && cursor_pos.y <= min.y + size.y);
+            && cursor_pos.y <= max.y);
 
     if *interaction == Interaction::Pressed
         || (mouse_button.just_pressed(MouseButton::Left) && is_inside)
@@ -487,7 +492,7 @@ fn handle_minimap_interaction_system(
     }
 
     if minimap_state.is_dragging && mouse_button.pressed(MouseButton::Left) {
-        // RelativeCursorPosition::normalized (0.0..1.0) が取得できれば最優先で使用。
+        // RelativeCursorPosition::normalized (0.0..1.0) が取得できれば優先して使用。
         // ドラッグで外側に少しはみ出た場合でも cursor_pos と min/size から正確にクランプ計算。
         let (norm_x, norm_y) = if let Some(normalized) = rel_cursor.normalized {
             (normalized.x.clamp(0.0, 1.0), normalized.y.clamp(0.0, 1.0))
@@ -513,6 +518,9 @@ fn handle_minimap_interaction_system(
         let world_z = (norm_y - 0.5) * world_height;
 
         let target = Vec3::new(world_x, 0.0, world_z);
+
+        // ミニマップ操作時は target_focal_point と current_focal_point の両方を直接更新し、
+        // 遠距離移動時にも lerp で世界一周を逆走することなく即座に目標地点へ遷移できるようにする
         map_cam.target_focal_point = target;
         map_cam.current_focal_point = target;
     }

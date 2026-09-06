@@ -49,7 +49,7 @@ fn handle_tile_hover_and_click(
     mut selected_tile: ResMut<SelectedTile>,
     mut drag_tracker: ResMut<LeftDragTracker>,
     mut map_camera_query: Query<&mut MapCamera>,
-    ui_blockers: Query<(&GlobalTransform, &Node), With<crate::ui::UiBlockMapInteraction>>,
+    ui_blockers: Query<(&GlobalTransform, &ComputedNode), With<crate::ui::UiBlockMapInteraction>>,
     minimap_state: Option<Res<crate::ui::minimap::MinimapState>>,
 ) {
     let Ok(window) = windows.single() else {
@@ -71,27 +71,15 @@ fn handle_tile_hover_and_click(
     let is_minimap_dragging = minimap_state.as_ref().is_some_and(|s| s.is_dragging);
 
     // UIブロッカー要素（上部バー、情報パネル、アクションボタン、ミニマップ等）の上にカーソルがあるか動的に判定
-    let is_over_ui = is_minimap_dragging || ui_blockers.iter().any(|(gt, node)| {
-        let translation = gt.translation();
-        // BevyのGlobalTransform (Ui) は要素の中心を表す
-        // Nodeに具体的なサイズ(Px)が指定されている場合はそれを優先、無ければ割合から計算
-        let width = match node.width {
-            Val::Px(px) => px,
-            Val::Percent(pct) => window.width() * (pct / 100.0),
-            _ => 0.0,
-        };
-        let height = match node.height {
-            Val::Px(px) => px,
-            Val::Percent(pct) => window.height() * (pct / 100.0),
-            _ => 0.0,
-        };
-
-        if width <= 0.0 || height <= 0.0 {
+    let is_over_ui = is_minimap_dragging || ui_blockers.iter().any(|(gt, computed_node)| {
+        let size = computed_node.size();
+        if size.x <= 0.0 || size.y <= 0.0 {
             return false;
         }
 
-        let half_w = width * 0.5;
-        let half_h = height * 0.5;
+        let translation = gt.translation();
+        let half_w = size.x * 0.5;
+        let half_h = size.y * 0.5;
         let min_x = translation.x - half_w;
         let max_x = translation.x + half_w;
         let min_y = translation.y - half_h;
