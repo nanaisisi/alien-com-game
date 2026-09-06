@@ -103,6 +103,7 @@ fn setup_hud(
                 height: Val::Percent(100.0),
                 ..default()
             },
+            Pickable::IGNORE,
         ))
         .with_children(|root| {
             // ==========================================

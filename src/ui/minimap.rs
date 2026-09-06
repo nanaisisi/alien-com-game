@@ -101,6 +101,7 @@ fn setup_minimap_ui(
         .spawn((
             MinimapRoot,
             crate::ui::UiBlockMapInteraction,
+            GlobalZIndex(25),
             Node {
                 position_type: PositionType::Absolute,
                 bottom: Val::Px(96.0),
