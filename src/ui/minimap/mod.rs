@@ -1,5 +1,4 @@
 pub mod input;
-pub mod render;
 pub mod render_core;
 pub mod render_integration;
 pub mod view;
@@ -23,9 +22,9 @@ impl Plugin for MinimapPlugin {
             .add_systems(
                 Update,
                 (
-                    render::update_minimap_texture_system,
+                    render_core::update_minimap_texture_system,
                     input::handle_minimap_interaction_system,
-                    render::update_minimap_viewport_system,
+                    render_integration::update_minimap_viewport_system,
                 )
                     .chain()
                     .run_if(in_state(AppState::InGame)),

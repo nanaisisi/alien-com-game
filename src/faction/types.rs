@@ -298,6 +298,36 @@ impl FactionManager {
     }
 }
 
+/// 勢力の資源とターン管理
+#[derive(Resource, Debug, Clone, Reflect)]
+pub struct FactionResources {
+    pub turn: u32,
+    pub energy: i32,
+    pub energy_per_turn: i32,
+    pub production: i32,
+    pub production_per_turn: i32,
+    pub science: i32,
+    pub science_per_turn: i32,
+    pub food: i32,
+    pub food_per_turn: i32,
+}
+
+impl Default for FactionResources {
+    fn default() -> Self {
+        Self {
+            turn: 1,
+            energy: 120,
+            energy_per_turn: 15,
+            production: 50,
+            production_per_turn: 12,
+            science: 30,
+            science_per_turn: 8,
+            food: 80,
+            food_per_turn: 10,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

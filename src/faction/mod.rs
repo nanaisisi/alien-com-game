@@ -10,7 +10,9 @@ pub use territory::{
     cleanup_territories, setup_initial_faction_territories, update_territory_overlays,
     FactionOutpost, TerritoryMap, TerritoryOverlay, TileTerritory,
 };
-pub use types::{DiplomaticRelation, FactionId, FactionManager, PlayerFaction};
+pub use types::{
+    DiplomaticRelation, FactionId, FactionManager, FactionResources, PlayerFaction,
+};
 
 pub struct FactionPlugin;
 
@@ -18,10 +20,12 @@ impl Plugin for FactionPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PlayerFaction>()
             .init_resource::<FactionManager>()
+            .init_resource::<FactionResources>()
             .init_resource::<TerritoryMap>()
             .register_type::<FactionId>()
             .register_type::<DiplomaticRelation>()
             .register_type::<TileTerritory>()
+            .register_type::<FactionResources>()
             .add_systems(
                 OnEnter(AppState::InGame),
                 setup_initial_faction_territories.after(crate::map::generate_hex_map),

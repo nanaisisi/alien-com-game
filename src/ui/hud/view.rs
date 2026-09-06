@@ -1,84 +1,11 @@
 use bevy::prelude::*;
 
-use crate::faction::{FactionId, FactionManager, PlayerFaction};
-use crate::state::AppState;
-
-pub struct InGameHudPlugin;
-
-impl Plugin for InGameHudPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<FactionResources>()
-            .add_systems(OnEnter(AppState::InGame), setup_hud)
-            .add_systems(
-                Update,
-                (
-                    hud_button_interaction_system,
-                    hud_button_action_system,
-                    update_hud_display_system,
-                    handle_keyboard_shortcuts,
-                )
-                    .run_if(in_state(AppState::InGame)),
-            )
-            .add_systems(OnEnter(AppState::Title), cleanup_hud);
-    }
-}
-
-/// プレイヤー勢力の資源とターン管理
-#[derive(Resource, Debug, Clone)]
-pub struct FactionResources {
-    pub turn: u32,
-    pub energy: i32,
-    pub energy_per_turn: i32,
-    pub production: i32,
-    pub production_per_turn: i32,
-    pub science: i32,
-    pub science_per_turn: i32,
-    pub food: i32,
-    pub food_per_turn: i32,
-}
-
-impl Default for FactionResources {
-    fn default() -> Self {
-        Self {
-            turn: 1,
-            energy: 120,
-            energy_per_turn: 15,
-            production: 50,
-            production_per_turn: 12,
-            science: 30,
-            science_per_turn: 8,
-            food: 80,
-            food_per_turn: 10,
-        }
-    }
-}
-
-#[derive(Component)]
-struct HudRoot;
-
-#[derive(Component, Debug, Clone, Copy)]
-enum HudAction {
-    EndTurn,
-    OpenDiplomacy,
-    OpenMenu,
-}
-
-#[derive(Component)]
-enum HudLabel {
-    Turn,
-    Energy,
-    Production,
-    Science,
-    Food,
-}
-
+use crate::faction::{FactionResources, PlayerFaction};
 use crate::ui::theme::UiTheme;
 
-const END_TURN_NORMAL: Color = Color::srgb(0.10, 0.30, 0.35);
-const END_TURN_HOVER: Color = Color::srgb(0.16, 0.48, 0.55);
-const END_TURN_PRESSED: Color = Color::srgb(0.25, 0.75, 0.80);
+use super::types::{HudAction, HudLabel, HudRoot, END_TURN_NORMAL};
 
-fn setup_hud(
+pub fn setup_hud(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     resources: Res<FactionResources>,
@@ -275,8 +202,8 @@ fn setup_hud(
                                         ..default()
                                     },
                                     TextColor(UiTheme::SURFACES.accent),
-                                ));
-                            });
+                            ));
+                        });
 
                         // 設定・メニューボタン
                         right
@@ -417,177 +344,8 @@ fn spawn_resource_item(
         });
 }
 
-fn cleanup_hud(mut commands: Commands, query: Query<Entity, With<HudRoot>>) {
+pub fn cleanup_hud(mut commands: Commands, query: Query<Entity, With<HudRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn();
-    }
-}
-
-type ButtonInteractionQuery<'world, 'state> = Query<
-    'world,
-    'state,
-    (&'static Interaction, &'static mut BackgroundColor, &'static mut BorderColor, &'static HudAction),
-    (Changed<Interaction>, With<Button>),
->;
-
-fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
-    let surfaces = UiTheme::surfaces();
-    let standard_btn = UiTheme::button(false);
-
-    for (interaction, mut bg_color, mut border_color, action) in &mut query {
-        match action {
-            HudAction::EndTurn => match *interaction {
-                Interaction::Pressed => {
-                    *bg_color = BackgroundColor(END_TURN_PRESSED);
-                    *border_color = BorderColor::all(Color::WHITE);
-                }
-                Interaction::Hovered => {
-                    *bg_color = BackgroundColor(END_TURN_HOVER);
-                    *border_color = BorderColor::all(Color::srgb(0.5, 0.95, 0.9));
-                }
-                Interaction::None => {
-                    *bg_color = BackgroundColor(END_TURN_NORMAL);
-                    *border_color = BorderColor::all(surfaces.accent());
-                }
-            },
-            HudAction::OpenDiplomacy => match *interaction {
-                Interaction::Pressed => {
-                    *bg_color = BackgroundColor(standard_btn.pressed());
-                    *border_color = BorderColor::all(Color::WHITE);
-                }
-                Interaction::Hovered => {
-                    *bg_color = BackgroundColor(Color::srgb(0.16, 0.35, 0.44));
-                    *border_color = BorderColor::all(Color::WHITE);
-                }
-                Interaction::None => {
-                    *bg_color = BackgroundColor(Color::srgba(0.10, 0.25, 0.32, 0.85));
-                    *border_color = BorderColor::all(surfaces.accent());
-                }
-            },
-            HudAction::OpenMenu => match *interaction {
-                Interaction::Pressed => {
-                    *bg_color = BackgroundColor(standard_btn.pressed());
-                    *border_color = BorderColor::all(surfaces.accent());
-                }
-                Interaction::Hovered => {
-                    *bg_color = BackgroundColor(standard_btn.hovered());
-                    *border_color = BorderColor::all(surfaces.accent());
-                }
-                Interaction::None => {
-                    *bg_color = BackgroundColor(standard_btn.normal());
-                    *border_color = BorderColor::all(surfaces.border());
-                }
-            },
-        }
-    }
-}
-
-type ButtonActionQuery<'world, 'state> = Query<
-    'world,
-    'state,
-    (&'static Interaction, &'static HudAction),
-    (Changed<Interaction>, With<Button>),
->;
-
-#[allow(clippy::too_many_arguments)]
-fn hud_button_action_system(
-    query: ButtonActionQuery,
-    mut resources: ResMut<FactionResources>,
-    mut settings: ResMut<crate::ui::settings::GameSettings>,
-    mut next_state: ResMut<NextState<AppState>>,
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    player_faction: Res<PlayerFaction>,
-    faction_mgr: Res<FactionManager>,
-    mut modal_state: ResMut<crate::ui::diplomacy::DiplomacyModalState>,
-) {
-    for (interaction, action) in &query {
-        if *interaction == Interaction::Pressed {
-            match action {
-                HudAction::EndTurn => {
-                    advance_turn(&mut resources);
-                }
-                HudAction::OpenDiplomacy => {
-                    modal_state.is_open = !modal_state.is_open;
-                    if modal_state.is_open {
-                        if modal_state.selected_target.is_none() {
-                            modal_state.selected_target = FactionId::ALL
-                                .iter()
-                                .copied()
-                                .find(|&f| f != player_faction.0);
-                        }
-                        crate::ui::diplomacy::spawn_diplomacy_modal(
-                            &mut commands,
-                            &asset_server,
-                            player_faction.0,
-                            &modal_state,
-                            &faction_mgr,
-                        );
-                    }
-                }
-                HudAction::OpenMenu => {
-                    info!("Opening Pause Menu...");
-                    settings.return_state = AppState::InGame;
-                    next_state.set(AppState::PauseMenu);
-                }
-            }
-        }
-    }
-}
-
-fn handle_keyboard_shortcuts(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut resources: ResMut<FactionResources>,
-    mut settings: ResMut<crate::ui::settings::GameSettings>,
-    mut next_state: ResMut<NextState<AppState>>,
-) {
-    if keys.just_pressed(KeyCode::Space) {
-        advance_turn(&mut resources);
-    }
-    if keys.just_pressed(KeyCode::Escape) {
-        info!("ESC pressed: Opening Pause Menu...");
-        settings.return_state = AppState::InGame;
-        next_state.set(AppState::PauseMenu);
-    }
-}
-
-fn advance_turn(resources: &mut FactionResources) {
-    resources.turn += 1;
-    resources.energy += resources.energy_per_turn;
-    resources.production += resources.production_per_turn;
-    resources.science += resources.science_per_turn;
-    resources.food += resources.food_per_turn;
-    info!("Advancing to Turn {}", resources.turn);
-}
-
-fn update_hud_display_system(
-    resources: Res<FactionResources>,
-    mut query: Query<(&mut Text, &HudLabel)>,
-) {
-    if !resources.is_changed() {
-        return;
-    }
-
-    for (mut text, label) in &mut query {
-        match label {
-            HudLabel::Turn => {
-                **text = format!("TURN {:02}", resources.turn);
-            }
-            HudLabel::Energy => {
-                **text = format!("{} (+{})", resources.energy, resources.energy_per_turn);
-            }
-            HudLabel::Production => {
-                **text = format!(
-                    "{} (+{})",
-                    resources.production, resources.production_per_turn
-                );
-            }
-            HudLabel::Science => {
-                **text = format!("{} (+{})", resources.science, resources.science_per_turn);
-            }
-            HudLabel::Food => {
-                **text = format!("{} (+{})", resources.food, resources.food_per_turn);
-            }
-        }
     }
 }
