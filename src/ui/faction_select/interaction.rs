@@ -223,10 +223,7 @@ pub fn faction_select_action_system(
                 }
             }
             SelectAction::RerollSeed => {
-                // シンプルなLCGでシード値を変更
-                let new_seed = map_config.seed.wrapping_mul(1664525).wrapping_add(1013904223);
-                let display_seed = (new_seed % 90000) + 10000;
-                map_config.seed = display_seed;
+                let display_seed = map_config.reroll_seed();
 
                 if let Ok(mut text) = seed_text_query.single_mut() {
                     **text = format!("🎲 SEED: {}", display_seed);

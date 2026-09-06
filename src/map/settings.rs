@@ -180,4 +180,17 @@ impl MapConfig {
     pub fn height(&self) -> i32 {
         self.size.height()
     }
+
+    /// ランダム（現在時刻エントロピー＋LCG）に基づき新しいシードを生成・設定する
+    pub fn reroll_seed(&mut self) -> u32 {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u32)
+            .unwrap_or(42);
+        let mixed = self.seed.wrapping_add(now);
+        let next = mixed.wrapping_mul(1664525).wrapping_add(1013904223);
+        let display_seed = (next % 90000) + 10000;
+        self.seed = display_seed;
+        display_seed
+    }
 }

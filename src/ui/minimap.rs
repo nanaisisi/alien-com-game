@@ -436,7 +436,7 @@ fn update_minimap_viewport_system(
     }
 }
 
-/// ミニマップ上でのクリック＆ドラッグによるカメラ位置の移動
+/// ミニマップ上でのクリック／ホールドによるカメラ位置の追随移動
 fn handle_minimap_interaction_system(
     windows: Query<&Window, With<PrimaryWindow>>,
     mouse_button: Res<ButtonInput<MouseButton>>,
@@ -482,19 +482,22 @@ fn handle_minimap_interaction_system(
             && cursor_pos.y >= min.y
             && cursor_pos.y <= max.y);
 
+    // ミニマップ上でクリック（またはタップ）された瞬間に追随状態を開始
     if *interaction == Interaction::Pressed
         || (mouse_button.just_pressed(MouseButton::Left) && is_inside)
     {
         minimap_state.is_dragging = true;
     }
 
+    // 左ボタンが離されたら追随終了
     if mouse_button.just_released(MouseButton::Left) {
         minimap_state.is_dragging = false;
     }
 
+    // 左ボタンを押している間（クリック中・ドラッグ中・長押し中）、視点中心をカーソル位置へ追随
     if minimap_state.is_dragging && mouse_button.pressed(MouseButton::Left) {
         // RelativeCursorPosition::normalized (0.0..1.0) が取得できれば優先して使用。
-        // ドラッグで外側に少しはみ出た場合でも cursor_pos と min/size から正確にクランプ計算。
+        // ミニマップ枠外へ少し出た場合でも cursor_pos と min/size から正確にクランプ計算。
         let (norm_x, norm_y) = if let Some(normalized) = rel_cursor.normalized {
             (normalized.x.clamp(0.0, 1.0), normalized.y.clamp(0.0, 1.0))
         } else {
@@ -520,8 +523,7 @@ fn handle_minimap_interaction_system(
 
         let target = Vec3::new(world_x, 0.0, world_z);
 
-        // ミニマップ操作時は target_focal_point と current_focal_point の両方を直接更新し、
-        // 遠距離移動時にも lerp で世界一周を逆走することなく即座に目標地点へ遷移できるようにする
+        // クリック／押下中は注視点（カメラ中心）を瞬時かつ滑らかに追随させる
         map_cam.target_focal_point = target;
         map_cam.current_focal_point = target;
     }

@@ -9,9 +9,10 @@ pub fn setup_faction_select_ui(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     player_faction: Res<PlayerFaction>,
-    map_config: Res<MapConfig>,
+    mut map_config: ResMut<MapConfig>,
     mut selected_menu: ResMut<SelectedFactionMenu>,
 ) {
+    map_config.reroll_seed();
     selected_menu.faction = player_faction.0;
 
     let font_regular = asset_server.load(UiTheme::fonts().regular());
