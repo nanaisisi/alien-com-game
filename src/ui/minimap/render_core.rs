@@ -59,10 +59,20 @@ pub fn update_minimap_texture_system(
             let mut b = (base_c.blue * 255.0) as u8;
             let a = 255u8;
 
-            // 領土オーバーレイ（ミニマップ上では控えめに表示）
-            if let Some(owner) = territory_map.tile_owners.get(&coord) {
-                let owner_color = owner.primary_color().to_srgba();
-                let blend = 0.12; // 派閥カラーのブレンド率（控えめにして地形の視認性を優先）
+            // 領土オーバーレイ（Civilizationスタイル: 境界は濃く、内部は控えめ）
+            if let Some(&owner) = territory_map.tile_owners.get(&coord) {
+                // 境界判定（隣接6マスのいずれかが自国領土以外なら境界）
+                let is_border = coord
+                    .neighbors_with_width(map_w)
+                    .iter()
+                    .any(|n| territory_map.get_owner(n) != Some(owner));
+
+                let (owner_color, blend) = if is_border {
+                    (owner.primary_color().to_srgba(), 0.50) // 境界はくっきり強調
+                } else {
+                    (owner.primary_color().to_srgba(), 0.08) // 内部は薄く地形を透かす
+                };
+
                 r = ((1.0 - blend) * (r as f32) + blend * owner_color.red * 255.0) as u8;
                 g = ((1.0 - blend) * (g as f32) + blend * owner_color.green * 255.0) as u8;
                 b = ((1.0 - blend) * (b as f32) + blend * owner_color.blue * 255.0) as u8;
