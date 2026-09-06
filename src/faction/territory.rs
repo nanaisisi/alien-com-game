@@ -139,13 +139,100 @@ pub fn setup_initial_faction_territories(
     );
 }
 
+/// 領土オーバーレイ表示用マーカーコンポーネント
+#[derive(Component, Debug, Clone, Copy)]
+pub struct TerritoryOverlay;
+
+/// 領土変更・初期化時にメインマップ上に透過メッシュオーバーレイを生成・更新するシステム
+pub fn update_territory_overlays(
+    mut commands: Commands,
+    map_grid: Res<MapGrid>,
+    map_config: Res<crate::map::settings::MapConfig>,
+    territory_map: Res<TerritoryMap>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    existing_overlays: Query<Entity, With<TerritoryOverlay>>,
+) {
+    if !territory_map.is_changed() {
+        return;
+    }
+
+    // 既存のオーバーレイを一旦削除して再構築
+    for entity in &existing_overlays {
+        commands.entity(entity).despawn();
+    }
+
+    if territory_map.tile_owners.is_empty() || map_grid.tiles.is_empty() {
+        return;
+    }
+
+    let map_w = if map_grid.width > 0 { map_grid.width } else { map_config.width() };
+    let world_width = crate::map::hex::map_world_width_with_width(crate::map::HEX_RADIUS, map_w);
+
+    // 派閥ごとの透過オーバーレイマテリアルキャッシュ
+    let mut overlay_mats: HashMap<FactionId, Handle<StandardMaterial>> = HashMap::new();
+    for &faction in FactionId::ALL.iter() {
+        let base_c = faction.primary_color().to_srgba();
+        // 透過度を高めに設定 (alpha = 0.40) し、発光(emissive)も加味して鮮明に浮かび上がらせる
+        let color = Color::srgba(base_c.red, base_c.green, base_c.blue, 0.40);
+        let mat = materials.add(StandardMaterial {
+            base_color: color,
+            alpha_mode: AlphaMode::Blend,
+            unlit: true,
+            cull_mode: None,
+            ..default()
+        });
+        overlay_mats.insert(faction, mat);
+    }
+
+    // 六角形メッシュ（タイルの上面にぴったり合う薄いシリンダーメッシュ）
+    // タイル半径よりわずかに小さく(0.96)して隣接タイルとの境界が綺麗に見えるようにする
+    let mesh_handle = meshes.add(crate::map::create_hex_mesh(crate::map::HEX_RADIUS * 0.96, 0.04));
+
+    // メインマップ(0)および左右ラップ(-1, +1)の全周回セクションにオーバーレイを配置
+    for wrap_offset in [-1, 0, 1] {
+        let section_offset_x = wrap_offset as f32 * world_width;
+
+        for (&coord, &faction) in &territory_map.tile_owners {
+            let Some(&terrain) = map_grid.terrain_data.get(&coord) else {
+                continue;
+            };
+            let Some(mat_handle) = overlay_mats.get(&faction) else {
+                continue;
+            };
+
+            let height = terrain.height();
+            let world_pos = coord.to_world_pos(crate::map::HEX_RADIUS);
+            // タイルの上面 (height) よりわずかに上 (height + 0.03) に配置
+            let y = height + 0.03;
+
+            commands.spawn((
+                TerritoryOverlay,
+                Mesh3d(mesh_handle.clone()),
+                MeshMaterial3d(mat_handle.clone()),
+                Transform::from_xyz(world_pos.x + section_offset_x, y, world_pos.z)
+                    .with_rotation(Quat::from_rotation_y(std::f32::consts::PI / 6.0)),
+            ));
+        }
+    }
+
+    info!(
+        "Spawned territory overlays for {} tiles across 3 wrapped sections.",
+        territory_map.tile_owners.len()
+    );
+}
+
 pub fn cleanup_territories(
     mut commands: Commands,
     mut territory_map: ResMut<TerritoryMap>,
     outposts: Query<Entity, With<FactionOutpost>>,
+    overlays: Query<Entity, With<TerritoryOverlay>>,
 ) {
     territory_map.tile_owners.clear();
     for entity in &outposts {
+        commands.entity(entity).despawn();
+    }
+    for entity in &overlays {
         commands.entity(entity).despawn();
     }
 }

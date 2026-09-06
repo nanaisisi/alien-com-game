@@ -16,9 +16,6 @@ impl Plugin for CameraPlugin {
     }
 }
 
-/// メイン指向性ライトのマーカーコンポーネント
-#[derive(Component)]
-pub struct MainDirectionalLight;
 
 /// RTS/4X風のカメラ操作用マーカー
 #[derive(Component)]
@@ -63,27 +60,6 @@ fn setup_camera(mut commands: Commands) {
             current_viewport_height: initial_viewport_height,
             ..default()
         },
-    ));
-
-    // メイン指向性ライト（南西上空から北東向きに照らす）
-    commands.spawn((
-        MainDirectionalLight,
-        DirectionalLight {
-            illuminance: 15_000.0,
-            shadow_maps_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(10.0, 30.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-    ));
-
-    // アンビエント環境光
-    commands.spawn((
-        PointLight {
-            intensity: 800_000.0,
-            radius: 50.0,
-            ..default()
-        },
-        Transform::from_xyz(0.0, 20.0, 0.0),
     ));
 }
 

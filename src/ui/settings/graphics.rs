@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 
-use crate::camera::MainDirectionalLight;
+use crate::world::MainDirectionalLight;
 use super::types::{AntiAliasingMode, GameSettings, RESOLUTION_PRESETS};
 
 /// フレームレート制限用の状態追跡リソース
