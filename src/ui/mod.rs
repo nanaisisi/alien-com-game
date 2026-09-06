@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub mod city;
 pub mod diplomacy;
 pub mod faction_select;
 pub mod hud;
@@ -20,6 +21,7 @@ impl Plugin for GameUiPlugin {
             settings::SettingsUiPlugin,
             hud::InGameHudPlugin,
             info_panel::InfoPanelPlugin,
+            city::CityUiPlugin,
             diplomacy::DiplomacyUiPlugin,
             pause::PauseMenuPlugin,
             minimap::MinimapPlugin,

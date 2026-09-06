@@ -187,7 +187,14 @@ pub fn update_info_panel_system(
             };
 
             let outpost_str = if let Some(outpost) = outposts_query.iter().find(|o| o.coord == coord) {
-                format!("\n\n【前哨拠点】\n  {} (Lv.{})", outpost.name, outpost.level)
+                if Some(outpost.faction) == territory_map.get_owner(&coord) {
+                    format!(
+                        "\n\n【都市・前哨基地】\n  {} (Lv.{})\n  ※[C]キーで都市管理・部隊生産画面を開く",
+                        outpost.name, outpost.level
+                    )
+                } else {
+                    format!("\n\n【都市・前哨基地】\n  {} (Lv.{})", outpost.name, outpost.level)
+                }
             } else {
                 String::new()
             };

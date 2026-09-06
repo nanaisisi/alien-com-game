@@ -177,6 +177,34 @@ pub fn setup_hud(
                         ..default()
                     })
                     .with_children(|right| {
+                        // 都市管理ボタン
+                        right
+                            .spawn((
+                                Button,
+                                HudAction::OpenCity,
+                                Node {
+                                    padding: UiRect::axes(Val::Px(14.0), Val::Px(6.0)),
+                                    border: UiRect::all(Val::Px(1.5)),
+                                    border_radius: BorderRadius::all(Val::Px(6.0)),
+                                    align_items: AlignItems::Center,
+                                    justify_content: JustifyContent::Center,
+                                    ..default()
+                                },
+                                BorderColor::all(UiTheme::SURFACES.accent),
+                                BackgroundColor(Color::srgba(0.12, 0.28, 0.38, 0.85)),
+                            ))
+                            .with_children(|btn| {
+                                btn.spawn((
+                                    Text::new("⬢ 基地司令部 (C)"),
+                                    TextFont {
+                                        font: font_bold.clone().into(),
+                                        font_size: FontSize::Px(13.0),
+                                        ..default()
+                                    },
+                                    TextColor(UiTheme::SURFACES.accent),
+                                ));
+                            });
+
                         // 外交ボタン
                         right
                             .spawn((

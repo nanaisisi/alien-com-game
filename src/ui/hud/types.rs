@@ -6,6 +6,7 @@ pub struct HudRoot;
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HudAction {
     EndTurn,
+    OpenCity,
     OpenDiplomacy,
     OpenMenu,
 }

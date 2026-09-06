@@ -40,6 +40,20 @@ pub fn hud_button_interaction_system(mut query: ButtonInteractionQuery) {
                     *border_color = BorderColor::all(surfaces.accent());
                 }
             },
+            HudAction::OpenCity => match *interaction {
+                Interaction::Pressed => {
+                    *bg_color = BackgroundColor(standard_btn.pressed());
+                    *border_color = BorderColor::all(Color::WHITE);
+                }
+                Interaction::Hovered => {
+                    *bg_color = BackgroundColor(Color::srgb(0.18, 0.38, 0.48));
+                    *border_color = BorderColor::all(Color::WHITE);
+                }
+                Interaction::None => {
+                    *bg_color = BackgroundColor(Color::srgba(0.12, 0.28, 0.38, 0.85));
+                    *border_color = BorderColor::all(surfaces.accent());
+                }
+            },
             HudAction::OpenDiplomacy => match *interaction {
                 Interaction::Pressed => {
                     *bg_color = BackgroundColor(standard_btn.pressed());
@@ -90,12 +104,48 @@ pub fn hud_button_action_system(
     player_faction: Res<PlayerFaction>,
     faction_mgr: Res<FactionManager>,
     mut modal_state: ResMut<crate::ui::diplomacy::DiplomacyModalState>,
+    mut city_modal_state: ResMut<crate::ui::city::CityModalState>,
+    outposts_query: Query<(Entity, &crate::faction::FactionOutpost)>,
+    selected_tile: Res<crate::map::interaction::SelectedTile>,
 ) {
     for (interaction, action) in &query {
         if *interaction == Interaction::Pressed {
             match action {
                 HudAction::EndTurn => {
                     advance_turn(&mut resources);
+                }
+                HudAction::OpenCity => {
+                    city_modal_state.is_open = !city_modal_state.is_open;
+                    if city_modal_state.is_open {
+                        let mut target_entity = None;
+                        if let Some(coord) = selected_tile.0
+                            && let Some((e, _)) = outposts_query
+                                .iter()
+                                .find(|(_, o)| o.coord == coord && o.faction == player_faction.0)
+                            {
+                                target_entity = Some(e);
+                            }
+                        if target_entity.is_none()
+                            && let Some((e, _)) = outposts_query
+                                .iter()
+                                .find(|(_, o)| o.faction == player_faction.0)
+                            {
+                                target_entity = Some(e);
+                            }
+                        city_modal_state.target_outpost_entity = target_entity;
+                        if let Some(target_e) = target_entity
+                            && let Ok((_, outpost)) = outposts_query.get(target_e)
+                        {
+                            crate::ui::city::spawn_city_modal(
+                                &mut commands,
+                                &asset_server,
+                                outpost,
+                                &resources,
+                            );
+                        } else {
+                            city_modal_state.is_open = false;
+                        }
+                    }
                 }
                 HudAction::OpenDiplomacy => {
                     modal_state.is_open = !modal_state.is_open;

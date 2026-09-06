@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::state::AppState;
 
+pub mod city_mesh;
 pub mod territory;
 pub mod types;
 

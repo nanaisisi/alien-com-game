@@ -43,6 +43,8 @@ impl TerritoryMap {
 /// 各派閥の初期着陸位置と領土の初期化システム
 pub fn setup_initial_faction_territories(
     mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     map_grid: Res<MapGrid>,
     map_config: Res<crate::map::settings::MapConfig>,
     mut territory_map: ResMut<TerritoryMap>,
@@ -111,12 +113,35 @@ pub fn setup_initial_faction_territories(
             FactionId::Union => "アヴァロン統合司令部",
         };
 
-        commands.spawn(FactionOutpost {
+        let terrain_height = map_grid
+            .terrain_data
+            .get(&center)
+            .map(|t| t.height())
+            .unwrap_or(0.15);
+        let world_pos = center.to_world_pos(crate::map::HEX_RADIUS);
+
+        let outpost_entity = commands
+            .spawn((
+                FactionOutpost {
+                    faction,
+                    name: outpost_name.to_string(),
+                    coord: center,
+                    level: 1,
+                },
+                Transform::from_xyz(world_pos.x, terrain_height, world_pos.z),
+                Visibility::default(),
+            ))
+            .id();
+
+        // 3D都市建築群を子エンティティとして追加
+        crate::faction::city_mesh::spawn_city_model(
+            &mut commands,
+            outpost_entity,
+            &mut meshes,
+            &mut materials,
             faction,
-            name: outpost_name.to_string(),
-            coord: center,
-            level: 1,
-        });
+            1,
+        );
 
         // 中心と隣接タイル（半径1）を自国領土に
         let mut claimed = 0;
