@@ -5,6 +5,7 @@ mod faction;
 mod map;
 mod state;
 mod ui;
+mod unit;
 mod world;
 
 use camera::CameraPlugin;
@@ -12,6 +13,7 @@ use faction::FactionPlugin;
 use map::MapPlugin;
 use state::AppState;
 use ui::GameUiPlugin;
+use unit::UnitPlugin;
 use world::WorldPlugin;
 
 fn main() {
@@ -32,6 +34,13 @@ fn main() {
                 }),
         )
         .init_state::<AppState>()
-        .add_plugins((CameraPlugin, WorldPlugin, MapPlugin, FactionPlugin, GameUiPlugin))
+        .add_plugins((
+            CameraPlugin,
+            WorldPlugin,
+            MapPlugin,
+            FactionPlugin,
+            UnitPlugin,
+            GameUiPlugin,
+        ))
         .run();
 }
