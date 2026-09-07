@@ -415,7 +415,7 @@ fn execute_unit_attack_action(
     for (target_e, target_u, _) in units.iter() {
         if target_u.faction != player_fac {
             let dist = attacker_coord.distance_with_width(target_u.coord, map_w);
-            if dist <= (max_range as i32) && dist > 0 {
+            if dist <= max_range && dist > 0 {
                 targets.push((target_e, target_u.coord, dist));
             }
         }
@@ -497,8 +497,8 @@ fn execute_unit_attack_action(
         commands.entity(target_e).despawn();
         info!("Enemy unit destroyed!");
         // 白兵突撃で敵を撃破した場合、そのタイルへ踏み込み移動
-        if !is_ranged && !attacker_died {
-            if let Ok((_, mut att_unit, mut att_transform)) = units.get_mut(attacker_entity) {
+        if !is_ranged && !attacker_died
+            && let Ok((_, mut att_unit, mut att_transform)) = units.get_mut(attacker_entity) {
                 att_unit.coord = target_coord;
                 let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
                 let height = map_grid.terrain_data.get(&target_coord).map(|t| t.height()).unwrap_or(0.0);
@@ -507,7 +507,6 @@ fn execute_unit_attack_action(
                 att_transform.translation.z = world_pos.z;
                 selected_tile.0 = Some(target_coord);
             }
-        }
     }
 
     if attacker_died {

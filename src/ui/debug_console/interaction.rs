@@ -239,8 +239,8 @@ pub fn handle_console_keyboard_input(
     }
 
     // 下キー: 履歴を進める
-    if keys.just_pressed(KeyCode::ArrowDown) {
-        if let Some(idx) = state.history_index {
+    if keys.just_pressed(KeyCode::ArrowDown)
+        && let Some(idx) = state.history_index {
             if idx + 1 < state.history.len() {
                 state.history_index = Some(idx + 1);
                 state.input_text = state.history[idx + 1].clone();
@@ -249,12 +249,11 @@ pub fn handle_console_keyboard_input(
                 state.input_text.clear();
             }
         }
-    }
 
     // 文字入力受付 (KeyboardInput の text フィールドを利用)
     for ev in key_events.read() {
-        if ev.state.is_pressed() {
-            if let Some(ref text) = ev.text {
+        if ev.state.is_pressed()
+            && let Some(ref text) = ev.text {
                 for ch in text.chars() {
                     // バッククォートや制御文字を除外
                     if ch != '`' && ch != '~' && !ch.is_control() {
@@ -262,7 +261,6 @@ pub fn handle_console_keyboard_input(
                     }
                 }
             }
-        }
     }
 
     // 入力テキスト表示の更新
