@@ -131,10 +131,11 @@ pub fn update_info_panel_system(
         let (col, row) = coord.to_col_row_with_width(map_w);
 
         let mode_guide = if move_mode.0 {
-            "【移動指示モード中 (MOVE)】\n  ※移動先タイルをクリックまたはホバーで [M] 押下\n  ※[ESC] で移動モード解除"
+            "【移動指示モード中 (MOVE)】\n  ※移動先タイルをクリックで移動実行\n  ※[M] / [ESC] / 右クリックで解除"
         } else {
             "【ユニット操作コマンド】\n  \
-             [M]: 移動 (Move)\n  \
+             [M]: 移動モード (クリックで移動)\n  \
+             ※自部隊を右ドラッグして離すことでも移動可能\n  \
              [A]: 突撃/近接攻撃 (隣接敵・反撃あり)\n  \
              [R]: 遠隔射撃 (射程2マス・反撃なし)\n  \
              [F]: 防御態勢 (Fortify / 被ダメ軽減)\n  \
@@ -154,7 +155,7 @@ pub fn update_info_panel_system(
              【ステータス】\n  HP: {} / {}\n  残り移動力: {} / {}\n  攻撃力: {} (射程: {}マス)\n  態勢/状態: {}\n  行動可否: {}\n\n\
              【現在位置】\n  col: {}, row: {} (q: {}, r: {})\n\n\
              {}\n\n\
-             ※移動可能タイルをクリック（または右クリック）でも即時移動可能",
+             ※移動: 右クリックドラッグ（ドラッグ中[M]で移動モードへ移行可）、または [M] キー移動モード",
             unit.group_type.display_name(),
             fac.code(),
             fac.name_ja(),

@@ -8,7 +8,8 @@ use crate::map::MapGrid;
 use crate::state::AppState;
 
 use super::types::{
-    MoveModeState, MoveTargetMarker, SelectedUnit, Unit, UnitActionState, UnitSelectionRing,
+    MoveModeState, MoveTargetMarker, RightDragMoveState, SelectedUnit, Unit, UnitActionState,
+    UnitSelectionRing,
 };
 
 pub struct UnitInteractionPlugin;
@@ -17,6 +18,7 @@ impl Plugin for UnitInteractionPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SelectedUnit>()
             .init_resource::<MoveModeState>()
+            .init_resource::<RightDragMoveState>()
             .init_resource::<ReachableTiles>()
             .add_systems(
                 Update,
@@ -46,9 +48,10 @@ pub fn handle_unit_keyboard_shortcuts(
     mut action_events: MessageReader<crate::map::input::InGameActionEvent>,
     mut selected_unit: ResMut<SelectedUnit>,
     mut selected_tile: ResMut<SelectedTile>,
-    hovered_tile: Res<HoveredTile>,
+    _hovered_tile: Res<HoveredTile>,
     mut move_mode: ResMut<MoveModeState>,
-    reachable_tiles: Res<ReachableTiles>,
+    mut right_drag: ResMut<RightDragMoveState>,
+    _reachable_tiles: Res<ReachableTiles>,
     player_faction: Res<PlayerFaction>,
     map_grid: Res<MapGrid>,
     mut units: Query<(Entity, &mut Unit, &mut Transform)>,
@@ -69,18 +72,16 @@ pub fn handle_unit_keyboard_shortcuts(
                 }
             }
 
-            // 2. 移動モード切り替え／即時移動
+            // 2. 移動モード切り替え（Mキーで予定移動経路追随表示、再押下で解除 / ドラッグ中なら移動モードへシームレス遷移）
             crate::map::input::InGameAction::UnitMove => {
-                if let Some(selected_entity) = selected_unit.0
-                    && let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity)
-                {
-                    if let Some(hovered) = hovered_tile.0
-                        && let Some(&cost) = reachable_tiles.tiles.get(&hovered)
-                        && hovered != unit.coord
-                    {
-                        execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
-                        selected_tile.0 = Some(hovered);
-                        move_mode.0 = false;
+                if selected_unit.0.is_some() {
+                    if right_drag.is_dragging {
+                        // 右クリックドラッグ中ならドラッグをキャンセルしてMキー移動モードへ遷移
+                        right_drag.is_dragging = false;
+                        right_drag.start_coord = None;
+                        right_drag.current_target = None;
+                        move_mode.0 = true;
+                        info!("Unit Move Mode: ENABLED (transitioned from right-drag)");
                     } else {
                         move_mode.0 = !move_mode.0;
                         info!("Unit Move Mode: {}", if move_mode.0 { "ENABLED" } else { "DISABLED" });
@@ -578,7 +579,7 @@ fn execute_unit_transfer_action(
     }
 }
 
-/// ユニットの選択および移動先クリックを処理
+/// ユニットの選択および移動（右クリックドラッグまたはMキー移動モード）を処理
 #[allow(clippy::too_many_arguments)]
 pub fn handle_unit_selection_and_move(
     mouse_button: Res<ButtonInput<MouseButton>>,
@@ -586,16 +587,69 @@ pub fn handle_unit_selection_and_move(
     mut selected_tile: ResMut<SelectedTile>,
     mut selected_unit: ResMut<SelectedUnit>,
     mut move_mode: ResMut<MoveModeState>,
+    mut right_drag: ResMut<RightDragMoveState>,
     reachable_tiles: Res<ReachableTiles>,
     player_faction: Res<PlayerFaction>,
     map_grid: Res<MapGrid>,
     mut units: Query<(Entity, &mut Unit, &mut Transform)>,
 ) {
-    // 右クリックまたは左クリックの処理
-    let left_clicked = mouse_button.just_released(MouseButton::Left);
-    let right_clicked = mouse_button.just_released(MouseButton::Right);
+    let player_fac = player_faction.0;
 
-    if !left_clicked && !right_clicked {
+    // --- 1. 右クリック長押しドラッグ処理 (Civ方式 2a) ---
+    if mouse_button.just_pressed(MouseButton::Right) {
+        // ユニット選択中かつユニット自身のタイル上で右クリックを押下した場合にドラッグ開始
+        if let Some(selected_entity) = selected_unit.0
+            && let Ok((_, unit, _)) = units.get(selected_entity)
+            && let Some(hovered) = hovered_tile.0
+            && hovered == unit.coord
+        {
+            right_drag.is_dragging = true;
+            right_drag.start_coord = Some(unit.coord);
+            right_drag.current_target = Some(hovered);
+        } else if move_mode.0 {
+            // 移動モード中の右クリックは「取りやめ（キャンセル）」
+            move_mode.0 = false;
+            right_drag.is_dragging = false;
+            right_drag.start_coord = None;
+            right_drag.current_target = None;
+            return;
+        }
+    } else if mouse_button.pressed(MouseButton::Right) && right_drag.is_dragging {
+        // ドラッグ中: ホバー位置を追跡更新
+        right_drag.current_target = hovered_tile.0;
+    } else if mouse_button.just_released(MouseButton::Right) {
+        if right_drag.is_dragging {
+            let target_opt = hovered_tile.0.or(right_drag.current_target);
+            if let Some(selected_entity) = selected_unit.0
+                && let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity)
+                && let Some(target) = target_opt
+            {
+                // 当該ユニット位置に戻した場合はキャンセル
+                if target == unit.coord {
+                    info!("Move cancelled: released on self unit tile.");
+                } else if let Some(&cost) = reachable_tiles.tiles.get(&target) {
+                    // 到達可能タイルなら移動実行
+                    execute_unit_move(&mut unit, &mut transform, target, cost, &map_grid);
+                    selected_tile.0 = Some(target);
+                    move_mode.0 = false;
+                } else {
+                    // 移動不可タイルならキャンセル
+                    info!("Move cancelled: target tile {:?} is unreachable.", target);
+                }
+            }
+            right_drag.is_dragging = false;
+            right_drag.start_coord = None;
+            right_drag.current_target = None;
+            return;
+        } else if move_mode.0 {
+            // 移動モード中の右クリックリリースでも解除
+            move_mode.0 = false;
+            return;
+        }
+    }
+
+    // --- 2. 左クリック処理 (Civ方式 1 & 2b) ---
+    if !mouse_button.just_released(MouseButton::Left) {
         return;
     }
 
@@ -603,46 +657,34 @@ pub fn handle_unit_selection_and_move(
         return;
     };
 
-    // 1. 右クリック時: 選択中ユニットがいて、到達可能タイルであれば即時移動
-    if right_clicked {
-        if let Some(selected_entity) = selected_unit.0
-            && let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity)
-            && let Some(&cost) = reachable_tiles.tiles.get(&hovered)
-        {
-            execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
-            selected_tile.0 = Some(hovered);
-            move_mode.0 = false;
-            return;
-        }
-        return;
-    }
-
-    // 2. 左クリック時:
     // まずクリックされたタイルに味方ユニット（プレイヤー派閥）がいるか探索
-    let player_fac = player_faction.0;
     let clicked_unit_entity = units
         .iter()
         .find(|(_, u, _)| u.coord == hovered && u.faction == player_fac)
         .map(|(e, _, _)| e);
 
     if let Some(unit_e) = clicked_unit_entity {
-        // 自軍ユニットを選択（移動モード中なら自軍別ユニット選択に切り替え）
+        // 1. 自軍ユニットをクリックした場合はユニット選択（移動モード中なら解除して選択切り替え）
         selected_unit.0 = Some(unit_e);
         selected_tile.0 = Some(hovered);
         move_mode.0 = false;
-    } else if let Some(selected_entity) = selected_unit.0 {
-        // すでに自軍ユニットが選択されており、到達可能タイルをクリックした場合は移動
-        if let Some(&cost) = reachable_tiles.tiles.get(&hovered) {
-            if let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity) {
-                execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
-                selected_tile.0 = Some(hovered);
-                move_mode.0 = false;
-            }
+    } else if move_mode.0 {
+        // 2b. Mキー移動モード中の左クリック: 到達可能タイルなら移動実行
+        if let Some(selected_entity) = selected_unit.0
+            && let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity)
+            && let Some(&cost) = reachable_tiles.tiles.get(&hovered)
+            && hovered != unit.coord
+        {
+            execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
+            selected_tile.0 = Some(hovered);
+            move_mode.0 = false;
         } else {
-            // 到達不能タイルをクリックした場合はユニット選択解除（タイル選択のみ残す）
-            selected_unit.0 = None;
+            // 移動不可タイルクリック時は移動モードを解除
             move_mode.0 = false;
         }
+    } else {
+        // 通常時（移動モードではない時）: ユニット選択は維持したまま、クリックしたタイルを選択
+        selected_tile.0 = Some(hovered);
     }
 }
 
@@ -747,6 +789,7 @@ pub fn update_selection_visuals(
     selected_unit: Res<SelectedUnit>,
     reachable_tiles: Res<ReachableTiles>,
     move_mode: Res<MoveModeState>,
+    right_drag: Res<RightDragMoveState>,
     units: Query<(&Unit, &Transform)>,
     map_grid: Res<MapGrid>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -754,7 +797,11 @@ pub fn update_selection_visuals(
     existing_rings: Query<Entity, With<UnitSelectionRing>>,
     existing_markers: Query<Entity, With<MoveTargetMarker>>,
 ) {
-    if !selected_unit.is_changed() && !reachable_tiles.is_changed() && !move_mode.is_changed() {
+    if !selected_unit.is_changed()
+        && !reachable_tiles.is_changed()
+        && !move_mode.is_changed()
+        && !right_drag.is_changed()
+    {
         return;
     }
 
@@ -774,9 +821,11 @@ pub fn update_selection_visuals(
         return;
     };
 
-    // 1. ユニット足元に選択サークルリングをスポーン（移動モード時は黄色～ゴールドに発光）
+    let is_active_moving = move_mode.0 || right_drag.is_dragging;
+
+    // 1. ユニット足元に選択サークルリングをスポーン（移動モードまたは右ドラッグ時はゴールドに発光）
     let ring_mesh = meshes.add(Torus::new(0.48, 0.04));
-    let (ring_col, ring_emissive) = if move_mode.0 {
+    let (ring_col, ring_emissive) = if is_active_moving {
         (Color::srgb(1.0, 0.85, 0.2), LinearRgba::rgb(2.0, 1.6, 0.3))
     } else {
         (Color::srgb(0.2, 0.95, 0.9), LinearRgba::rgb(0.4, 1.8, 1.6))
@@ -802,7 +851,7 @@ pub fn update_selection_visuals(
 
     // 2. 到達可能タイルの上面に移動マーカー（ドット/サークル）を配置
     let marker_mesh = meshes.add(Cylinder::new(0.22, 0.02));
-    let (marker_col, marker_emissive) = if move_mode.0 {
+    let (marker_col, marker_emissive) = if is_active_moving {
         (Color::srgba(1.0, 0.85, 0.2, 0.85), LinearRgba::rgb(0.6, 0.5, 0.1))
     } else {
         (Color::srgba(0.2, 0.9, 0.8, 0.65), LinearRgba::rgb(0.1, 0.5, 0.4))
@@ -811,6 +860,16 @@ pub fn update_selection_visuals(
     let marker_mat = materials.add(StandardMaterial {
         base_color: marker_col,
         emissive: marker_emissive,
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..default()
+    });
+
+    // 右ドラッグ中のターゲット強調用マテリアル
+    let drag_target_mesh = meshes.add(Cylinder::new(0.35, 0.04));
+    let drag_target_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(1.0, 0.95, 0.3),
+        emissive: LinearRgba::rgb(2.5, 2.0, 0.4),
         alpha_mode: AlphaMode::Blend,
         unlit: true,
         ..default()
@@ -829,12 +888,23 @@ pub fn update_selection_visuals(
 
         let pos = coord.to_world_pos(crate::map::HEX_RADIUS);
 
-        commands.spawn((
-            MoveTargetMarker { target_coord: coord },
-            Mesh3d(marker_mesh.clone()),
-            MeshMaterial3d(marker_mat.clone()),
-            Transform::from_xyz(pos.x, height + 0.04, pos.z),
-        ));
+        let is_drag_target = right_drag.is_dragging && right_drag.current_target == Some(coord);
+
+        if is_drag_target {
+            commands.spawn((
+                MoveTargetMarker { target_coord: coord },
+                Mesh3d(drag_target_mesh.clone()),
+                MeshMaterial3d(drag_target_mat.clone()),
+                Transform::from_xyz(pos.x, height + 0.05, pos.z),
+            ));
+        } else {
+            commands.spawn((
+                MoveTargetMarker { target_coord: coord },
+                Mesh3d(marker_mesh.clone()),
+                MeshMaterial3d(marker_mat.clone()),
+                Transform::from_xyz(pos.x, height + 0.04, pos.z),
+            ));
+        }
     }
 }
 

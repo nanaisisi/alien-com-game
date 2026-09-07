@@ -163,6 +163,14 @@ pub enum UnitCommandMode {
 #[derive(Resource, Default, Debug)]
 pub struct MoveModeState(pub bool);
 
+/// 右クリック長押しドラッグによる移動指示状態
+#[derive(Resource, Default, Debug)]
+pub struct RightDragMoveState {
+    pub is_dragging: bool,
+    pub start_coord: Option<HexCoord>,
+    pub current_target: Option<HexCoord>,
+}
+
 /// ユニット操作コマンドモード
 #[allow(dead_code)]
 #[derive(Resource, Default, Debug)]
