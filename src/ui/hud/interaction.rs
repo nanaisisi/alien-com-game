@@ -193,8 +193,24 @@ pub fn handle_keyboard_shortcuts(
         }
     }
 
-    if keys.just_pressed(KeyCode::Space) {
+    let is_shift = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
+    let enter_pressed = keys.just_pressed(KeyCode::Enter) || keys.just_pressed(KeyCode::NumpadEnter);
+
+    // 1. Shift+Enter: 強制的なターン終了
+    if enter_pressed && is_shift {
+        info!("Shift+Enter: Forced Turn Advance");
         advance_turn(&mut resources);
+    }
+    // 2. Enter: 次の行動／ターン終了
+    else if enter_pressed {
+        advance_turn(&mut resources);
+    }
+    // 3. Space: ユニット非選択時のみターン終了（ユニット選択時はユニット側でスキップ処理）
+    else if keys.just_pressed(KeyCode::Space) {
+        let is_unit_selected = selected_unit.as_ref().is_some_and(|u| u.0.is_some());
+        if !is_unit_selected {
+            advance_turn(&mut resources);
+        }
     }
 
     if keys.just_pressed(KeyCode::Escape) {

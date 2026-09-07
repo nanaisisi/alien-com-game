@@ -88,4 +88,18 @@ impl TerrainType {
     pub fn is_passable_ground(&self) -> bool {
         !matches!(self, Self::Mountains | Self::Ocean)
     }
+
+    /// 地形の基礎産出力 (食料, 生産力, エネルギー, 科学力)
+    pub fn base_yields(&self) -> (u32, u32, u32, u32) {
+        match self {
+            Self::Plains => (2, 1, 0, 0),        // 食料豊富
+            Self::Hills => (0, 2, 1, 0),         // 生産力高
+            Self::Forest => (1, 2, 0, 0),        // 食料+生産
+            Self::Mountains => (0, 0, 0, 1),     // 科学観測
+            Self::Ocean => (1, 0, 1, 0),         // 食料+エネルギー
+            Self::ToxicSwamp => (0, 0, 2, 1),    // 瘴気エネルギー+研究
+            Self::CrystalFields => (0, 1, 3, 2), // 高エネルギー結晶+先端科学
+        }
+    }
 }
+

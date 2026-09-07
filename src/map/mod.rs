@@ -19,7 +19,10 @@ pub use self::hex::{MAP_HEIGHT as GRID_HEIGHT, MAP_WIDTH as GRID_WIDTH};
 pub use self::settings::{MapConfig, MapSize, PlanetEnvironment};
 #[allow(unused_imports)]
 pub use self::terrain::TerrainType;
-pub use self::types::{HexTile, MapGrid, MapRoot, HEX_RADIUS};
+#[allow(unused_imports)]
+pub use self::types::{
+    GridOverlayLine, HexTile, MapDisplaySettings, MapGrid, MapRoot, YieldOverlayTag, HEX_RADIUS,
+};
 
 pub struct MapPlugin;
 
@@ -27,6 +30,7 @@ impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MapConfig>()
             .init_resource::<MapGrid>()
+            .init_resource::<MapDisplaySettings>()
             .add_plugins(interaction::MapInteractionPlugin)
             .add_systems(OnEnter(AppState::InGame), generate_hex_map)
             .add_systems(OnEnter(AppState::Title), cleanup_hex_map);

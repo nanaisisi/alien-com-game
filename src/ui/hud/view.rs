@@ -323,7 +323,7 @@ pub fn setup_hud(
                         ));
 
                         btn.spawn((
-                            Text::new("ターン終了 [Space]"),
+                            Text::new("ターン終了 [Enter / Space]"),
                             TextFont {
                                 font: font_regular.clone().into(),
                                 font_size: FontSize::Px(11.0),
@@ -347,10 +347,10 @@ pub fn setup_hud(
                     ))
                     .with_children(|bar| {
                         bar.spawn((
-                            Text::new("[Tab] 部隊巡回  [M] 移動  [C] 基地  [F] 外交"),
+                            Text::new("[Tab/.] 待機部隊  [M] 移動  [Space] スキップ  [G] 格子  [Y] 産出  [Home/\\] 首都"),
                             TextFont {
                                 font: font_regular.clone().into(),
-                                font_size: FontSize::Px(10.5),
+                                font_size: FontSize::Px(10.0),
                                 ..default()
                             },
                             TextColor(Color::srgb(0.65, 0.80, 0.85)),

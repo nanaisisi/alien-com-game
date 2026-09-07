@@ -133,7 +133,7 @@ pub fn update_info_panel_system(
         let mode_guide = if move_mode.0 {
             "【移動指示モード中 (MOVE)】\n  ※移動先タイルをクリックまたはホバーで [M] 押下\n  ※[ESC] で移動モード解除"
         } else {
-            "【ショートカット操作】\n  [M]: 移動モード / ホバー先へ移動\n  [Tab]: 次の部隊選択\n  [ESC]: 選択解除"
+            "【ショートカット操作】\n  [M]: 移動モード / ホバー先へ移動\n  [Space]: 待機/スキップ\n  [Tab] / [.]: 次の待機部隊 ([,] 前の部隊)\n  [Delete]: 部隊解散\n  [Home] / [\\]: 首都へジャンプ\n  [ESC]: 選択解除"
         };
 
         let info = format!(

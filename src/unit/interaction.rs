@@ -39,6 +39,7 @@ pub struct ReachableTiles {
 /// キーボードによるユニット操作（M: 移動モード／移動、Tab/Shift+Tab: ユニット巡回、Escape: 選択解除）
 #[allow(clippy::too_many_arguments)]
 pub fn handle_unit_keyboard_shortcuts(
+    mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
     mut selected_unit: ResMut<SelectedUnit>,
     mut selected_tile: ResMut<SelectedTile>,
@@ -49,6 +50,7 @@ pub fn handle_unit_keyboard_shortcuts(
     map_grid: Res<MapGrid>,
     mut units: Query<(Entity, &mut Unit, &mut Transform)>,
     mut map_camera: Query<&mut crate::camera::MapCamera>,
+    outposts_query: Query<(Entity, &crate::faction::FactionOutpost)>,
     debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
     // デバッグコンソールまたは警告モーダルが開いている場合はキーボード操作を抑止
@@ -93,10 +95,57 @@ pub fn handle_unit_keyboard_shortcuts(
         }
     }
 
-    // 3. [Tab] / [Shift + Tab]: 自軍ユニットの巡回選択（未行動ユニット優先）
-    if keys.just_pressed(KeyCode::Tab) {
-        let is_shift = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
+    // 3. [Space]: ユニット選択中の場合、ターンスキップ（待機・行動終了）
+    if keys.just_pressed(KeyCode::Space) && selected_unit.0.is_some() {
+        if let Some(selected_entity) = selected_unit.0
+            && let Ok((_, mut unit, _)) = units.get_mut(selected_entity)
+        {
+            unit.is_exhausted = true;
+            unit.current_movement = 0;
+            move_mode.0 = false;
+            info!("Unit {:?} turn skipped (waiting).", unit.group_type);
+        }
 
+        // 次の未行動ユニットへ自動的にフォーカス、いなければ選択解除
+        let mut ready_units: Vec<(Entity, HexCoord)> = units
+            .iter()
+            .filter(|(e, u, _)| u.faction == player_fac && !u.is_exhausted && u.current_movement > 0 && Some(*e) != selected_unit.0)
+            .map(|(e, u, _)| (e, u.coord))
+            .collect();
+        ready_units.sort_by_key(|(e, _)| *e);
+
+        if let Some(&(next_e, next_coord)) = ready_units.first() {
+            selected_unit.0 = Some(next_e);
+            selected_tile.0 = Some(next_coord);
+            if let Ok(mut cam) = map_camera.single_mut() {
+                let world_pos = next_coord.to_world_pos(crate::map::HEX_RADIUS);
+                cam.target_focal_point.x = world_pos.x;
+                cam.target_focal_point.z = world_pos.z;
+            }
+        } else {
+            selected_unit.0 = None;
+        }
+        return;
+    }
+
+    // 4. [Delete]: 選択中ユニットの解散（消去）
+    if keys.just_pressed(KeyCode::Delete) {
+        if let Some(selected_entity) = selected_unit.0 {
+            commands.entity(selected_entity).despawn();
+            selected_unit.0 = None;
+            move_mode.0 = false;
+            info!("Unit disbanded.");
+            return;
+        }
+    }
+
+    // 5. [Tab] / [Shift + Tab] または [.] (Period) / [,] (Comma): 自軍待機ユニットの巡回選択
+    let is_next_pressed = keys.just_pressed(KeyCode::Tab) && !keys.pressed(KeyCode::ShiftLeft) && !keys.pressed(KeyCode::ShiftRight)
+        || keys.just_pressed(KeyCode::Period);
+    let is_prev_pressed = (keys.just_pressed(KeyCode::Tab) && (keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight)))
+        || keys.just_pressed(KeyCode::Comma);
+
+    if is_next_pressed || is_prev_pressed {
         // プレイヤーの全ユニットを取得
         let mut player_units: Vec<(Entity, HexCoord, bool)> = units
             .iter()
@@ -120,7 +169,7 @@ pub fn handle_unit_keyboard_shortcuts(
         let next_idx = match current_idx {
             Some(idx) => {
                 let len = player_units.len();
-                if is_shift {
+                if is_prev_pressed {
                     (idx + len - 1) % len
                 } else {
                     (idx + 1) % len
@@ -140,6 +189,67 @@ pub fn handle_unit_keyboard_shortcuts(
             cam.target_focal_point.x = world_pos.x;
             cam.target_focal_point.z = world_pos.z;
         }
+        return;
+    }
+
+    // 6. [Home] または [\] (Backslash): 首都（最初の拠点）にカメラジャンプ
+    if keys.just_pressed(KeyCode::Home) || keys.just_pressed(KeyCode::Backslash) {
+        let mut player_outposts: Vec<(Entity, HexCoord)> = outposts_query
+            .iter()
+            .filter(|(_, o)| o.faction == player_fac)
+            .map(|(e, o)| (e, o.coord))
+            .collect();
+        player_outposts.sort_by_key(|(e, _)| *e);
+
+        if let Some(&(_, capital_coord)) = player_outposts.first() {
+            selected_tile.0 = Some(capital_coord);
+            if let Ok(mut cam) = map_camera.single_mut() {
+                let world_pos = capital_coord.to_world_pos(crate::map::HEX_RADIUS);
+                cam.target_focal_point.x = world_pos.x;
+                cam.target_focal_point.z = world_pos.z;
+            }
+            info!("Camera focused on Capital Outpost at {:?}", capital_coord);
+        }
+        return;
+    }
+
+    // 7. [[] (BracketLeft) / []] (BracketRight): 自軍都市（拠点）の前後巡回
+    if keys.just_pressed(KeyCode::BracketLeft) || keys.just_pressed(KeyCode::BracketRight) {
+        let mut player_outposts: Vec<(Entity, HexCoord)> = outposts_query
+            .iter()
+            .filter(|(_, o)| o.faction == player_fac)
+            .map(|(e, o)| (e, o.coord))
+            .collect();
+        player_outposts.sort_by_key(|(e, _)| *e);
+
+        if player_outposts.is_empty() {
+            return;
+        }
+
+        let current_outpost_idx = selected_tile.0.and_then(|t| {
+            player_outposts.iter().position(|(_, c)| *c == t)
+        });
+
+        let next_idx = match current_outpost_idx {
+            Some(idx) => {
+                let len = player_outposts.len();
+                if keys.just_pressed(KeyCode::BracketLeft) {
+                    (idx + len - 1) % len
+                } else {
+                    (idx + 1) % len
+                }
+            }
+            None => 0,
+        };
+
+        let (_, target_coord) = player_outposts[next_idx];
+        selected_tile.0 = Some(target_coord);
+        if let Ok(mut cam) = map_camera.single_mut() {
+            let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
+            cam.target_focal_point.x = world_pos.x;
+            cam.target_focal_point.z = world_pos.z;
+        }
+        info!("Navigated to Outpost at {:?}", target_coord);
     }
 }
 
