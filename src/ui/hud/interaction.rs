@@ -176,57 +176,27 @@ pub fn hud_button_action_system(
 }
 
 pub fn handle_keyboard_shortcuts(
-    keys: Res<ButtonInput<KeyCode>>,
+    mut action_events: MessageReader<crate::map::input::InGameActionEvent>,
     mut resources: ResMut<FactionResources>,
     mut settings: ResMut<crate::ui::settings::GameSettings>,
     mut next_state: ResMut<NextState<AppState>>,
-    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
-    city_modal: Option<Res<crate::ui::city::CityModalState>>,
-    diplomacy_modal: Option<Res<crate::ui::diplomacy::DiplomacyModalState>>,
-    selected_unit: Option<Res<crate::unit::SelectedUnit>>,
-    move_mode: Option<Res<crate::unit::MoveModeState>>,
 ) {
-    // デバッグコンソールまたは警告モーダルが開いている場合はショートカットを抑止
-    if let Some(ref debug) = debug_state {
-        if debug.is_open || debug.show_warning_modal {
-            return;
+    for event in action_events.read() {
+        match event.0 {
+            crate::map::input::InGameAction::ForceEndTurn => {
+                info!("Shift+Enter: Forced Turn Advance");
+                advance_turn(&mut resources);
+            }
+            crate::map::input::InGameAction::EndTurn => {
+                advance_turn(&mut resources);
+            }
+            crate::map::input::InGameAction::OpenPauseMenu => {
+                info!("ESC pressed: Opening Pause Menu...");
+                settings.return_state = AppState::InGame;
+                next_state.set(AppState::PauseMenu);
+            }
+            _ => {}
         }
-    }
-
-    let is_shift = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
-    let enter_pressed = keys.just_pressed(KeyCode::Enter) || keys.just_pressed(KeyCode::NumpadEnter);
-
-    // 1. Shift+Enter: 強制的なターン終了
-    if enter_pressed && is_shift {
-        info!("Shift+Enter: Forced Turn Advance");
-        advance_turn(&mut resources);
-    }
-    // 2. Enter: 次の行動／ターン終了
-    else if enter_pressed {
-        advance_turn(&mut resources);
-    }
-    // 3. Space: ユニット非選択時のみターン終了（ユニット選択時はユニット側でスキップ処理）
-    else if keys.just_pressed(KeyCode::Space) {
-        let is_unit_selected = selected_unit.as_ref().is_some_and(|u| u.0.is_some());
-        if !is_unit_selected {
-            advance_turn(&mut resources);
-        }
-    }
-
-    if keys.just_pressed(KeyCode::Escape) {
-        // 都市モーダルまたは外交モーダルが開いている場合はポーズメニューを開かない（各モーダルがESCを消費して閉じる）
-        let is_city_open = city_modal.as_ref().is_some_and(|m| m.is_open);
-        let is_diplomacy_open = diplomacy_modal.as_ref().is_some_and(|m| m.is_open);
-        let is_unit_selected = selected_unit.as_ref().is_some_and(|u| u.0.is_some());
-        let is_move_mode = move_mode.as_ref().is_some_and(|m| m.0);
-
-        if is_city_open || is_diplomacy_open || is_unit_selected || is_move_mode {
-            return;
-        }
-
-        info!("ESC pressed: Opening Pause Menu...");
-        settings.return_state = AppState::InGame;
-        next_state.set(AppState::PauseMenu);
     }
 }
 

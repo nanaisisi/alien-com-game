@@ -4,6 +4,7 @@ use crate::state::AppState;
 
 pub mod generation;
 pub mod hex;
+pub mod input;
 pub mod interaction;
 pub mod settings;
 pub mod terrain;
@@ -15,6 +16,8 @@ pub use self::generation::create_hex_mesh;
 #[allow(unused_imports)]
 pub use self::hex::{DEFAULT_MAP_HEIGHT, DEFAULT_MAP_WIDTH, MAP_HEIGHT, MAP_WIDTH};
 pub use self::hex::{MAP_HEIGHT as GRID_HEIGHT, MAP_WIDTH as GRID_WIDTH};
+#[allow(unused_imports)]
+pub use self::input::{InGameAction, InGameActionEvent, InGameKeyBindings, MapInputPlugin};
 #[allow(unused_imports)]
 pub use self::settings::{MapConfig, MapSize, PlanetEnvironment};
 #[allow(unused_imports)]
@@ -31,7 +34,7 @@ impl Plugin for MapPlugin {
         app.init_resource::<MapConfig>()
             .init_resource::<MapGrid>()
             .init_resource::<MapDisplaySettings>()
-            .add_plugins(interaction::MapInteractionPlugin)
+            .add_plugins((input::MapInputPlugin, interaction::MapInteractionPlugin))
             .add_systems(OnEnter(AppState::InGame), generate_hex_map)
             .add_systems(OnEnter(AppState::Title), cleanup_hex_map);
     }

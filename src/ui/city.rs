@@ -53,7 +53,7 @@ pub struct CityNoticeText;
 /// [C]キー または [Escape]キー、およびHUDボタン等による都市モーダルの開閉
 #[allow(clippy::too_many_arguments)]
 pub fn toggle_city_modal_system(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut action_events: MessageReader<crate::map::input::InGameActionEvent>,
     mut modal_state: ResMut<CityModalState>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -65,14 +65,20 @@ pub fn toggle_city_modal_system(
 ) {
     let mut should_toggle = false;
 
-    if keyboard.just_pressed(KeyCode::KeyC) {
-        should_toggle = true;
-    } else if keyboard.just_pressed(KeyCode::Escape) && modal_state.is_open {
-        modal_state.is_open = false;
-        for entity in &existing {
-            commands.entity(entity).despawn();
+    for event in action_events.read() {
+        match event.0 {
+            crate::map::input::InGameAction::ToggleCityModal => {
+                should_toggle = true;
+            }
+            crate::map::input::InGameAction::CancelOrDeselect if modal_state.is_open => {
+                modal_state.is_open = false;
+                for entity in &existing {
+                    commands.entity(entity).despawn();
+                }
+                return;
+            }
+            _ => {}
         }
-        return;
     }
 
     if should_toggle {
@@ -134,7 +140,7 @@ pub fn close_city_modal(
 /// 都市管理画面表示中のキーボードショートカット ([1], [2], [3]: 部隊生産, [U]: 基地拡張)
 #[allow(clippy::too_many_arguments)]
 pub fn city_modal_keyboard_shortcuts(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut action_events: MessageReader<crate::map::input::InGameActionEvent>,
     modal_state: Res<CityModalState>,
     mut faction_res: ResMut<FactionResources>,
     mut outposts_query: Query<(Entity, &mut FactionOutpost)>,
@@ -144,24 +150,38 @@ pub fn city_modal_keyboard_shortcuts(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut notice_query: Query<&mut Text, With<CityNoticeText>>,
-    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
     if !modal_state.is_open {
         return;
-    }
-
-    if let Some(ref debug) = debug_state {
-        if debug.is_open || debug.show_warning_modal {
-            return;
-        }
     }
 
     let Some(outpost_e) = modal_state.target_outpost_entity else {
         return;
     };
 
+    let mut unit_to_produce = None;
+    let mut upgrade_outpost = false;
+
+    for event in action_events.read() {
+        match event.0 {
+            crate::map::input::InGameAction::CityUpgradeOutpost => {
+                upgrade_outpost = true;
+            }
+            crate::map::input::InGameAction::CityProduceScout => {
+                unit_to_produce = Some(CombatGroupType::Scout);
+            }
+            crate::map::input::InGameAction::CityProduceInfantry => {
+                unit_to_produce = Some(CombatGroupType::LightInfantry);
+            }
+            crate::map::input::InGameAction::CityProduceColonist => {
+                unit_to_produce = Some(CombatGroupType::Colonist);
+            }
+            _ => {}
+        }
+    }
+
     // [U]: 基地拡張
-    if keyboard.just_pressed(KeyCode::KeyU) {
+    if upgrade_outpost {
         if let Ok((_, mut outpost)) = outposts_query.get_mut(outpost_e) {
             let prod_cost = 60;
             let energy_cost = 40;
@@ -185,16 +205,7 @@ pub fn city_modal_keyboard_shortcuts(
         return;
     }
 
-    // [1], [2], [3]: 部隊生産
-    let unit_to_produce = if keyboard.just_pressed(KeyCode::Digit1) || keyboard.just_pressed(KeyCode::Numpad1) {
-        Some(CombatGroupType::Scout)
-    } else if keyboard.just_pressed(KeyCode::Digit2) || keyboard.just_pressed(KeyCode::Numpad2) {
-        Some(CombatGroupType::LightInfantry)
-    } else if keyboard.just_pressed(KeyCode::Digit3) || keyboard.just_pressed(KeyCode::Numpad3) {
-        Some(CombatGroupType::Colonist)
-    } else {
-        None
-    };
+
 
     if let Some(unit_type) = unit_to_produce {
         let (prod_cost, energy_cost, food_cost) = match unit_type {

@@ -46,6 +46,61 @@ impl CombatGroupType {
             Self::LightInfantry => 30,
         }
     }
+
+    pub fn attack_range(&self) -> u32 {
+        match self {
+            Self::Scout => 1,
+            Self::Colonist => 0,
+            Self::LightInfantry => 1,
+        }
+    }
+}
+
+/// ユニットの現在の行動・待機状態
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default)]
+pub enum UnitActionState {
+    /// 通常（待機または行動中）
+    #[default]
+    Idle,
+    /// 防御態勢（継続ターン数に応じて防御力+25%〜+50%）
+    Fortified { turns: u32 },
+    /// 警戒監視中（敵が接近・視界内に入ると自動で目覚める）
+    Alert,
+    /// 休眠中（手動選択または敵接近まで自動巡回スキップ）
+    Sleeping,
+    /// 回復・修理中（毎ターンHP回復、全快でIdleへ自動復帰）
+    Healing,
+}
+
+impl UnitActionState {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Idle => "待機/行動可能",
+            Self::Fortified { turns } => {
+                if *turns >= 2 {
+                    "防御陣地展開 (強固 +50%)"
+                } else {
+                    "防御態勢 (+25%)"
+                }
+            }
+            Self::Alert => "警戒監視 (Alert)",
+            Self::Sleeping => "休眠待機 (Sleep)",
+            Self::Healing => "回復・修理中 (Healing)",
+        }
+    }
+
+    pub fn defense_multiplier(&self) -> f32 {
+        match self {
+            Self::Fortified { turns } => {
+                if *turns >= 2 {
+                    1.50
+                } else {
+                    1.25
+                }
+            }
+            _ => 1.0,
+        }
+    }
 }
 
 /// 全体マップ上で活動する戦闘団ユニット
@@ -59,6 +114,7 @@ pub struct Unit {
     pub hp: u32,
     pub max_hp: u32,
     pub is_exhausted: bool,
+    pub action_state: UnitActionState,
 }
 
 impl Unit {
@@ -74,6 +130,7 @@ impl Unit {
             hp: max_hp,
             max_hp,
             is_exhausted: false,
+            action_state: UnitActionState::Idle,
         }
     }
 
@@ -88,14 +145,41 @@ impl Unit {
 #[derive(Resource, Default, Debug)]
 pub struct SelectedUnit(pub Option<Entity>);
 
-/// Mキーによるユニット移動指示モードの状態
+/// ユニット操作モード
+#[allow(dead_code)]
+#[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnitCommandMode {
+    #[default]
+    None,
+    /// Mキー: 移動先指定モード
+    Move,
+    /// Aキー: 突撃・近接攻撃指定モード
+    Charge,
+    /// Rキー: 遠隔射撃指定モード
+    RangedAttack,
+}
+
+/// Mキーによるユニット移動指示モードの状態（後方互換）
 #[derive(Resource, Default, Debug)]
 pub struct MoveModeState(pub bool);
+
+/// ユニット操作コマンドモード
+#[allow(dead_code)]
+#[derive(Resource, Default, Debug)]
+pub struct ActiveCommandMode(pub UnitCommandMode);
 
 /// ユニット移動可能タイルの表示用マーカー
 #[derive(Component)]
 pub struct MoveTargetMarker {
     #[allow(dead_code)]
+    pub target_coord: HexCoord,
+}
+
+/// 攻撃可能ターゲットタイルの表示用マーカー
+#[allow(dead_code)]
+#[derive(Component)]
+pub struct AttackTargetMarker {
+    pub target_entity: Entity,
     pub target_coord: HexCoord,
 }
 

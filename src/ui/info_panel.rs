@@ -49,7 +49,7 @@ pub fn setup_info_panel_ui(
                 position_type: PositionType::Absolute,
                 left: Val::Px(24.0),
                 bottom: Val::Px(24.0),
-                width: Val::Px(320.0),
+                width: Val::Px(350.0),
                 padding: UiRect::all(Val::Px(16.0)),
                 flex_direction: FlexDirection::Column,
                 row_gap: Val::Px(8.0),
@@ -133,12 +133,25 @@ pub fn update_info_panel_system(
         let mode_guide = if move_mode.0 {
             "【移動指示モード中 (MOVE)】\n  ※移動先タイルをクリックまたはホバーで [M] 押下\n  ※[ESC] で移動モード解除"
         } else {
-            "【ショートカット操作】\n  [M]: 移動モード / ホバー先へ移動\n  [Space]: 待機/スキップ\n  [Tab] / [.]: 次の待機部隊 ([,] 前の部隊)\n  [Delete]: 部隊解散\n  [Home] / [\\]: 首都へジャンプ\n  [ESC]: 選択解除"
+            "【ユニット操作コマンド】\n  \
+             [M]: 移動 (Move)\n  \
+             [A]: 突撃/近接攻撃 (隣接敵・反撃あり)\n  \
+             [R]: 遠隔射撃 (射程2マス・反撃なし)\n  \
+             [F]: 防御態勢 (Fortify / 被ダメ軽減)\n  \
+             [O]: 警戒監視 (Alert / 敵接近で覚醒)\n  \
+             [H]: 回復・修理 (Heal / 全快まで休眠)\n  \
+             [Z]: 休眠待機 (Sleep / 巡回スキップ)\n  \
+             [T]: 装備・物資移転 (隣接友軍/拠点補給)\n  \
+             [Space]: 待機・スキップ (Wait)\n  \
+             [Delete]: 部隊解体 (資源一部回収)\n  \
+             [Tab] / [.]: 次の部隊 ([,] 前の部隊)\n  \
+             [Home] / [\\]: 首都へジャンプ\n  \
+             [ESC]: 選択解除"
         };
 
         let info = format!(
             "【部隊選択中】\n  {}\n  所属: 国{}【{}】\n\n\
-             【ステータス】\n  HP: {} / {}\n  残り移動力: {} / {}\n  攻撃力: {}\n  状態: {}\n\n\
+             【ステータス】\n  HP: {} / {}\n  残り移動力: {} / {}\n  攻撃力: {} (射程: {}マス)\n  態勢/状態: {}\n  行動可否: {}\n\n\
              【現在位置】\n  col: {}, row: {} (q: {}, r: {})\n\n\
              {}\n\n\
              ※移動可能タイルをクリック（または右クリック）でも即時移動可能",
@@ -150,7 +163,9 @@ pub fn update_info_panel_system(
             unit.current_movement,
             unit.max_movement,
             unit.group_type.attack_power(),
-            if unit.is_exhausted { "行動終了" } else { "行動可能" },
+            unit.group_type.attack_range(),
+            unit.action_state.display_name(),
+            if unit.is_exhausted { "行動終了 (待機中)" } else { "行動可能" },
             col,
             row,
             coord.q,

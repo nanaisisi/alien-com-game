@@ -12,7 +12,10 @@ pub use interaction::{ReachableTiles, UnitInteractionPlugin};
 #[allow(unused_imports)]
 pub use spawn::{cleanup_units, spawn_initial_units};
 #[allow(unused_imports)]
-pub use types::{CombatGroupType, MoveModeState, MoveTargetMarker, SelectedUnit, Unit, UnitSelectionRing};
+pub use types::{
+    ActiveCommandMode, AttackTargetMarker, CombatGroupType, MoveModeState, MoveTargetMarker,
+    SelectedUnit, Unit, UnitActionState, UnitCommandMode, UnitSelectionRing,
+};
 
 pub struct UnitPlugin;
 
@@ -20,6 +23,7 @@ impl Plugin for UnitPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Unit>()
             .register_type::<CombatGroupType>()
+            .register_type::<UnitActionState>()
             .add_plugins(UnitInteractionPlugin)
             .add_systems(
                 OnEnter(AppState::InGame),

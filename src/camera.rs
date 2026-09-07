@@ -73,6 +73,8 @@ fn pan_zoom_camera_system(
     mut mouse_wheel: MessageReader<MouseWheel>,
     mut query: Query<(&mut Transform, &mut Projection, &mut MapCamera)>,
     debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
+    city_modal: Option<Res<crate::ui::city::CityModalState>>,
+    diplomacy_modal: Option<Res<crate::ui::diplomacy::DiplomacyModalState>>,
 ) {
     let Ok((mut transform, mut projection, mut map_cam)) = query.single_mut() else {
         return;
@@ -80,10 +82,12 @@ fn pan_zoom_camera_system(
 
     let dt = time.delta_secs();
 
-    // デバッグコンソールまたは警告モーダルが開いている場合はキーボードパン操作を無効化（文字入力と衝突防止）
+    // デバッグコンソール、警告モーダル、都市モーダル、外交モーダルが開いている場合はキーボードパン操作を無効化
     let block_keyboard_pan = debug_state
         .as_ref()
-        .is_some_and(|s| s.is_open || s.show_warning_modal);
+        .is_some_and(|s| s.is_open || s.show_warning_modal)
+        || city_modal.as_ref().is_some_and(|m| m.is_open)
+        || diplomacy_modal.as_ref().is_some_and(|m| m.is_open);
 
     // 1. パン操作（WASD / 矢印）
     // 南から北（画面上が北 = -Z、画面右が東 = +X）

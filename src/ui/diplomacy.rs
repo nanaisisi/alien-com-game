@@ -53,7 +53,7 @@ struct DiplomacyNoticeText;
 use crate::ui::theme::UiTheme;
 
 fn toggle_diplomacy_modal_system(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut action_events: MessageReader<crate::map::input::InGameActionEvent>,
     mut modal_state: ResMut<DiplomacyModalState>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -61,15 +61,25 @@ fn toggle_diplomacy_modal_system(
     faction_mgr: Res<FactionManager>,
     existing: Query<Entity, With<DiplomacyModalRoot>>,
 ) {
-    if keyboard.just_pressed(KeyCode::Escape) && modal_state.is_open {
-        modal_state.is_open = false;
-        for entity in &existing {
-            commands.entity(entity).despawn();
+    let mut should_toggle = false;
+
+    for event in action_events.read() {
+        match event.0 {
+            crate::map::input::InGameAction::ToggleDiplomacyModal => {
+                should_toggle = true;
+            }
+            crate::map::input::InGameAction::CancelOrDeselect if modal_state.is_open => {
+                modal_state.is_open = false;
+                for entity in &existing {
+                    commands.entity(entity).despawn();
+                }
+                return;
+            }
+            _ => {}
         }
-        return;
     }
 
-    if keyboard.just_pressed(KeyCode::KeyF) {
+    if should_toggle {
         modal_state.is_open = !modal_state.is_open;
 
         if modal_state.is_open {

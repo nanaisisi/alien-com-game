@@ -7,7 +7,9 @@ use crate::map::interaction::{HoveredTile, SelectedTile};
 use crate::map::MapGrid;
 use crate::state::AppState;
 
-use super::types::{MoveModeState, MoveTargetMarker, SelectedUnit, Unit, UnitSelectionRing};
+use super::types::{
+    MoveModeState, MoveTargetMarker, SelectedUnit, Unit, UnitActionState, UnitSelectionRing,
+};
 
 pub struct UnitInteractionPlugin;
 
@@ -23,6 +25,7 @@ impl Plugin for UnitInteractionPlugin {
                     handle_unit_selection_and_move,
                     update_reachable_tiles,
                     update_selection_visuals,
+                    process_unit_turn_updates,
                 )
                     .run_if(in_state(AppState::InGame)),
             )
@@ -36,11 +39,11 @@ pub struct ReachableTiles {
     pub tiles: HashMap<HexCoord, u32>, // HexCoord -> 消費移動力
 }
 
-/// キーボードによるユニット操作（M: 移動モード／移動、Tab/Shift+Tab: ユニット巡回、Escape: 選択解除）
+/// キーボードによるユニット操作（M: 移動モード／移動、Tab/Shift+Tab: ユニット巡回、Escape: 選択解除等）
 #[allow(clippy::too_many_arguments)]
 pub fn handle_unit_keyboard_shortcuts(
     mut commands: Commands,
-    keys: Res<ButtonInput<KeyCode>>,
+    mut action_events: MessageReader<crate::map::input::InGameActionEvent>,
     mut selected_unit: ResMut<SelectedUnit>,
     mut selected_tile: ResMut<SelectedTile>,
     hovered_tile: Res<HoveredTile>,
@@ -51,205 +54,528 @@ pub fn handle_unit_keyboard_shortcuts(
     mut units: Query<(Entity, &mut Unit, &mut Transform)>,
     mut map_camera: Query<&mut crate::camera::MapCamera>,
     outposts_query: Query<(Entity, &crate::faction::FactionOutpost)>,
-    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
+    mut faction_resources: ResMut<crate::faction::FactionResources>,
 ) {
-    // デバッグコンソールまたは警告モーダルが開いている場合はキーボード操作を抑止
-    if let Some(ref debug) = debug_state {
-        if debug.is_open || debug.show_warning_modal {
-            return;
-        }
-    }
-
     let player_fac = player_faction.0;
 
-    // 1. [Escape]: ユニット選択を解除（移動モード中ならまず移動モードを解除）
-    if keys.just_pressed(KeyCode::Escape) {
-        if move_mode.0 {
-            move_mode.0 = false;
-            return;
-        } else if selected_unit.0.is_some() {
-            selected_unit.0 = None;
-            return;
+    for event in action_events.read() {
+        match event.0 {
+            // 1. 選択解除・キャンセル
+            crate::map::input::InGameAction::CancelOrDeselect => {
+                if move_mode.0 {
+                    move_mode.0 = false;
+                } else if selected_unit.0.is_some() {
+                    selected_unit.0 = None;
+                }
+            }
+
+            // 2. 移動モード切り替え／即時移動
+            crate::map::input::InGameAction::UnitMove => {
+                if let Some(selected_entity) = selected_unit.0
+                    && let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity)
+                {
+                    if let Some(hovered) = hovered_tile.0
+                        && let Some(&cost) = reachable_tiles.tiles.get(&hovered)
+                        && hovered != unit.coord
+                    {
+                        execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
+                        selected_tile.0 = Some(hovered);
+                        move_mode.0 = false;
+                    } else {
+                        move_mode.0 = !move_mode.0;
+                        info!("Unit Move Mode: {}", if move_mode.0 { "ENABLED" } else { "DISABLED" });
+                    }
+                }
+            }
+
+            // 3. 防御態勢 (Fortify)
+            crate::map::input::InGameAction::UnitFortify => {
+                if let Some(selected_entity) = selected_unit.0
+                    && let Ok((_, mut unit, _)) = units.get_mut(selected_entity)
+                {
+                    unit.action_state = UnitActionState::Fortified { turns: 0 };
+                    unit.is_exhausted = true;
+                    unit.current_movement = 0;
+                    move_mode.0 = false;
+                    info!("Unit {:?} fortified (Defend posture).", unit.group_type);
+                }
+                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+            }
+
+            // 4. 警戒監視 (Alert / Overwatch)
+            crate::map::input::InGameAction::UnitAlert => {
+                if let Some(selected_entity) = selected_unit.0
+                    && let Ok((_, mut unit, _)) = units.get_mut(selected_entity)
+                {
+                    unit.action_state = UnitActionState::Alert;
+                    unit.is_exhausted = true;
+                    unit.current_movement = 0;
+                    move_mode.0 = false;
+                    info!("Unit {:?} set to Alert/Overwatch.", unit.group_type);
+                }
+                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+            }
+
+            // 5. 回復・修理 (Heal)
+            crate::map::input::InGameAction::UnitHeal => {
+                if let Some(selected_entity) = selected_unit.0
+                    && let Ok((_, mut unit, _)) = units.get_mut(selected_entity)
+                {
+                    if unit.hp >= unit.max_hp {
+                        info!("Unit {:?} is already at full HP.", unit.group_type);
+                    } else {
+                        unit.action_state = UnitActionState::Healing;
+                        unit.is_exhausted = true;
+                        unit.current_movement = 0;
+                        move_mode.0 = false;
+                        info!("Unit {:?} set to Healing mode (HP: {}/{}).", unit.group_type, unit.hp, unit.max_hp);
+                        select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+                    }
+                }
+            }
+
+            // 6. 休眠待機 (Sleep)
+            crate::map::input::InGameAction::UnitSleep => {
+                if let Some(selected_entity) = selected_unit.0
+                    && let Ok((_, mut unit, _)) = units.get_mut(selected_entity)
+                {
+                    unit.action_state = UnitActionState::Sleeping;
+                    unit.is_exhausted = true;
+                    unit.current_movement = 0;
+                    move_mode.0 = false;
+                    info!("Unit {:?} is now Sleeping.", unit.group_type);
+                }
+                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+            }
+
+            // 7. 白兵突撃 (Charge / Attack)
+            crate::map::input::InGameAction::UnitCharge => {
+                if let Some(selected_entity) = selected_unit.0 {
+                    execute_unit_attack_action(
+                        selected_entity,
+                        false,
+                        &mut commands,
+                        &mut units,
+                        &map_grid,
+                        player_fac,
+                        &mut selected_unit,
+                        &mut selected_tile,
+                        &mut move_mode,
+                    );
+                }
+            }
+
+            // 8. 遠隔射撃 (Ranged Attack)
+            crate::map::input::InGameAction::UnitRangedAttack => {
+                if let Some(selected_entity) = selected_unit.0 {
+                    execute_unit_attack_action(
+                        selected_entity,
+                        true,
+                        &mut commands,
+                        &mut units,
+                        &map_grid,
+                        player_fac,
+                        &mut selected_unit,
+                        &mut selected_tile,
+                        &mut move_mode,
+                    );
+                }
+            }
+
+            // 9. 装備・物資移転 (Transfer Equipment)
+            crate::map::input::InGameAction::UnitTransfer => {
+                if let Some(selected_entity) = selected_unit.0 {
+                    execute_unit_transfer_action(
+                        selected_entity,
+                        &mut units,
+                        &outposts_query,
+                        player_fac,
+                        &map_grid,
+                    );
+                }
+            }
+
+            // 10. ターンスキップ (Wait)
+            crate::map::input::InGameAction::UnitWait => {
+                if let Some(selected_entity) = selected_unit.0
+                    && let Ok((_, mut unit, _)) = units.get_mut(selected_entity)
+                {
+                    unit.is_exhausted = true;
+                    unit.current_movement = 0;
+                    unit.action_state = UnitActionState::Idle;
+                    move_mode.0 = false;
+                    info!("Unit {:?} turn skipped (waiting).", unit.group_type);
+                }
+                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+            }
+
+            // 11. 部隊解体 (Disband)
+            crate::map::input::InGameAction::UnitDisband => {
+                if let Some(selected_entity) = selected_unit.0 {
+                    if let Ok((_, unit, _)) = units.get(selected_entity) {
+                        let (prod_refund, energy_refund) = match unit.group_type {
+                            super::types::CombatGroupType::Scout => (12, 6),
+                            super::types::CombatGroupType::LightInfantry => (18, 10),
+                            super::types::CombatGroupType::Colonist => (30, 0),
+                        };
+                        faction_resources.production += prod_refund;
+                        faction_resources.energy += energy_refund;
+                        info!(
+                            "Unit {:?} disbanded. Refunded +{} production, +{} energy.",
+                            unit.group_type, prod_refund, energy_refund
+                        );
+                    }
+                    commands.entity(selected_entity).despawn();
+                    selected_unit.0 = None;
+                    move_mode.0 = false;
+                }
+            }
+
+            // 12. 自軍ユニット巡回 (Next / Prev)
+            crate::map::input::InGameAction::NextUnit | crate::map::input::InGameAction::PrevUnit => {
+                let is_prev = event.0 == crate::map::input::InGameAction::PrevUnit;
+                let mut player_units: Vec<(Entity, HexCoord, bool)> = units
+                    .iter()
+                    .filter(|(_, u, _)| u.faction == player_fac)
+                    .map(|(e, u, _)| {
+                        let is_ready = !u.is_exhausted
+                            && u.current_movement > 0
+                            && !matches!(u.action_state, UnitActionState::Sleeping | UnitActionState::Alert);
+                        (e, u.coord, is_ready)
+                    })
+                    .collect();
+
+                if !player_units.is_empty() {
+                    player_units.sort_by(|a, b| {
+                        b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0))
+                    });
+
+                    let current_idx = selected_unit.0.and_then(|current_e| {
+                        player_units.iter().position(|(e, _, _)| *e == current_e)
+                    });
+
+                    let len = player_units.len();
+                    let next_idx = match current_idx {
+                        Some(idx) => {
+                            if is_prev {
+                                (idx + len - 1) % len
+                            } else {
+                                (idx + 1) % len
+                            }
+                        }
+                        None => 0,
+                    };
+
+                    let (target_e, target_coord, _) = player_units[next_idx];
+                    selected_unit.0 = Some(target_e);
+                    selected_tile.0 = Some(target_coord);
+                    move_mode.0 = false;
+
+                    if let Ok(mut cam) = map_camera.single_mut() {
+                        let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
+                        cam.target_focal_point.x = world_pos.x;
+                        cam.target_focal_point.z = world_pos.z;
+                    }
+                }
+            }
+
+            // 13. 首都フォーカス
+            crate::map::input::InGameAction::JumpToCapital => {
+                let mut player_outposts: Vec<(Entity, HexCoord)> = outposts_query
+                    .iter()
+                    .filter(|(_, o)| o.faction == player_fac)
+                    .map(|(e, o)| (e, o.coord))
+                    .collect();
+                player_outposts.sort_by_key(|(e, _)| *e);
+
+                if let Some(&(_, capital_coord)) = player_outposts.first() {
+                    selected_tile.0 = Some(capital_coord);
+                    if let Ok(mut cam) = map_camera.single_mut() {
+                        let world_pos = capital_coord.to_world_pos(crate::map::HEX_RADIUS);
+                        cam.target_focal_point.x = world_pos.x;
+                        cam.target_focal_point.z = world_pos.z;
+                    }
+                    info!("Camera focused on Capital Outpost at {:?}", capital_coord);
+                }
+            }
+
+            // 14. 拠点巡回 (NextCity / PrevCity)
+            crate::map::input::InGameAction::NextCity | crate::map::input::InGameAction::PrevCity => {
+                let is_prev = event.0 == crate::map::input::InGameAction::PrevCity;
+                let mut player_outposts: Vec<(Entity, HexCoord)> = outposts_query
+                    .iter()
+                    .filter(|(_, o)| o.faction == player_fac)
+                    .map(|(e, o)| (e, o.coord))
+                    .collect();
+                player_outposts.sort_by_key(|(e, _)| *e);
+
+                if !player_outposts.is_empty() {
+                    let current_outpost_idx = selected_tile.0.and_then(|t| {
+                        player_outposts.iter().position(|(_, c)| *c == t)
+                    });
+
+                    let len = player_outposts.len();
+                    let next_idx = match current_outpost_idx {
+                        Some(idx) => {
+                            if is_prev {
+                                (idx + len - 1) % len
+                            } else {
+                                (idx + 1) % len
+                            }
+                        }
+                        None => 0,
+                    };
+
+                    let (_, target_coord) = player_outposts[next_idx];
+                    selected_tile.0 = Some(target_coord);
+                    if let Ok(mut cam) = map_camera.single_mut() {
+                        let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
+                        cam.target_focal_point.x = world_pos.x;
+                        cam.target_focal_point.z = world_pos.z;
+                    }
+                    info!("Navigated to Outpost at {:?}", target_coord);
+                }
+            }
+
+            _ => {}
         }
     }
+}
 
-    // 2. [KeyM]: ユニット移動（Move）
-    // ユニット選択中に M キーを押下した場合:
-    // - マウスホバー中のタイルが移動可能タイルであれば、即座にそのタイルへ移動
-    // - それ以外の場合は、移動指示モード（Move Mode）をトグル
-    if keys.just_pressed(KeyCode::KeyM) {
-        if let Some(selected_entity) = selected_unit.0
-            && let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity)
-        {
-            if let Some(hovered) = hovered_tile.0
-                && let Some(&cost) = reachable_tiles.tiles.get(&hovered)
-                && hovered != unit.coord
-            {
-                execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
-                selected_tile.0 = Some(hovered);
-                move_mode.0 = false;
-            } else {
-                move_mode.0 = !move_mode.0;
-                info!("Unit Move Mode: {}", if move_mode.0 { "ENABLED" } else { "DISABLED" });
+/// 次の行動可能な未処理ユニットへフォーカスを移すヘルパー
+fn select_next_ready_unit(
+    units: &Query<(Entity, &mut Unit, &mut Transform)>,
+    player_fac: crate::faction::types::FactionId,
+    selected_unit: &mut ResMut<SelectedUnit>,
+    selected_tile: &mut ResMut<SelectedTile>,
+    map_camera: &mut Query<&mut crate::camera::MapCamera>,
+) {
+    let mut ready_units: Vec<(Entity, HexCoord)> = units
+        .iter()
+        .filter(|(e, u, _)| {
+            u.faction == player_fac
+                && !u.is_exhausted
+                && u.current_movement > 0
+                && !matches!(u.action_state, UnitActionState::Sleeping | UnitActionState::Alert)
+                && Some(*e) != selected_unit.0
+        })
+        .map(|(e, u, _)| (e, u.coord))
+        .collect();
+    ready_units.sort_by_key(|(e, _)| *e);
+
+    if let Some(&(next_e, next_coord)) = ready_units.first() {
+        selected_unit.0 = Some(next_e);
+        selected_tile.0 = Some(next_coord);
+        if let Ok(mut cam) = map_camera.single_mut() {
+            let world_pos = next_coord.to_world_pos(crate::map::HEX_RADIUS);
+            cam.target_focal_point.x = world_pos.x;
+            cam.target_focal_point.z = world_pos.z;
+        }
+    } else {
+        selected_unit.0 = None;
+    }
+}
+
+/// ユニットの戦闘・突撃・遠隔攻撃を実行
+#[allow(clippy::too_many_arguments)]
+fn execute_unit_attack_action(
+    attacker_entity: Entity,
+    is_ranged: bool,
+    commands: &mut Commands,
+    units: &mut Query<(Entity, &mut Unit, &mut Transform)>,
+    map_grid: &MapGrid,
+    player_fac: crate::faction::types::FactionId,
+    selected_unit: &mut ResMut<SelectedUnit>,
+    selected_tile: &mut ResMut<SelectedTile>,
+    move_mode: &mut ResMut<MoveModeState>,
+) {
+    let map_w = map_grid.width.max(1);
+
+    // 攻撃側の座標・基本攻撃力を取得
+    let Ok((_, attacker_unit, _)) = units.get(attacker_entity) else {
+        return;
+    };
+    let attacker_coord = attacker_unit.coord;
+    let attacker_power = attacker_unit.group_type.attack_power();
+    let attacker_hp = attacker_unit.hp;
+    let max_range = if is_ranged { 2 } else { 1 };
+
+    if attacker_power == 0 {
+        info!("This unit cannot attack.");
+        return;
+    }
+
+    if attacker_unit.current_movement == 0 || attacker_unit.is_exhausted {
+        info!("This unit has no movement points remaining.");
+        return;
+    }
+
+    // 射程内の敵ユニットを検索
+    let mut targets: Vec<(Entity, HexCoord, i32)> = Vec::new();
+    for (target_e, target_u, _) in units.iter() {
+        if target_u.faction != player_fac {
+            let dist = attacker_coord.distance_with_width(target_u.coord, map_w);
+            if dist <= (max_range as i32) && dist > 0 {
+                targets.push((target_e, target_u.coord, dist));
             }
         }
     }
 
-    // 3. [Space]: ユニット選択中の場合、ターンスキップ（待機・行動終了）
-    if keys.just_pressed(KeyCode::Space) && selected_unit.0.is_some() {
-        if let Some(selected_entity) = selected_unit.0
-            && let Ok((_, mut unit, _)) = units.get_mut(selected_entity)
-        {
-            unit.is_exhausted = true;
-            unit.current_movement = 0;
-            move_mode.0 = false;
-            info!("Unit {:?} turn skipped (waiting).", unit.group_type);
-        }
+    if targets.is_empty() {
+        info!(
+            "No enemy units within {} range (Max range: {}).",
+            if is_ranged { "ranged" } else { "melee" },
+            max_range
+        );
+        return;
+    }
 
-        // 次の未行動ユニットへ自動的にフォーカス、いなければ選択解除
-        let mut ready_units: Vec<(Entity, HexCoord)> = units
-            .iter()
-            .filter(|(e, u, _)| u.faction == player_fac && !u.is_exhausted && u.current_movement > 0 && Some(*e) != selected_unit.0)
-            .map(|(e, u, _)| (e, u.coord))
-            .collect();
-        ready_units.sort_by_key(|(e, _)| *e);
+    // 最も近い敵をターゲット（同距離なら最初）
+    targets.sort_by_key(|(_, _, d)| *d);
+    let (target_e, target_coord, dist) = targets[0];
 
-        if let Some(&(next_e, next_coord)) = ready_units.first() {
-            selected_unit.0 = Some(next_e);
-            selected_tile.0 = Some(next_coord);
-            if let Ok(mut cam) = map_camera.single_mut() {
-                let world_pos = next_coord.to_world_pos(crate::map::HEX_RADIUS);
-                cam.target_focal_point.x = world_pos.x;
-                cam.target_focal_point.z = world_pos.z;
-            }
+    // 戦闘計算
+    let target_snapshot = if let Ok((_, target_unit, _)) = units.get(target_e) {
+        let def_mult = target_unit.action_state.defense_multiplier();
+        let target_power = target_unit.group_type.attack_power();
+        let target_hp = target_unit.hp;
+        Some((target_hp, target_power, def_mult))
+    } else {
+        None
+    };
+
+    let Some((target_hp, target_power, def_mult)) = target_snapshot else {
+        return;
+    };
+
+    // 与ダメージ計算
+    let charge_bonus = if !is_ranged && dist == 1 { 1.25 } else { 1.0 };
+    let damage_to_target = ((attacker_power as f32) * (attacker_hp as f32 / 100.0) * charge_bonus / def_mult).ceil() as u32;
+    let damage_to_target = damage_to_target.max(5);
+
+    // 反撃ダメージ計算（遠隔射撃の場合は反撃なし、近接白兵の場合は反撃あり）
+    let damage_to_attacker = if !is_ranged && target_power > 0 {
+        let counter_dmg = ((target_power as f32) * (target_hp as f32 / 100.0) * 0.75).ceil() as u32;
+        counter_dmg.max(3)
+    } else {
+        0
+    };
+
+    info!(
+        "COMBAT: Attacker dealt {} dmg to Enemy (dist {}). Enemy counter dealt {} dmg.",
+        damage_to_target, dist, damage_to_attacker
+    );
+
+    // 攻撃側のHPと移動力を反映
+    let mut attacker_died = false;
+    if let Ok((_, mut att_unit, _)) = units.get_mut(attacker_entity) {
+        att_unit.current_movement = 0;
+        att_unit.is_exhausted = true;
+        att_unit.action_state = UnitActionState::Idle;
+        if damage_to_attacker >= att_unit.hp {
+            attacker_died = true;
         } else {
-            selected_unit.0 = None;
+            att_unit.hp -= damage_to_attacker;
+        }
+    }
+
+    // 防御側のHPを反映
+    let mut target_died = false;
+    if let Ok((_, mut tar_unit, _)) = units.get_mut(target_e) {
+        if damage_to_target >= tar_unit.hp {
+            target_died = true;
+        } else {
+            tar_unit.hp -= damage_to_target;
+            // 警戒中だった敵が攻撃を受けたら警戒解除
+            if matches!(tar_unit.action_state, UnitActionState::Alert | UnitActionState::Sleeping) {
+                tar_unit.action_state = UnitActionState::Idle;
+            }
+        }
+    }
+
+    if target_died {
+        commands.entity(target_e).despawn();
+        info!("Enemy unit destroyed!");
+        // 白兵突撃で敵を撃破した場合、そのタイルへ踏み込み移動
+        if !is_ranged && !attacker_died {
+            if let Ok((_, mut att_unit, mut att_transform)) = units.get_mut(attacker_entity) {
+                att_unit.coord = target_coord;
+                let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
+                let height = map_grid.terrain_data.get(&target_coord).map(|t| t.height()).unwrap_or(0.0);
+                att_transform.translation.x = world_pos.x;
+                att_transform.translation.y = height;
+                att_transform.translation.z = world_pos.z;
+                selected_tile.0 = Some(target_coord);
+            }
+        }
+    }
+
+    if attacker_died {
+        commands.entity(attacker_entity).despawn();
+        selected_unit.0 = None;
+        info!("Friendly unit was destroyed in combat.");
+    }
+
+    move_mode.0 = false;
+}
+
+/// 装備・応急資材移転アクション
+fn execute_unit_transfer_action(
+    unit_entity: Entity,
+    units: &mut Query<(Entity, &mut Unit, &mut Transform)>,
+    outposts_query: &Query<(Entity, &crate::faction::FactionOutpost)>,
+    player_fac: crate::faction::types::FactionId,
+    map_grid: &MapGrid,
+) {
+    let map_w = map_grid.width.max(1);
+
+    // ユニット座標・種別を先にイミュータブルに取得
+    let Some((unit_coord, group_type)) = units
+        .get(unit_entity)
+        .ok()
+        .map(|(_, u, _)| (u.coord, u.group_type))
+    else {
+        return;
+    };
+
+    // 1. 同一または隣接タイルに自軍拠点がある場合: 補給（HP全快＋移動力+1）
+    let near_outpost = outposts_query.iter().any(|(_, o)| {
+        o.faction == player_fac && unit_coord.distance_with_width(o.coord, map_w) <= 1
+    });
+
+    if near_outpost {
+        if let Ok((_, mut unit, _)) = units.get_mut(unit_entity) {
+            unit.hp = unit.max_hp;
+            unit.current_movement = (unit.current_movement + 1).min(unit.max_movement);
+            info!("Unit {:?} resupplied from nearby outpost (HP restored to full).", group_type);
         }
         return;
     }
 
-    // 4. [Delete]: 選択中ユニットの解散（消去）
-    if keys.just_pressed(KeyCode::Delete) {
-        if let Some(selected_entity) = selected_unit.0 {
-            commands.entity(selected_entity).despawn();
-            selected_unit.0 = None;
-            move_mode.0 = false;
-            info!("Unit disbanded.");
-            return;
+    // 2. 隣接する傷ついた友軍部隊を検索
+    let injured_ally = units
+        .iter()
+        .find(|(e, u, _)| {
+            *e != unit_entity
+                && u.faction == player_fac
+                && u.hp < u.max_hp
+                && unit_coord.distance_with_width(u.coord, map_w) <= 1
+        })
+        .map(|(e, _, _)| e);
+
+    if let Some(ally_e) = injured_ally {
+        // 先に味方のHPを回復
+        if let Ok((_, mut ally, _)) = units.get_mut(ally_e) {
+            let heal_amt = 20;
+            ally.hp = (ally.hp + heal_amt).min(ally.max_hp);
+            info!("Transferred emergency field repair kit to ally {:?} (+{} HP).", ally.group_type, heal_amt);
         }
-    }
-
-    // 5. [Tab] / [Shift + Tab] または [.] (Period) / [,] (Comma): 自軍待機ユニットの巡回選択
-    let is_next_pressed = keys.just_pressed(KeyCode::Tab) && !keys.pressed(KeyCode::ShiftLeft) && !keys.pressed(KeyCode::ShiftRight)
-        || keys.just_pressed(KeyCode::Period);
-    let is_prev_pressed = (keys.just_pressed(KeyCode::Tab) && (keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight)))
-        || keys.just_pressed(KeyCode::Comma);
-
-    if is_next_pressed || is_prev_pressed {
-        // プレイヤーの全ユニットを取得
-        let mut player_units: Vec<(Entity, HexCoord, bool)> = units
-            .iter()
-            .filter(|(_, u, _)| u.faction == player_fac)
-            .map(|(e, u, _)| (e, u.coord, !u.is_exhausted && u.current_movement > 0))
-            .collect();
-
-        if player_units.is_empty() {
-            return;
+        // 次に自部隊の移動力を消費
+        if let Ok((_, mut unit, _)) = units.get_mut(unit_entity) {
+            unit.current_movement = unit.current_movement.saturating_sub(1);
         }
-
-        // 行動可能ユニットを先頭にしつつ、Entity順で安定ソート
-        player_units.sort_by(|a, b| {
-            b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0))
-        });
-
-        let current_idx = selected_unit.0.and_then(|current_e| {
-            player_units.iter().position(|(e, _, _)| *e == current_e)
-        });
-
-        let next_idx = match current_idx {
-            Some(idx) => {
-                let len = player_units.len();
-                if is_prev_pressed {
-                    (idx + len - 1) % len
-                } else {
-                    (idx + 1) % len
-                }
-            }
-            None => 0,
-        };
-
-        let (target_e, target_coord, _) = player_units[next_idx];
-        selected_unit.0 = Some(target_e);
-        selected_tile.0 = Some(target_coord);
-        move_mode.0 = false;
-
-        // カメラをユニットの座標へフォーカス
-        if let Ok(mut cam) = map_camera.single_mut() {
-            let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
-            cam.target_focal_point.x = world_pos.x;
-            cam.target_focal_point.z = world_pos.z;
-        }
-        return;
-    }
-
-    // 6. [Home] または [\] (Backslash): 首都（最初の拠点）にカメラジャンプ
-    if keys.just_pressed(KeyCode::Home) || keys.just_pressed(KeyCode::Backslash) {
-        let mut player_outposts: Vec<(Entity, HexCoord)> = outposts_query
-            .iter()
-            .filter(|(_, o)| o.faction == player_fac)
-            .map(|(e, o)| (e, o.coord))
-            .collect();
-        player_outposts.sort_by_key(|(e, _)| *e);
-
-        if let Some(&(_, capital_coord)) = player_outposts.first() {
-            selected_tile.0 = Some(capital_coord);
-            if let Ok(mut cam) = map_camera.single_mut() {
-                let world_pos = capital_coord.to_world_pos(crate::map::HEX_RADIUS);
-                cam.target_focal_point.x = world_pos.x;
-                cam.target_focal_point.z = world_pos.z;
-            }
-            info!("Camera focused on Capital Outpost at {:?}", capital_coord);
-        }
-        return;
-    }
-
-    // 7. [[] (BracketLeft) / []] (BracketRight): 自軍都市（拠点）の前後巡回
-    if keys.just_pressed(KeyCode::BracketLeft) || keys.just_pressed(KeyCode::BracketRight) {
-        let mut player_outposts: Vec<(Entity, HexCoord)> = outposts_query
-            .iter()
-            .filter(|(_, o)| o.faction == player_fac)
-            .map(|(e, o)| (e, o.coord))
-            .collect();
-        player_outposts.sort_by_key(|(e, _)| *e);
-
-        if player_outposts.is_empty() {
-            return;
-        }
-
-        let current_outpost_idx = selected_tile.0.and_then(|t| {
-            player_outposts.iter().position(|(_, c)| *c == t)
-        });
-
-        let next_idx = match current_outpost_idx {
-            Some(idx) => {
-                let len = player_outposts.len();
-                if keys.just_pressed(KeyCode::BracketLeft) {
-                    (idx + len - 1) % len
-                } else {
-                    (idx + 1) % len
-                }
-            }
-            None => 0,
-        };
-
-        let (_, target_coord) = player_outposts[next_idx];
-        selected_tile.0 = Some(target_coord);
-        if let Ok(mut cam) = map_camera.single_mut() {
-            let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
-            cam.target_focal_point.x = world_pos.x;
-            cam.target_focal_point.z = world_pos.z;
-        }
-        info!("Navigated to Outpost at {:?}", target_coord);
+    } else {
+        info!("No nearby outpost or damaged ally within 1 hex to transfer equipment/supplies.");
     }
 }
 
@@ -523,5 +849,92 @@ pub fn cleanup_selection_visuals(
     }
     for entity in &markers {
         commands.entity(entity).despawn();
+    }
+}
+
+/// ターン経過時のユニット状態更新（HP回復、防御ボーナス蓄積、敵接近検知による警戒・休眠自動解除）
+pub fn process_unit_turn_updates(
+    faction_resources: Res<crate::faction::FactionResources>,
+    territory_map: Res<crate::faction::TerritoryMap>,
+    map_grid: Res<MapGrid>,
+    mut units: Query<(Entity, &mut Unit)>,
+) {
+    if !faction_resources.is_changed() {
+        return;
+    }
+
+    let map_w = map_grid.width.max(1);
+
+    // 敵ユニットの全座標一覧を事前取得（警戒・休眠解除用）
+    let enemy_coords: Vec<(crate::faction::types::FactionId, HexCoord)> = units
+        .iter()
+        .map(|(_, u)| (u.faction, u.coord))
+        .collect();
+
+    for (_, mut unit) in &mut units {
+        let fac = unit.faction;
+        let coord = unit.coord;
+
+        // 1. 移動力リセット
+        unit.current_movement = unit.max_movement;
+        unit.is_exhausted = false;
+
+        // 2. 状態ごとのターン更新処理
+        match unit.action_state {
+            UnitActionState::Healing => {
+                // 回復処理: 自軍領内なら+20、中立なら+10
+                let is_friendly_territory = territory_map.get_owner(&coord) == Some(fac);
+                let heal_amount = if is_friendly_territory { 20 } else { 10 };
+                unit.hp = (unit.hp + heal_amount).min(unit.max_hp);
+                info!(
+                    "Unit {:?} healed +{} HP (Current: {}/{})",
+                    unit.group_type, heal_amount, unit.hp, unit.max_hp
+                );
+
+                if unit.hp >= unit.max_hp {
+                    unit.action_state = UnitActionState::Idle;
+                    info!("Unit {:?} fully healed. Returned to Idle.", unit.group_type);
+                } else {
+                    // まだ回復中のため待機継続
+                    unit.is_exhausted = true;
+                    unit.current_movement = 0;
+                }
+            }
+            UnitActionState::Fortified { turns } => {
+                // 防御姿勢の維持（ターンカウント加算、最大2）
+                unit.action_state = UnitActionState::Fortified {
+                    turns: (turns + 1).min(2),
+                };
+                unit.is_exhausted = true;
+                unit.current_movement = 0;
+            }
+            UnitActionState::Sleeping => {
+                // 休眠待機: 視界内（2ヘクス内）に敵が接近したら自動起床
+                let enemy_near = enemy_coords.iter().any(|&(enemy_fac, enemy_coord)| {
+                    enemy_fac != fac && coord.distance_with_width(enemy_coord, map_w) <= 2
+                });
+                if enemy_near {
+                    unit.action_state = UnitActionState::Idle;
+                    info!("Sleeping unit {:?} woke up due to approaching enemy!", unit.group_type);
+                } else {
+                    unit.is_exhausted = true;
+                    unit.current_movement = 0;
+                }
+            }
+            UnitActionState::Alert => {
+                // 警戒監視: 2ヘクス内に敵が入ったら自動覚醒
+                let enemy_near = enemy_coords.iter().any(|&(enemy_fac, enemy_coord)| {
+                    enemy_fac != fac && coord.distance_with_width(enemy_coord, map_w) <= 2
+                });
+                if enemy_near {
+                    unit.action_state = UnitActionState::Idle;
+                    info!("Alert unit {:?} detected enemy in range and woke up!", unit.group_type);
+                } else {
+                    unit.is_exhausted = true;
+                    unit.current_movement = 0;
+                }
+            }
+            UnitActionState::Idle => {}
+        }
     }
 }

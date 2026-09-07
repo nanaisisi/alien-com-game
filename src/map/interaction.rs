@@ -205,30 +205,27 @@ fn update_tile_highlight_system(
 
 /// [G]: グリッド切り替え, [Y]: 産出表示切り替え
 pub fn handle_map_display_shortcuts(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut action_events: MessageReader<crate::map::input::InGameActionEvent>,
     mut display_settings: ResMut<MapDisplaySettings>,
-    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
-    if let Some(ref debug) = debug_state {
-        if debug.is_open || debug.show_warning_modal {
-            return;
+    for event in action_events.read() {
+        match event.0 {
+            crate::map::input::InGameAction::ToggleGrid => {
+                display_settings.show_grid = !display_settings.show_grid;
+                info!(
+                    "Hex Grid Display: {}",
+                    if display_settings.show_grid { "ENABLED" } else { "DISABLED" }
+                );
+            }
+            crate::map::input::InGameAction::ToggleYields => {
+                display_settings.show_yields = !display_settings.show_yields;
+                info!(
+                    "Tile Yield Display: {}",
+                    if display_settings.show_yields { "ENABLED" } else { "DISABLED" }
+                );
+            }
+            _ => {}
         }
-    }
-
-    if keyboard.just_pressed(KeyCode::KeyG) {
-        display_settings.show_grid = !display_settings.show_grid;
-        info!(
-            "Hex Grid Display: {}",
-            if display_settings.show_grid { "ENABLED" } else { "DISABLED" }
-        );
-    }
-
-    if keyboard.just_pressed(KeyCode::KeyY) {
-        display_settings.show_yields = !display_settings.show_yields;
-        info!(
-            "Tile Yield Display: {}",
-            if display_settings.show_yields { "ENABLED" } else { "DISABLED" }
-        );
     }
 }
 
