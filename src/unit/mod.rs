@@ -12,7 +12,7 @@ pub use interaction::{ReachableTiles, UnitInteractionPlugin};
 #[allow(unused_imports)]
 pub use spawn::{cleanup_units, spawn_initial_units};
 #[allow(unused_imports)]
-pub use types::{CombatGroupType, MoveTargetMarker, SelectedUnit, Unit, UnitSelectionRing};
+pub use types::{CombatGroupType, MoveModeState, MoveTargetMarker, SelectedUnit, Unit, UnitSelectionRing};
 
 pub struct UnitPlugin;
 

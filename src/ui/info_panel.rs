@@ -95,20 +95,21 @@ pub fn cleanup_info_panel_ui(
     }
 }
 
-use crate::unit::{SelectedUnit, Unit};
+use crate::unit::{MoveModeState, SelectedUnit, Unit};
 
 /// 選択中タイルの情報を左下HUDに反映
 #[allow(clippy::too_many_arguments)]
 pub fn update_info_panel_system(
     selected: Res<SelectedTile>,
     selected_unit: Res<SelectedUnit>,
+    move_mode: Res<MoveModeState>,
     units_query: Query<&Unit>,
     map_grid: Res<MapGrid>,
     territory_map: Res<TerritoryMap>,
     outposts_query: Query<&FactionOutpost>,
     mut query: Query<&mut Text, With<InfoPanelText>>,
 ) {
-    if !selected.is_changed() && !selected_unit.is_changed() {
+    if !selected.is_changed() && !selected_unit.is_changed() && !move_mode.is_changed() {
         return;
     }
 
@@ -129,11 +130,18 @@ pub fn update_info_panel_system(
         };
         let (col, row) = coord.to_col_row_with_width(map_w);
 
+        let mode_guide = if move_mode.0 {
+            "【移動指示モード中 (MOVE)】\n  ※移動先タイルをクリックまたはホバーで [M] 押下\n  ※[ESC] で移動モード解除"
+        } else {
+            "【ショートカット操作】\n  [M]: 移動モード / ホバー先へ移動\n  [Tab]: 次の部隊選択\n  [ESC]: 選択解除"
+        };
+
         let info = format!(
             "【部隊選択中】\n  {}\n  所属: 国{}【{}】\n\n\
              【ステータス】\n  HP: {} / {}\n  残り移動力: {} / {}\n  攻撃力: {}\n  状態: {}\n\n\
              【現在位置】\n  col: {}, row: {} (q: {}, r: {})\n\n\
-             ※移動可能タイルをクリック（または右クリック）して移動指示",
+             {}\n\n\
+             ※移動可能タイルをクリック（または右クリック）でも即時移動可能",
             unit.group_type.display_name(),
             fac.code(),
             fac.name_ja(),
@@ -146,7 +154,8 @@ pub fn update_info_panel_system(
             col,
             row,
             coord.q,
-            coord.r
+            coord.r,
+            mode_guide
         );
         **text = info;
         return;

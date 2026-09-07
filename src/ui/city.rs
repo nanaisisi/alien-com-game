@@ -20,6 +20,7 @@ impl Plugin for CityUiPlugin {
                 Update,
                 (
                     toggle_city_modal_system,
+                    city_modal_keyboard_shortcuts,
                     city_modal_button_interaction_system,
                     city_production_action_system,
                 )
@@ -127,6 +128,151 @@ pub fn close_city_modal(
     modal_state.is_open = false;
     for entity in &existing {
         commands.entity(entity).despawn();
+    }
+}
+
+/// 都市管理画面表示中のキーボードショートカット ([1], [2], [3]: 部隊生産, [U]: 基地拡張)
+#[allow(clippy::too_many_arguments)]
+pub fn city_modal_keyboard_shortcuts(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    modal_state: Res<CityModalState>,
+    mut faction_res: ResMut<FactionResources>,
+    mut outposts_query: Query<(Entity, &mut FactionOutpost)>,
+    map_grid: Res<MapGrid>,
+    units_query: Query<&Unit>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut notice_query: Query<&mut Text, With<CityNoticeText>>,
+    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
+) {
+    if !modal_state.is_open {
+        return;
+    }
+
+    if let Some(ref debug) = debug_state {
+        if debug.is_open || debug.show_warning_modal {
+            return;
+        }
+    }
+
+    let Some(outpost_e) = modal_state.target_outpost_entity else {
+        return;
+    };
+
+    // [U]: 基地拡張
+    if keyboard.just_pressed(KeyCode::KeyU) {
+        if let Ok((_, mut outpost)) = outposts_query.get_mut(outpost_e) {
+            let prod_cost = 60;
+            let energy_cost = 40;
+            if faction_res.production >= prod_cost && faction_res.energy >= energy_cost {
+                faction_res.production -= prod_cost;
+                faction_res.energy -= energy_cost;
+                outpost.level += 1;
+                faction_res.production_per_turn += 3;
+                faction_res.energy_per_turn += 3;
+
+                if let Ok(mut notice) = notice_query.single_mut() {
+                    **notice = format!(
+                        "✔ 基地拡張完了！ Lv.{} に昇格しました。（生産/エネルギー +3/ターン）",
+                        outpost.level
+                    );
+                }
+            } else if let Ok(mut notice) = notice_query.single_mut() {
+                **notice = "❌ 資源が不足しています（必要: 生産 60 / エネルギー 40）".to_string();
+            }
+        }
+        return;
+    }
+
+    // [1], [2], [3]: 部隊生産
+    let unit_to_produce = if keyboard.just_pressed(KeyCode::Digit1) || keyboard.just_pressed(KeyCode::Numpad1) {
+        Some(CombatGroupType::Scout)
+    } else if keyboard.just_pressed(KeyCode::Digit2) || keyboard.just_pressed(KeyCode::Numpad2) {
+        Some(CombatGroupType::LightInfantry)
+    } else if keyboard.just_pressed(KeyCode::Digit3) || keyboard.just_pressed(KeyCode::Numpad3) {
+        Some(CombatGroupType::Colonist)
+    } else {
+        None
+    };
+
+    if let Some(unit_type) = unit_to_produce {
+        let (prod_cost, energy_cost, food_cost) = match unit_type {
+            CombatGroupType::Scout => (30, 15, 0),
+            CombatGroupType::LightInfantry => (45, 25, 0),
+            CombatGroupType::Colonist => (75, 0, 40),
+        };
+
+        if faction_res.production < prod_cost
+            || faction_res.energy < energy_cost
+            || faction_res.food < food_cost
+        {
+            if let Ok(mut notice) = notice_query.single_mut() {
+                **notice = format!(
+                    "❌ 資源が不足しています（必要: 生産 {} / エネルギー {} / 食糧 {}）",
+                    prod_cost, energy_cost, food_cost
+                );
+            }
+            return;
+        }
+
+        let Ok((_, outpost)) = outposts_query.get(outpost_e) else {
+            return;
+        };
+
+        let map_w = map_grid.width.max(1);
+        let base_coord = outpost.coord;
+        let neighbors = base_coord.neighbors_with_width(map_w);
+
+        let mut target_coord = None;
+        for candidate in neighbors {
+            if let Some(&terrain) = map_grid.terrain_data.get(&candidate)
+                && terrain.is_passable_ground()
+                && !units_query.iter().any(|u| u.coord == candidate)
+            {
+                target_coord = Some(candidate);
+                break;
+            }
+        }
+
+        let spawn_coord = target_coord.unwrap_or(base_coord);
+
+        faction_res.production -= prod_cost;
+        faction_res.energy -= energy_cost;
+        faction_res.food -= food_cost;
+
+        let terrain_height = map_grid
+            .terrain_data
+            .get(&spawn_coord)
+            .map(|t| t.height())
+            .unwrap_or(0.0);
+        let world_pos = spawn_coord.to_world_pos(crate::map::HEX_RADIUS);
+
+        let unit_entity = commands
+            .spawn((
+                Unit::new(outpost.faction, unit_type, spawn_coord),
+                Transform::from_xyz(world_pos.x, terrain_height, world_pos.z),
+                Visibility::default(),
+            ))
+            .id();
+
+        spawn_unit_model(
+            &mut commands,
+            unit_entity,
+            &mut meshes,
+            &mut materials,
+            outpost.faction,
+            unit_type,
+        );
+
+        if let Ok(mut notice) = notice_query.single_mut() {
+            **notice = format!(
+                "✔ {} を配備しました！（座標: col:{}, row:{}）",
+                unit_type.display_name(),
+                spawn_coord.to_col_row_with_width(map_w).0,
+                spawn_coord.to_col_row_with_width(map_w).1
+            );
+        }
     }
 }
 
@@ -356,7 +502,7 @@ pub fn spawn_city_modal(
                                     ))
                                     .with_children(|btn| {
                                         btn.spawn((
-                                            Text::new(format!("基地モジュール改修 (Lv.{} → Lv.{})", outpost.level, outpost.level + 1)),
+                                            Text::new(format!("[U] 基地モジュール改修 (Lv.{} → Lv.{})", outpost.level, outpost.level + 1)),
                                             TextFont {
                                                 font: font_bold.clone().into(),
                                                 font_size: FontSize::Px(12.0),
@@ -404,19 +550,19 @@ pub fn spawn_city_modal(
                                     let units = [
                                         (
                                             CombatGroupType::Scout,
-                                            "偵察戦闘団 (Scout Group)",
+                                            "[1] 偵察戦闘団 (Scout Group)",
                                             "高速移動(移動力4)・広域視界。惑星探査・資源探索に最適。",
                                             "コスト: 生産 30 / エネルギー 15",
                                         ),
                                         (
                                             CombatGroupType::LightInfantry,
-                                            "機動歩兵中隊 (Light Infantry)",
+                                            "[2] 機動歩兵中隊 (Light Infantry)",
                                             "主力戦闘部隊。高耐久(HP100)・攻撃力25。都市防衛および制圧。",
                                             "コスト: 生産 45 / エネルギー 25",
                                         ),
                                         (
                                             CombatGroupType::Colonist,
-                                            "惑星開拓団 (Colonist Expedition)",
+                                            "[3] 惑星開拓団 (Colonist Expedition)",
                                             "新たな前哨基地を建設し領土を拡大する専門工兵ユニット。",
                                             "コスト: 生産 75 / 食糧 40",
                                         ),

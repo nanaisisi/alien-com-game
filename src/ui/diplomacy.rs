@@ -61,6 +61,14 @@ fn toggle_diplomacy_modal_system(
     faction_mgr: Res<FactionManager>,
     existing: Query<Entity, With<DiplomacyModalRoot>>,
 ) {
+    if keyboard.just_pressed(KeyCode::Escape) && modal_state.is_open {
+        modal_state.is_open = false;
+        for entity in &existing {
+            commands.entity(entity).despawn();
+        }
+        return;
+    }
+
     if keyboard.just_pressed(KeyCode::KeyF) {
         modal_state.is_open = !modal_state.is_open;
 

@@ -332,6 +332,30 @@ pub fn setup_hud(
                             TextColor(Color::srgb(0.70, 0.85, 0.90)),
                         ));
                     });
+
+                // ショートカット操作ガイドミニバー
+                action_panel
+                    .spawn((
+                        Node {
+                            padding: UiRect::axes(Val::Px(10.0), Val::Px(4.0)),
+                            border: UiRect::all(Val::Px(1.0)),
+                            border_radius: BorderRadius::all(Val::Px(4.0)),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.08, 0.12, 0.18, 0.75)),
+                        BorderColor::all(Color::srgba(0.2, 0.3, 0.4, 0.5)),
+                    ))
+                    .with_children(|bar| {
+                        bar.spawn((
+                            Text::new("[Tab] 部隊巡回  [M] 移動  [C] 基地  [F] 外交"),
+                            TextFont {
+                                font: font_regular.clone().into(),
+                                font_size: FontSize::Px(10.5),
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.65, 0.80, 0.85)),
+                        ));
+                    });
             });
         });
 }

@@ -7,17 +7,19 @@ use crate::map::interaction::{HoveredTile, SelectedTile};
 use crate::map::MapGrid;
 use crate::state::AppState;
 
-use super::types::{MoveTargetMarker, SelectedUnit, Unit, UnitSelectionRing};
+use super::types::{MoveModeState, MoveTargetMarker, SelectedUnit, Unit, UnitSelectionRing};
 
 pub struct UnitInteractionPlugin;
 
 impl Plugin for UnitInteractionPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SelectedUnit>()
+            .init_resource::<MoveModeState>()
             .init_resource::<ReachableTiles>()
             .add_systems(
                 Update,
                 (
+                    handle_unit_keyboard_shortcuts,
                     handle_unit_selection_and_move,
                     update_reachable_tiles,
                     update_selection_visuals,
@@ -34,6 +36,113 @@ pub struct ReachableTiles {
     pub tiles: HashMap<HexCoord, u32>, // HexCoord -> 消費移動力
 }
 
+/// キーボードによるユニット操作（M: 移動モード／移動、Tab/Shift+Tab: ユニット巡回、Escape: 選択解除）
+#[allow(clippy::too_many_arguments)]
+pub fn handle_unit_keyboard_shortcuts(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut selected_unit: ResMut<SelectedUnit>,
+    mut selected_tile: ResMut<SelectedTile>,
+    hovered_tile: Res<HoveredTile>,
+    mut move_mode: ResMut<MoveModeState>,
+    reachable_tiles: Res<ReachableTiles>,
+    player_faction: Res<PlayerFaction>,
+    map_grid: Res<MapGrid>,
+    mut units: Query<(Entity, &mut Unit, &mut Transform)>,
+    mut map_camera: Query<&mut crate::camera::MapCamera>,
+    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
+) {
+    // デバッグコンソールまたは警告モーダルが開いている場合はキーボード操作を抑止
+    if let Some(ref debug) = debug_state {
+        if debug.is_open || debug.show_warning_modal {
+            return;
+        }
+    }
+
+    let player_fac = player_faction.0;
+
+    // 1. [Escape]: ユニット選択を解除（移動モード中ならまず移動モードを解除）
+    if keys.just_pressed(KeyCode::Escape) {
+        if move_mode.0 {
+            move_mode.0 = false;
+            return;
+        } else if selected_unit.0.is_some() {
+            selected_unit.0 = None;
+            return;
+        }
+    }
+
+    // 2. [KeyM]: ユニット移動（Move）
+    // ユニット選択中に M キーを押下した場合:
+    // - マウスホバー中のタイルが移動可能タイルであれば、即座にそのタイルへ移動
+    // - それ以外の場合は、移動指示モード（Move Mode）をトグル
+    if keys.just_pressed(KeyCode::KeyM) {
+        if let Some(selected_entity) = selected_unit.0
+            && let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity)
+        {
+            if let Some(hovered) = hovered_tile.0
+                && let Some(&cost) = reachable_tiles.tiles.get(&hovered)
+                && hovered != unit.coord
+            {
+                execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
+                selected_tile.0 = Some(hovered);
+                move_mode.0 = false;
+            } else {
+                move_mode.0 = !move_mode.0;
+                info!("Unit Move Mode: {}", if move_mode.0 { "ENABLED" } else { "DISABLED" });
+            }
+        }
+    }
+
+    // 3. [Tab] / [Shift + Tab]: 自軍ユニットの巡回選択（未行動ユニット優先）
+    if keys.just_pressed(KeyCode::Tab) {
+        let is_shift = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
+
+        // プレイヤーの全ユニットを取得
+        let mut player_units: Vec<(Entity, HexCoord, bool)> = units
+            .iter()
+            .filter(|(_, u, _)| u.faction == player_fac)
+            .map(|(e, u, _)| (e, u.coord, !u.is_exhausted && u.current_movement > 0))
+            .collect();
+
+        if player_units.is_empty() {
+            return;
+        }
+
+        // 行動可能ユニットを先頭にしつつ、Entity順で安定ソート
+        player_units.sort_by(|a, b| {
+            b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0))
+        });
+
+        let current_idx = selected_unit.0.and_then(|current_e| {
+            player_units.iter().position(|(e, _, _)| *e == current_e)
+        });
+
+        let next_idx = match current_idx {
+            Some(idx) => {
+                let len = player_units.len();
+                if is_shift {
+                    (idx + len - 1) % len
+                } else {
+                    (idx + 1) % len
+                }
+            }
+            None => 0,
+        };
+
+        let (target_e, target_coord, _) = player_units[next_idx];
+        selected_unit.0 = Some(target_e);
+        selected_tile.0 = Some(target_coord);
+        move_mode.0 = false;
+
+        // カメラをユニットの座標へフォーカス
+        if let Ok(mut cam) = map_camera.single_mut() {
+            let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
+            cam.target_focal_point.x = world_pos.x;
+            cam.target_focal_point.z = world_pos.z;
+        }
+    }
+}
+
 /// ユニットの選択および移動先クリックを処理
 #[allow(clippy::too_many_arguments)]
 pub fn handle_unit_selection_and_move(
@@ -41,6 +150,7 @@ pub fn handle_unit_selection_and_move(
     hovered_tile: Res<HoveredTile>,
     mut selected_tile: ResMut<SelectedTile>,
     mut selected_unit: ResMut<SelectedUnit>,
+    mut move_mode: ResMut<MoveModeState>,
     reachable_tiles: Res<ReachableTiles>,
     player_faction: Res<PlayerFaction>,
     map_grid: Res<MapGrid>,
@@ -66,6 +176,7 @@ pub fn handle_unit_selection_and_move(
         {
             execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
             selected_tile.0 = Some(hovered);
+            move_mode.0 = false;
             return;
         }
         return;
@@ -80,19 +191,22 @@ pub fn handle_unit_selection_and_move(
         .map(|(e, _, _)| e);
 
     if let Some(unit_e) = clicked_unit_entity {
-        // 自軍ユニットを選択
+        // 自軍ユニットを選択（移動モード中なら自軍別ユニット選択に切り替え）
         selected_unit.0 = Some(unit_e);
         selected_tile.0 = Some(hovered);
+        move_mode.0 = false;
     } else if let Some(selected_entity) = selected_unit.0 {
         // すでに自軍ユニットが選択されており、到達可能タイルをクリックした場合は移動
         if let Some(&cost) = reachable_tiles.tiles.get(&hovered) {
             if let Ok((_, mut unit, mut transform)) = units.get_mut(selected_entity) {
                 execute_unit_move(&mut unit, &mut transform, hovered, cost, &map_grid);
                 selected_tile.0 = Some(hovered);
+                move_mode.0 = false;
             }
         } else {
             // 到達不能タイルをクリックした場合はユニット選択解除（タイル選択のみ残す）
             selected_unit.0 = None;
+            move_mode.0 = false;
         }
     }
 }
@@ -197,6 +311,7 @@ pub fn update_selection_visuals(
     mut commands: Commands,
     selected_unit: Res<SelectedUnit>,
     reachable_tiles: Res<ReachableTiles>,
+    move_mode: Res<MoveModeState>,
     units: Query<(&Unit, &Transform)>,
     map_grid: Res<MapGrid>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -204,7 +319,7 @@ pub fn update_selection_visuals(
     existing_rings: Query<Entity, With<UnitSelectionRing>>,
     existing_markers: Query<Entity, With<MoveTargetMarker>>,
 ) {
-    if !selected_unit.is_changed() && !reachable_tiles.is_changed() {
+    if !selected_unit.is_changed() && !reachable_tiles.is_changed() && !move_mode.is_changed() {
         return;
     }
 
@@ -224,11 +339,17 @@ pub fn update_selection_visuals(
         return;
     };
 
-    // 1. ユニット足元に選択サークルリングをスポーン
+    // 1. ユニット足元に選択サークルリングをスポーン（移動モード時は黄色～ゴールドに発光）
     let ring_mesh = meshes.add(Torus::new(0.48, 0.04));
+    let (ring_col, ring_emissive) = if move_mode.0 {
+        (Color::srgb(1.0, 0.85, 0.2), LinearRgba::rgb(2.0, 1.6, 0.3))
+    } else {
+        (Color::srgb(0.2, 0.95, 0.9), LinearRgba::rgb(0.4, 1.8, 1.6))
+    };
+
     let ring_mat = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.2, 0.95, 0.9),
-        emissive: LinearRgba::rgb(0.4, 1.8, 1.6),
+        base_color: ring_col,
+        emissive: ring_emissive,
         unlit: true,
         ..default()
     });
@@ -244,11 +365,17 @@ pub fn update_selection_visuals(
         ),
     ));
 
-    // 2. 到達可能タイルの上面に淡い移動マーカー（ドット/サークル）を配置
+    // 2. 到達可能タイルの上面に移動マーカー（ドット/サークル）を配置
     let marker_mesh = meshes.add(Cylinder::new(0.22, 0.02));
+    let (marker_col, marker_emissive) = if move_mode.0 {
+        (Color::srgba(1.0, 0.85, 0.2, 0.85), LinearRgba::rgb(0.6, 0.5, 0.1))
+    } else {
+        (Color::srgba(0.2, 0.9, 0.8, 0.65), LinearRgba::rgb(0.1, 0.5, 0.4))
+    };
+
     let marker_mat = materials.add(StandardMaterial {
-        base_color: Color::srgba(0.2, 0.9, 0.8, 0.65),
-        emissive: LinearRgba::rgb(0.1, 0.5, 0.4),
+        base_color: marker_col,
+        emissive: marker_emissive,
         alpha_mode: AlphaMode::Blend,
         unlit: true,
         ..default()

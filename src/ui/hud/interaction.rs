@@ -181,6 +181,10 @@ pub fn handle_keyboard_shortcuts(
     mut settings: ResMut<crate::ui::settings::GameSettings>,
     mut next_state: ResMut<NextState<AppState>>,
     debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
+    city_modal: Option<Res<crate::ui::city::CityModalState>>,
+    diplomacy_modal: Option<Res<crate::ui::diplomacy::DiplomacyModalState>>,
+    selected_unit: Option<Res<crate::unit::SelectedUnit>>,
+    move_mode: Option<Res<crate::unit::MoveModeState>>,
 ) {
     // デバッグコンソールまたは警告モーダルが開いている場合はショートカットを抑止
     if let Some(ref debug) = debug_state {
@@ -192,7 +196,18 @@ pub fn handle_keyboard_shortcuts(
     if keys.just_pressed(KeyCode::Space) {
         advance_turn(&mut resources);
     }
+
     if keys.just_pressed(KeyCode::Escape) {
+        // 都市モーダルまたは外交モーダルが開いている場合はポーズメニューを開かない（各モーダルがESCを消費して閉じる）
+        let is_city_open = city_modal.as_ref().is_some_and(|m| m.is_open);
+        let is_diplomacy_open = diplomacy_modal.as_ref().is_some_and(|m| m.is_open);
+        let is_unit_selected = selected_unit.as_ref().is_some_and(|u| u.0.is_some());
+        let is_move_mode = move_mode.as_ref().is_some_and(|m| m.0);
+
+        if is_city_open || is_diplomacy_open || is_unit_selected || is_move_mode {
+            return;
+        }
+
         info!("ESC pressed: Opening Pause Menu...");
         settings.return_state = AppState::InGame;
         next_state.set(AppState::PauseMenu);

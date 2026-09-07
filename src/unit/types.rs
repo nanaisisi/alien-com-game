@@ -88,6 +88,10 @@ impl Unit {
 #[derive(Resource, Default, Debug)]
 pub struct SelectedUnit(pub Option<Entity>);
 
+/// Mキーによるユニット移動指示モードの状態
+#[derive(Resource, Default, Debug)]
+pub struct MoveModeState(pub bool);
+
 /// ユニット移動可能タイルの表示用マーカー
 #[derive(Component)]
 pub struct MoveTargetMarker {
