@@ -180,7 +180,15 @@ pub fn handle_keyboard_shortcuts(
     mut resources: ResMut<FactionResources>,
     mut settings: ResMut<crate::ui::settings::GameSettings>,
     mut next_state: ResMut<NextState<AppState>>,
+    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
+    // デバッグコンソールまたは警告モーダルが開いている場合はショートカットを抑止
+    if let Some(ref debug) = debug_state {
+        if debug.is_open || debug.show_warning_modal {
+            return;
+        }
+    }
+
     if keys.just_pressed(KeyCode::Space) {
         advance_turn(&mut resources);
     }

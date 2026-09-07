@@ -72,6 +72,7 @@ fn pan_zoom_camera_system(
     map_grid: Res<crate::map::MapGrid>,
     mut mouse_wheel: MessageReader<MouseWheel>,
     mut query: Query<(&mut Transform, &mut Projection, &mut MapCamera)>,
+    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
     let Ok((mut transform, mut projection, mut map_cam)) = query.single_mut() else {
         return;
@@ -79,42 +80,50 @@ fn pan_zoom_camera_system(
 
     let dt = time.delta_secs();
 
+    // デバッグコンソールまたは警告モーダルが開いている場合はキーボードパン操作を無効化（文字入力と衝突防止）
+    let block_keyboard_pan = debug_state
+        .as_ref()
+        .is_some_and(|s| s.is_open || s.show_warning_modal);
+
     // 1. パン操作（WASD / 矢印）
     // 南から北（画面上が北 = -Z、画面右が東 = +X）
     let forward_dir = Vec3::new(0.0, 0.0, -1.0);
     let right_dir = Vec3::new(1.0, 0.0, 0.0);
 
     let mut move_vec = Vec3::ZERO;
-    if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
-        move_vec += forward_dir;
-    }
-    if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
-        move_vec -= forward_dir;
-    }
-    if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
-        move_vec += right_dir;
-    }
-    if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
-        move_vec -= right_dir;
+    let mut impulse_vec = Vec3::ZERO;
+
+    if !block_keyboard_pan {
+        if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
+            move_vec += forward_dir;
+        }
+        if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
+            move_vec -= forward_dir;
+        }
+        if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
+            move_vec += right_dir;
+        }
+        if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
+            move_vec -= right_dir;
+        }
+
+        // 1回チョンと押しただけでも確実に1タイル程度（またはステップ分）移動を感知できるように
+        // just_pressed（押した瞬間）のインパルス移動
+        if keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) {
+            impulse_vec += forward_dir;
+        }
+        if keyboard.just_pressed(KeyCode::KeyS) || keyboard.just_pressed(KeyCode::ArrowDown) {
+            impulse_vec -= forward_dir;
+        }
+        if keyboard.just_pressed(KeyCode::KeyD) || keyboard.just_pressed(KeyCode::ArrowRight) {
+            impulse_vec += right_dir;
+        }
+        if keyboard.just_pressed(KeyCode::KeyA) || keyboard.just_pressed(KeyCode::ArrowLeft) {
+            impulse_vec -= right_dir;
+        }
     }
 
     let move_speed = (map_cam.current_viewport_height * 1.2).clamp(10.0, 35.0);
-
-    // 1回チョンと押しただけでも確実に1タイル程度（またはステップ分）移動を感知できるように
-    // just_pressed（押した瞬間）のインパルス移動
-    let mut impulse_vec = Vec3::ZERO;
-    if keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) {
-        impulse_vec += forward_dir;
-    }
-    if keyboard.just_pressed(KeyCode::KeyS) || keyboard.just_pressed(KeyCode::ArrowDown) {
-        impulse_vec -= forward_dir;
-    }
-    if keyboard.just_pressed(KeyCode::KeyD) || keyboard.just_pressed(KeyCode::ArrowRight) {
-        impulse_vec += right_dir;
-    }
-    if keyboard.just_pressed(KeyCode::KeyA) || keyboard.just_pressed(KeyCode::ArrowLeft) {
-        impulse_vec -= right_dir;
-    }
 
     if impulse_vec.length_squared() > 0.0 {
         // 1タップあたり約1.2ワールドユニット（およそ1ヘックスタイル分）のステップ移動

@@ -26,36 +26,62 @@ pub fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             BackgroundColor(Color::srgba(0.04, 0.06, 0.10, 0.88)),
         ))
         .with_children(|parent| {
-            // タイトルヘッダー領域
+            // タイトルヘッダー領域（行コンテナにしてタイトル右側・右端から1割空けた広めの透明エリアを設置）
             parent
                 .spawn(Node {
-                    flex_direction: FlexDirection::Column,
+                    width: Val::Percent(100.0),
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
-                    row_gap: Val::Px(10.0),
                     margin: UiRect::bottom(Val::Px(30.0)),
+                    position_type: PositionType::Relative,
                     ..default()
                 })
-                .with_children(|header| {
-                    // メインタイトル
-                    header.spawn((
-                        Text::new("ALIEN COM GAME"),
-                        TextFont {
-                            font: font_bold.clone().into(),
-                            font_size: FontSize::Px(52.0),
+                .with_children(|header_container| {
+                    // 中央タイトル見出し
+                    header_container
+                        .spawn(Node {
+                            flex_direction: FlexDirection::Column,
+                            align_items: AlignItems::Center,
+                            row_gap: Val::Px(10.0),
                             ..default()
-                        },
-                        TextColor(surfaces.accent()),
-                    ));
+                        })
+                        .with_children(|header| {
+                            // メインタイトル
+                            header.spawn((
+                                Text::new("ALIEN COM GAME"),
+                                TextFont {
+                                    font: font_bold.clone().into(),
+                                    font_size: FontSize::Px(52.0),
+                                    ..default()
+                                },
+                                TextColor(surfaces.accent()),
+                            ));
 
-                    // サブタイトル
-                    header.spawn((
-                        Text::new("— Planetary Colonization & Tactical Command —"),
-                        TextFont {
-                            font: font_regular.clone().into(),
-                            font_size: FontSize::Px(18.0),
+                            // サブタイトル
+                            header.spawn((
+                                Text::new("— Planetary Colonization & Tactical Command —"),
+                                TextFont {
+                                    font: font_regular.clone().into(),
+                                    font_size: FontSize::Px(18.0),
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.70, 0.78, 0.85)),
+                            ));
+                        });
+
+                    // タイトルより右側・右端から1割空けた広めの透明デバッグトリガーエリア
+                    header_container.spawn((
+                        Button,
+                        crate::ui::debug_console::types::DebugSecretTriggerArea,
+                        Node {
+                            position_type: PositionType::Absolute,
+                            right: Val::Percent(10.0),
+                            width: Val::Px(160.0),
+                            height: Val::Px(90.0),
                             ..default()
                         },
-                        TextColor(Color::srgb(0.70, 0.78, 0.85)),
+                        BackgroundColor(Color::NONE),
                     ));
                 });
 

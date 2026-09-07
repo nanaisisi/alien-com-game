@@ -11,7 +11,14 @@ pub fn title_keyboard_navigation_system(
     mut next_state: ResMut<NextState<AppState>>,
     mut settings: ResMut<crate::ui::settings::GameSettings>,
     mut exit_events: bevy::ecs::message::MessageWriter<AppExit>,
+    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
+    if let Some(ref debug) = debug_state {
+        if debug.is_open || debug.show_warning_modal {
+            return;
+        }
+    }
+
     let count = MENU_ACTIONS.len();
     let current = focus.selected_index.unwrap_or(0);
 
@@ -125,7 +132,14 @@ pub fn button_action_system(
     mut settings: ResMut<crate::ui::settings::GameSettings>,
     mut next_state: ResMut<NextState<AppState>>,
     mut exit_events: bevy::ecs::message::MessageWriter<AppExit>,
+    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
+    if let Some(ref debug) = debug_state {
+        if debug.is_open || debug.show_warning_modal {
+            return;
+        }
+    }
+
     for (interaction, action) in &interaction_query {
         if *interaction == Interaction::Pressed {
             execute_title_action(*action, &mut settings, &mut next_state, &mut exit_events);

@@ -260,6 +260,19 @@ pub fn setup_hud(
                                     TextColor(text.main()),
                                 ));
                             });
+
+                        // 右端からある程度幅を空けた、広めの透明デバッグトリガーエリア
+                        right.spawn((
+                            Button,
+                            crate::ui::debug_console::types::DebugSecretTriggerArea,
+                            Node {
+                                width: Val::Px(60.0),
+                                height: Val::Px(36.0),
+                                margin: UiRect::left(Val::Px(12.0)),
+                                ..default()
+                            },
+                            BackgroundColor(Color::NONE),
+                        ));
                     });
             });
 

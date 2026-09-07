@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 pub mod city;
+pub mod debug_console;
 pub mod diplomacy;
 pub mod faction_select;
 pub mod hud;
@@ -25,6 +26,7 @@ impl Plugin for GameUiPlugin {
             diplomacy::DiplomacyUiPlugin,
             pause::PauseMenuPlugin,
             minimap::MinimapPlugin,
+            debug_console::DebugConsolePlugin,
         ));
     }
 }
