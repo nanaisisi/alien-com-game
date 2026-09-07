@@ -1,4 +1,5 @@
 use bevy::camera::ScalingMode;
+use bevy::ecs::system::SystemParam;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 
@@ -39,23 +40,47 @@ impl Default for MapCamera {
     }
 }
 
+/// カメラ操作の入力パラメータ
+#[derive(SystemParam)]
+struct CameraInput<'w, 's> {
+    keyboard: Res<'w, ButtonInput<KeyCode>>,
+    mouse_button: Res<'w, ButtonInput<MouseButton>>,
+    mouse_wheel: MessageReader<'w, 's, MouseWheel>,
+}
+
+/// カメラのキーボード移動をブロックするモーダル状態
+#[derive(SystemParam)]
+struct CameraModalBlockers<'w> {
+    debug_state: Option<Res<'w, crate::ui::debug_console::DebugConsoleState>>,
+    city_modal: Option<Res<'w, crate::ui::city::CityModalState>>,
+    diplomacy_modal: Option<Res<'w, crate::ui::diplomacy::DiplomacyModalState>>,
+}
+
+impl CameraModalBlockers<'_> {
+    fn is_blocking(&self) -> bool {
+        self.debug_state
+            .as_ref()
+            .is_some_and(|s| s.is_open || s.show_warning_modal)
+            || self.city_modal.as_ref().is_some_and(|m| m.is_open)
+            || self.diplomacy_modal.as_ref().is_some_and(|m| m.is_open)
+    }
+}
+
 fn setup_camera(mut commands: Commands) {
     let initial_viewport_height = 18.0;
-    // 南から北向きに見下ろすオフセット（+Zから-Z向き）
-    let camera_offset = Vec3::new(0.0, 14.0, 12.0);
 
-    // 3D & UI統合カメラ
     commands.spawn((
         Camera3d::default(),
-        Msaa::Sample4,
-        Projection::from(OrthographicProjection {
+        Projection::Orthographic(OrthographicProjection {
             scaling_mode: ScalingMode::FixedVertical {
                 viewport_height: initial_viewport_height,
             },
             ..OrthographicProjection::default_3d()
         }),
-        Transform::from_translation(camera_offset).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(0.0, 14.0, 12.0).looking_at(Vec3::ZERO, Vec3::Y),
         MapCamera {
+            target_focal_point: Vec3::ZERO,
+            current_focal_point: Vec3::ZERO,
             target_viewport_height: initial_viewport_height,
             current_viewport_height: initial_viewport_height,
             ..default()
@@ -66,15 +91,11 @@ fn setup_camera(mut commands: Commands) {
 /// WASD / 矢印キーでパン移動、右ドラッグ / 中ドラッグでマップ移動、マウスホイールでズームイン/アウト
 fn pan_zoom_camera_system(
     time: Res<Time>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mouse_button: Res<ButtonInput<MouseButton>>,
+    mut input: CameraInput,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     map_grid: Res<crate::map::MapGrid>,
-    mut mouse_wheel: MessageReader<MouseWheel>,
     mut query: Query<(&mut Transform, &mut Projection, &mut MapCamera)>,
-    debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
-    city_modal: Option<Res<crate::ui::city::CityModalState>>,
-    diplomacy_modal: Option<Res<crate::ui::diplomacy::DiplomacyModalState>>,
+    modals: CameraModalBlockers,
 ) {
     let Ok((mut transform, mut projection, mut map_cam)) = query.single_mut() else {
         return;
@@ -83,11 +104,7 @@ fn pan_zoom_camera_system(
     let dt = time.delta_secs();
 
     // デバッグコンソール、警告モーダル、都市モーダル、外交モーダルが開いている場合はキーボードパン操作を無効化
-    let block_keyboard_pan = debug_state
-        .as_ref()
-        .is_some_and(|s| s.is_open || s.show_warning_modal)
-        || city_modal.as_ref().is_some_and(|m| m.is_open)
-        || diplomacy_modal.as_ref().is_some_and(|m| m.is_open);
+    let block_keyboard_pan = modals.is_blocking();
 
     // 1. パン操作（WASD / 矢印）
     // 南から北（画面上が北 = -Z、画面右が東 = +X）
@@ -98,31 +115,31 @@ fn pan_zoom_camera_system(
     let mut impulse_vec = Vec3::ZERO;
 
     if !block_keyboard_pan {
-        if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
+        if input.keyboard.pressed(KeyCode::KeyW) || input.keyboard.pressed(KeyCode::ArrowUp) {
             move_vec += forward_dir;
         }
-        if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
+        if input.keyboard.pressed(KeyCode::KeyS) || input.keyboard.pressed(KeyCode::ArrowDown) {
             move_vec -= forward_dir;
         }
-        if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
+        if input.keyboard.pressed(KeyCode::KeyD) || input.keyboard.pressed(KeyCode::ArrowRight) {
             move_vec += right_dir;
         }
-        if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
+        if input.keyboard.pressed(KeyCode::KeyA) || input.keyboard.pressed(KeyCode::ArrowLeft) {
             move_vec -= right_dir;
         }
 
         // 1回チョンと押しただけでも確実に1タイル程度（またはステップ分）移動を感知できるように
         // just_pressed（押した瞬間）のインパルス移動
-        if keyboard.just_pressed(KeyCode::KeyW) || keyboard.just_pressed(KeyCode::ArrowUp) {
+        if input.keyboard.just_pressed(KeyCode::KeyW) || input.keyboard.just_pressed(KeyCode::ArrowUp) {
             impulse_vec += forward_dir;
         }
-        if keyboard.just_pressed(KeyCode::KeyS) || keyboard.just_pressed(KeyCode::ArrowDown) {
+        if input.keyboard.just_pressed(KeyCode::KeyS) || input.keyboard.just_pressed(KeyCode::ArrowDown) {
             impulse_vec -= forward_dir;
         }
-        if keyboard.just_pressed(KeyCode::KeyD) || keyboard.just_pressed(KeyCode::ArrowRight) {
+        if input.keyboard.just_pressed(KeyCode::KeyD) || input.keyboard.just_pressed(KeyCode::ArrowRight) {
             impulse_vec += right_dir;
         }
-        if keyboard.just_pressed(KeyCode::KeyA) || keyboard.just_pressed(KeyCode::ArrowLeft) {
+        if input.keyboard.just_pressed(KeyCode::KeyA) || input.keyboard.just_pressed(KeyCode::ArrowLeft) {
             impulse_vec -= right_dir;
         }
     }
@@ -142,7 +159,7 @@ fn pan_zoom_camera_system(
 
     // 2. マウスドラッグによる移動（右ボタンドラッグまたはホイール中ボタンドラッグ）
     let is_dragging =
-        mouse_button.pressed(MouseButton::Right) || mouse_button.pressed(MouseButton::Middle);
+        input.mouse_button.pressed(MouseButton::Right) || input.mouse_button.pressed(MouseButton::Middle);
 
     if let Ok(window) = windows.single() {
         if is_dragging {
@@ -195,7 +212,7 @@ fn pan_zoom_camera_system(
     }
 
     // 2. ズーム操作（マウスホイール）
-    for ev in mouse_wheel.read() {
+    for ev in input.mouse_wheel.read() {
         let zoom_factor = 1.8;
         map_cam.target_viewport_height -= ev.y * zoom_factor;
     }
