@@ -114,4 +114,5 @@ pub struct WikiEntry {
 - 自動処理設計: [`concept_automation_systems.md`](concept_automation_systems.md)
 - 産業・モジュールマッピング: [`concept_industry_module_mapping.md`](concept_industry_module_mapping.md)
 - 兵器モジュール共通化: [`concept_weapon_module_commonality.md`](concept_weapon_module_commonality.md)
+- 固定情報と動的情報のビューアー分離: [`concept_viewer_separation_wiki_and_live.md`](concept_viewer_separation_wiki_and_live.md)
 - 基本ゲームデザイン: [`GAME_DESIGN.md`](../GAME_DESIGN.md)
