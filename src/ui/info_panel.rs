@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
 use crate::faction::{FactionOutpost, TerritoryMap};
+use crate::map::MapGrid;
 use crate::map::hex::HexCoord;
 use crate::map::interaction::SelectedTile;
-use crate::map::MapGrid;
 use crate::state::AppState;
 use crate::ui::theme::UiTheme;
 
@@ -86,10 +86,7 @@ pub fn setup_info_panel_ui(
         });
 }
 
-pub fn cleanup_info_panel_ui(
-    mut commands: Commands,
-    query: Query<Entity, With<InfoPanelRoot>>,
-) {
+pub fn cleanup_info_panel_ui(mut commands: Commands, query: Query<Entity, With<InfoPanelRoot>>) {
     for entity in &query {
         commands.entity(entity).despawn();
     }
@@ -166,7 +163,11 @@ pub fn update_info_panel_system(
             unit.group_type.attack_power(),
             unit.group_type.attack_range(),
             unit.action_state.display_name(),
-            if unit.is_exhausted { "行動終了 (待機中)" } else { "行動可能" },
+            if unit.is_exhausted {
+                "行動終了 (待機中)"
+            } else {
+                "行動可能"
+            },
             col,
             row,
             coord.q,
@@ -211,14 +212,19 @@ pub fn update_info_panel_system(
                 "未領有・未開拓域 (Neutral Territory)".to_string()
             };
 
-            let outpost_str = if let Some(outpost) = outposts_query.iter().find(|o| o.coord == coord) {
+            let outpost_str = if let Some(outpost) =
+                outposts_query.iter().find(|o| o.coord == coord)
+            {
                 if Some(outpost.faction) == territory_map.get_owner(&coord) {
                     format!(
                         "\n\n【都市・前哨基地】\n  {} (Lv.{})\n  ※[C]キーで都市管理・部隊生産画面を開く",
                         outpost.name, outpost.level
                     )
                 } else {
-                    format!("\n\n【都市・前哨基地】\n  {} (Lv.{})", outpost.name, outpost.level)
+                    format!(
+                        "\n\n【都市・前哨基地】\n  {} (Lv.{})",
+                        outpost.name, outpost.level
+                    )
                 }
             } else {
                 String::new()
@@ -263,4 +269,3 @@ pub fn update_info_panel_system(
         **text = "タイルをクリックして詳細情報を表示".to_string();
     }
 }
-

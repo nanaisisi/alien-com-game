@@ -13,7 +13,7 @@ pub use interaction::{
 };
 #[allow(unused_imports)]
 pub use types::{
-    reset_title_focus, MenuButtonAction, TitleMenuButton, TitleMenuFocus, TitleRootUi, MENU_ACTIONS,
+    MENU_ACTIONS, MenuButtonAction, TitleMenuButton, TitleMenuFocus, TitleRootUi, reset_title_focus,
 };
 pub use view::{cleanup_title_ui, setup_title_ui};
 
@@ -22,7 +22,10 @@ pub struct TitleUiPlugin;
 impl Plugin for TitleUiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TitleMenuFocus>()
-            .add_systems(OnEnter(AppState::Title), (setup_title_ui, reset_title_focus))
+            .add_systems(
+                OnEnter(AppState::Title),
+                (setup_title_ui, reset_title_focus),
+            )
             .add_systems(
                 Update,
                 (

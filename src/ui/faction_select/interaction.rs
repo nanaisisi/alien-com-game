@@ -32,12 +32,8 @@ pub type DetailTitleTextQuery<'world, 'state> = Query<
     (With<DetailTitleText>, Without<DetailDescText>),
 >;
 
-pub type DetailDescTextQuery<'world, 'state> = Query<
-    'world,
-    'state,
-    &'static mut Text,
-    (With<DetailDescText>, Without<DetailTitleText>),
->;
+pub type DetailDescTextQuery<'world, 'state> =
+    Query<'world, 'state, &'static mut Text, (With<DetailDescText>, Without<DetailTitleText>)>;
 
 pub fn faction_select_button_system(
     mut interaction_query: FactionSelectInteractionQuery,
@@ -146,12 +142,45 @@ pub fn faction_select_action_system(
     mut next_state: ResMut<NextState<AppState>>,
     mut title_query: DetailTitleTextQuery,
     mut desc_query: DetailDescTextQuery,
-    mut env_desc_query: Query<&mut Text, (With<EnvDescText>, Without<DetailTitleText>, Without<DetailDescText>, Without<SeedDisplayText>)>,
-    mut seed_text_query: Query<&mut Text, (With<SeedDisplayText>, Without<DetailTitleText>, Without<DetailDescText>, Without<EnvDescText>)>,
-    mut cards_query: Query<(&FactionCard, &mut BorderColor, &mut BackgroundColor), (Without<EnvButton>, Without<SizeButton>)>,
-    mut env_btn_query: Query<(&EnvButton, &mut BorderColor, &mut BackgroundColor), (Without<FactionCard>, Without<SizeButton>)>,
-    mut size_btn_query: Query<(&SizeButton, &mut BorderColor, &mut BackgroundColor), (Without<FactionCard>, Without<EnvButton>)>,
-    mut panel_query: Query<&mut BorderColor, (With<DetailPanelRoot>, Without<FactionCard>, Without<EnvButton>, Without<SizeButton>)>,
+    mut env_desc_query: Query<
+        &mut Text,
+        (
+            With<EnvDescText>,
+            Without<DetailTitleText>,
+            Without<DetailDescText>,
+            Without<SeedDisplayText>,
+        ),
+    >,
+    mut seed_text_query: Query<
+        &mut Text,
+        (
+            With<SeedDisplayText>,
+            Without<DetailTitleText>,
+            Without<DetailDescText>,
+            Without<EnvDescText>,
+        ),
+    >,
+    mut cards_query: Query<
+        (&FactionCard, &mut BorderColor, &mut BackgroundColor),
+        (Without<EnvButton>, Without<SizeButton>),
+    >,
+    mut env_btn_query: Query<
+        (&EnvButton, &mut BorderColor, &mut BackgroundColor),
+        (Without<FactionCard>, Without<SizeButton>),
+    >,
+    mut size_btn_query: Query<
+        (&SizeButton, &mut BorderColor, &mut BackgroundColor),
+        (Without<FactionCard>, Without<EnvButton>),
+    >,
+    mut panel_query: Query<
+        &mut BorderColor,
+        (
+            With<DetailPanelRoot>,
+            Without<FactionCard>,
+            Without<EnvButton>,
+            Without<SizeButton>,
+        ),
+    >,
 ) {
     for (interaction, action) in &query {
         if *interaction != Interaction::Pressed {

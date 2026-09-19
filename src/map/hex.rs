@@ -105,14 +105,7 @@ impl HexCoord {
 
     /// 隣接する6つのヘックス座標を取得（横ループ考慮でラップ、指定マップ幅）
     pub fn neighbors_with_width(self, map_width: i32) -> [HexCoord; 6] {
-        const DIRECTIONS: [(i32, i32); 6] = [
-            (1, 0),
-            (1, -1),
-            (0, -1),
-            (-1, 0),
-            (-1, 1),
-            (0, 1),
-        ];
+        const DIRECTIONS: [(i32, i32); 6] = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)];
 
         let mut res = [self; 6];
         for i in 0..6 {

@@ -1,12 +1,8 @@
-use bevy::prelude::*;
 use crate::state::AppState;
+use bevy::prelude::*;
 
-pub const RESOLUTION_PRESETS: [(u32, u32); 4] = [
-    (1280, 720),
-    (1600, 900),
-    (1920, 1080),
-    (2560, 1440),
-];
+pub const RESOLUTION_PRESETS: [(u32, u32); 4] =
+    [(1280, 720), (1600, 900), (1920, 1080), (2560, 1440)];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FpsLimitMode {
@@ -144,23 +140,37 @@ impl GameSettings {
             );
             (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
         } else if cfg!(debug_assertions) {
-            info!("Running in dev/debug build. Applying low quality graphics preset for performance.");
+            info!(
+                "Running in dev/debug build. Applying low quality graphics preset for performance."
+            );
             (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
         } else {
             match adapter_info {
                 Some(info) => {
                     let type_str = format!("{:?}", info.device_type);
                     if type_str.contains("DiscreteGpu") {
-                        info!("Detected Discrete GPU ({}). Applying high quality graphics preset.", info.name);
+                        info!(
+                            "Detected Discrete GPU ({}). Applying high quality graphics preset.",
+                            info.name
+                        );
                         (FpsLimitMode::Fps60, AntiAliasingMode::Msaa4x, true)
                     } else if type_str.contains("IntegratedGpu") {
-                        info!("Detected Integrated GPU ({}). Applying medium quality graphics preset.", info.name);
+                        info!(
+                            "Detected Integrated GPU ({}). Applying medium quality graphics preset.",
+                            info.name
+                        );
                         (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
                     } else if type_str.contains("Cpu") {
-                        info!("Detected CPU/Software renderer ({}). Applying lightweight graphics preset.", info.name);
+                        info!(
+                            "Detected CPU/Software renderer ({}). Applying lightweight graphics preset.",
+                            info.name
+                        );
                         (FpsLimitMode::Fps30, AntiAliasingMode::Off, false)
                     } else {
-                        info!("Detected GPU ({}, type: {}). Applying standard graphics preset.", info.name, type_str);
+                        info!(
+                            "Detected GPU ({}, type: {}). Applying standard graphics preset.",
+                            info.name, type_str
+                        );
                         (FpsLimitMode::Fps60, AntiAliasingMode::Msaa2x, true)
                     }
                 }

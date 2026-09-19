@@ -478,18 +478,16 @@ fn diplomacy_button_system(mut query: DiplomacyButtonInteractionQuery) {
                 *bg_color = BackgroundColor(Color::srgb(0.16, 0.28, 0.38));
                 *border_color = BorderColor::all(surfaces.accent());
             }
-            Interaction::None => {
-                match action {
-                    DiplomacyButtonAction::SendGift => {
-                        *bg_color = BackgroundColor(Color::srgb(0.12, 0.25, 0.32));
-                        *border_color = BorderColor::all(surfaces.accent());
-                    }
-                    _ => {
-                        *bg_color = BackgroundColor(surfaces.card());
-                        *border_color = BorderColor::all(surfaces.border());
-                    }
+            Interaction::None => match action {
+                DiplomacyButtonAction::SendGift => {
+                    *bg_color = BackgroundColor(Color::srgb(0.12, 0.25, 0.32));
+                    *border_color = BorderColor::all(surfaces.accent());
                 }
-            }
+                _ => {
+                    *bg_color = BackgroundColor(surfaces.card());
+                    *border_color = BorderColor::all(surfaces.border());
+                }
+            },
         }
     }
 }
@@ -546,7 +544,8 @@ fn diplomacy_action_system(
                     let score = faction_mgr.get_relation_score(player_faction.0, target);
 
                     if let Ok(mut text) = notice_query.single_mut() {
-                        **text = format!("{}へ親善使節を派遣しました。好感度 +15", target.name_ja());
+                        **text =
+                            format!("{}へ親善使節を派遣しました。好感度 +15", target.name_ja());
                     }
                     if let Ok(mut text) = rel_query.single_mut() {
                         **text = format!(
@@ -566,9 +565,15 @@ fn diplomacy_action_system(
                     let score = faction_mgr.get_relation_score(player_faction.0, target);
                     if let Ok(mut text) = notice_query.single_mut() {
                         if score >= 20 {
-                            **text = format!("{}との間で不可侵条約が仮締結されました！", target.name_ja());
+                            **text = format!(
+                                "{}との間で不可侵条約が仮締結されました！",
+                                target.name_ja()
+                            );
                         } else {
-                            **text = format!("{}は警戒を崩さず、条約提案を保留しました。", target.name_ja());
+                            **text = format!(
+                                "{}は警戒を崩さず、条約提案を保留しました。",
+                                target.name_ja()
+                            );
                         }
                     }
                 }

@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use crate::state::AppState;
 use super::types::*;
+use crate::state::AppState;
+use bevy::prelude::*;
 
 pub fn setup_settings_ui(
     mut commands: Commands,
@@ -124,7 +124,11 @@ pub fn setup_settings_ui(
                         );
 
                         // --- グラフィック設定セクション ---
-                        spawn_section_header(list, "■ グラフィック・画面設定 (Graphics)", &font_bold);
+                        spawn_section_header(
+                            list,
+                            "■ グラフィック・画面設定 (Graphics)",
+                            &font_bold,
+                        );
 
                         // 4. 解像度 (Resolution)
                         spawn_stepper_setting_row(
@@ -147,7 +151,11 @@ pub fn setup_settings_ui(
                             SettingsFocusItem::Fullscreen,
                             ToggleRowConfig {
                                 label: "画面モード",
-                                initial_val: if settings.fullscreen { "フルスクリーン" } else { "ウィンドウ" },
+                                initial_val: if settings.fullscreen {
+                                    "フルスクリーン"
+                                } else {
+                                    "ウィンドウ"
+                                },
                                 val_marker: SettingValueLabel::Fullscreen,
                                 action_toggle: SettingsButtonAction::ToggleFullscreen,
                             },
@@ -176,7 +184,11 @@ pub fn setup_settings_ui(
                             SettingsFocusItem::Vsync,
                             ToggleRowConfig {
                                 label: "垂直同期 (VSync)",
-                                initial_val: if settings.vsync { "有効 (ON)" } else { "無効 (OFF)" },
+                                initial_val: if settings.vsync {
+                                    "有効 (ON)"
+                                } else {
+                                    "無効 (OFF)"
+                                },
                                 val_marker: SettingValueLabel::Vsync,
                                 action_toggle: SettingsButtonAction::ToggleVsync,
                             },
@@ -190,7 +202,11 @@ pub fn setup_settings_ui(
                             SettingsFocusItem::Shadows,
                             ToggleRowConfig {
                                 label: "影の描画 (Shadows)",
-                                initial_val: if settings.shadows_enabled { "有効 (ON)" } else { "無効 (OFF)" },
+                                initial_val: if settings.shadows_enabled {
+                                    "有効 (ON)"
+                                } else {
+                                    "無効 (OFF)"
+                                },
                                 val_marker: SettingValueLabel::Shadows,
                                 action_toggle: SettingsButtonAction::ToggleShadows,
                             },
@@ -355,11 +371,7 @@ pub fn setup_settings_ui(
         });
 }
 
-fn spawn_section_header(
-    parent: &mut ChildSpawnerCommands,
-    title: &str,
-    font_bold: &Handle<Font>,
-) {
+fn spawn_section_header(parent: &mut ChildSpawnerCommands, title: &str, font_bold: &Handle<Font>) {
     parent.spawn((
         Text::new(title),
         TextFont {
@@ -438,26 +450,24 @@ fn spawn_stepper_setting_row(
                 spawn_icon_button(ctrl, "-", action_dec, font_bold);
 
                 // 値表示コンテナ
-                ctrl.spawn((
-                    Node {
-                        width: Val::Px(90.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
-                ))
-                .with_children(|val_box| {
-                    val_box.spawn((
-                        Text::new(initial_val),
-                        val_marker,
-                        TextFont {
-                            font: font_bold.clone().into(),
-                            font_size: FontSize::Px(15.0),
-                            ..default()
-                        },
-                        TextColor(ACCENT_COLOR),
-                    ));
-                });
+                ctrl.spawn((Node {
+                    width: Val::Px(90.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },))
+                    .with_children(|val_box| {
+                        val_box.spawn((
+                            Text::new(initial_val),
+                            val_marker,
+                            TextFont {
+                                font: font_bold.clone().into(),
+                                font_size: FontSize::Px(15.0),
+                                ..default()
+                            },
+                            TextColor(ACCENT_COLOR),
+                        ));
+                    });
 
                 // [+] ボタン
                 spawn_icon_button(ctrl, "+", action_inc, font_bold);

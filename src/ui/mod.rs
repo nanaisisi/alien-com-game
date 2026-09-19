@@ -35,6 +35,3 @@ impl Plugin for GameUiPlugin {
 /// タイルのホバー・選択やドラッグ操作などマップインタラクションをブロックする。
 #[derive(Component, Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct UiBlockMapInteraction;
-
-
-

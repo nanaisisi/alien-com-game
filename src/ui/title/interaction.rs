@@ -14,9 +14,10 @@ pub fn title_keyboard_navigation_system(
     debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
     if let Some(ref debug) = debug_state
-        && (debug.is_open || debug.show_warning_modal) {
-            return;
-        }
+        && (debug.is_open || debug.show_warning_modal)
+    {
+        return;
+    }
 
     let count = MENU_ACTIONS.len();
     let current = focus.selected_index.unwrap_or(0);
@@ -29,14 +30,15 @@ pub fn title_keyboard_navigation_system(
 
     if (keys.just_pressed(KeyCode::Enter) || keys.just_pressed(KeyCode::Space))
         && let Some(selected) = focus.selected_index
-            && selected < count {
-                execute_title_action(
-                    MENU_ACTIONS[selected],
-                    &mut settings,
-                    &mut next_state,
-                    &mut exit_events,
-                );
-            }
+        && selected < count
+    {
+        execute_title_action(
+            MENU_ACTIONS[selected],
+            &mut settings,
+            &mut next_state,
+            &mut exit_events,
+        );
+    }
 }
 
 pub type TitleButtonInteractionQuery<'world, 'state> = Query<
@@ -134,9 +136,10 @@ pub fn button_action_system(
     debug_state: Option<Res<crate::ui::debug_console::DebugConsoleState>>,
 ) {
     if let Some(ref debug) = debug_state
-        && (debug.is_open || debug.show_warning_modal) {
-            return;
-        }
+        && (debug.is_open || debug.show_warning_modal)
+    {
+        return;
+    }
 
     for (interaction, action) in &interaction_query {
         if *interaction == Interaction::Pressed {

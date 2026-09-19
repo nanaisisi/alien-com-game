@@ -117,7 +117,8 @@ pub fn evaluate_ingame_actions(
     }
 
     // 3-B. ターン送り（Shift+Enter, Enter, Space）
-    let enter_pressed = keys.just_pressed(KeyCode::Enter) || keys.just_pressed(KeyCode::NumpadEnter);
+    let enter_pressed =
+        keys.just_pressed(KeyCode::Enter) || keys.just_pressed(KeyCode::NumpadEnter);
     if enter_pressed && is_shift {
         actions.push(InGameAction::ForceEndTurn);
     } else if enter_pressed {
@@ -178,8 +179,10 @@ pub fn evaluate_ingame_actions(
     }
 
     // 部隊巡回: Tab / Shift+Tab / . / ,
-    let is_next_unit = (keys.just_pressed(KeyCode::Tab) && !is_shift) || keys.just_pressed(KeyCode::Period);
-    let is_prev_unit = (keys.just_pressed(KeyCode::Tab) && is_shift) || keys.just_pressed(KeyCode::Comma);
+    let is_next_unit =
+        (keys.just_pressed(KeyCode::Tab) && !is_shift) || keys.just_pressed(KeyCode::Period);
+    let is_prev_unit =
+        (keys.just_pressed(KeyCode::Tab) && is_shift) || keys.just_pressed(KeyCode::Comma);
     if is_next_unit {
         actions.push(InGameAction::NextUnit);
     } else if is_prev_unit {

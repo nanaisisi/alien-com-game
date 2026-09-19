@@ -98,12 +98,12 @@ impl FactionId {
 
     pub fn primary_color(&self) -> Color {
         match self {
-            FactionId::Empire => Color::srgb(0.85, 0.20, 0.20),       // 赤 (Red)
-            FactionId::GrandDuchy => Color::srgb(0.15, 0.75, 0.85),   // 水色 (Cyan/Light Blue)
-            FactionId::Federation => Color::srgb(0.65, 0.45, 0.32),   // 茶色 (Brown)
-            FactionId::Republic => Color::srgb(0.95, 0.75, 0.15),     // 黄色 (Yellow)
+            FactionId::Empire => Color::srgb(0.85, 0.20, 0.20), // 赤 (Red)
+            FactionId::GrandDuchy => Color::srgb(0.15, 0.75, 0.85), // 水色 (Cyan/Light Blue)
+            FactionId::Federation => Color::srgb(0.65, 0.45, 0.32), // 茶色 (Brown)
+            FactionId::Republic => Color::srgb(0.95, 0.75, 0.15), // 黄色 (Yellow)
             FactionId::Commonwealth => Color::srgb(0.25, 0.72, 0.35), // 緑 (Green)
-            FactionId::Union => Color::srgb(0.18, 0.45, 0.90),        // 青 (Blue)
+            FactionId::Union => Color::srgb(0.18, 0.45, 0.90),  // 青 (Blue)
         }
     }
 
@@ -290,11 +290,7 @@ impl FactionManager {
     fn sort_pair(f1: FactionId, f2: FactionId) -> (FactionId, FactionId) {
         let idx1 = FactionId::ALL.iter().position(|&x| x == f1).unwrap_or(0);
         let idx2 = FactionId::ALL.iter().position(|&x| x == f2).unwrap_or(0);
-        if idx1 < idx2 {
-            (f1, f2)
-        } else {
-            (f2, f1)
-        }
+        if idx1 < idx2 { (f1, f2) } else { (f2, f1) }
     }
 }
 
@@ -381,4 +377,3 @@ mod tests {
         assert_eq!(mgr.relation_between(f1, f2), DiplomaticRelation::Hostile);
     }
 }
-

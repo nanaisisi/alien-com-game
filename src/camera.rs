@@ -9,14 +9,12 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_camera)
-            .add_systems(
-                Update,
-                pan_zoom_camera_system.run_if(in_state(AppState::InGame)),
-            );
+        app.add_systems(Startup, setup_camera).add_systems(
+            Update,
+            pan_zoom_camera_system.run_if(in_state(AppState::InGame)),
+        );
     }
 }
-
 
 /// RTS/4X風のカメラ操作用マーカー
 #[derive(Component)]
@@ -130,16 +128,24 @@ fn pan_zoom_camera_system(
 
         // 1回チョンと押しただけでも確実に1タイル程度（またはステップ分）移動を感知できるように
         // just_pressed（押した瞬間）のインパルス移動
-        if input.keyboard.just_pressed(KeyCode::KeyW) || input.keyboard.just_pressed(KeyCode::ArrowUp) {
+        if input.keyboard.just_pressed(KeyCode::KeyW)
+            || input.keyboard.just_pressed(KeyCode::ArrowUp)
+        {
             impulse_vec += forward_dir;
         }
-        if input.keyboard.just_pressed(KeyCode::KeyS) || input.keyboard.just_pressed(KeyCode::ArrowDown) {
+        if input.keyboard.just_pressed(KeyCode::KeyS)
+            || input.keyboard.just_pressed(KeyCode::ArrowDown)
+        {
             impulse_vec -= forward_dir;
         }
-        if input.keyboard.just_pressed(KeyCode::KeyD) || input.keyboard.just_pressed(KeyCode::ArrowRight) {
+        if input.keyboard.just_pressed(KeyCode::KeyD)
+            || input.keyboard.just_pressed(KeyCode::ArrowRight)
+        {
             impulse_vec += right_dir;
         }
-        if input.keyboard.just_pressed(KeyCode::KeyA) || input.keyboard.just_pressed(KeyCode::ArrowLeft) {
+        if input.keyboard.just_pressed(KeyCode::KeyA)
+            || input.keyboard.just_pressed(KeyCode::ArrowLeft)
+        {
             impulse_vec -= right_dir;
         }
     }
@@ -158,8 +164,8 @@ fn pan_zoom_camera_system(
     }
 
     // 2. マウスドラッグによる移動（右ボタンドラッグまたはホイール中ボタンドラッグ）
-    let is_dragging =
-        input.mouse_button.pressed(MouseButton::Right) || input.mouse_button.pressed(MouseButton::Middle);
+    let is_dragging = input.mouse_button.pressed(MouseButton::Right)
+        || input.mouse_button.pressed(MouseButton::Middle);
 
     if let Ok(window) = windows.single() {
         if is_dragging {
@@ -192,12 +198,20 @@ fn pan_zoom_camera_system(
     }
 
     // 縦方向（Z軸）の移動範囲制限（極地付近で制限）
-    let grid_h = if map_grid.height > 0 { map_grid.height } else { crate::map::GRID_HEIGHT };
+    let grid_h = if map_grid.height > 0 {
+        map_grid.height
+    } else {
+        crate::map::GRID_HEIGHT
+    };
     let max_z = (grid_h as f32 * 1.5 * crate::map::HEX_RADIUS) * 0.5 + 4.0;
     map_cam.target_focal_point.z = map_cam.target_focal_point.z.clamp(-max_z, max_z);
 
     // 横方向（X軸）のシームレスなループ（ラップアラウンド）
-    let grid_w = if map_grid.width > 0 { map_grid.width } else { crate::map::GRID_WIDTH };
+    let grid_w = if map_grid.width > 0 {
+        map_grid.width
+    } else {
+        crate::map::GRID_WIDTH
+    };
     let world_width = crate::map::hex::map_world_width_with_width(crate::map::HEX_RADIUS, grid_w);
     if world_width > 0.0 {
         // target_focal_point.x を [0, world_width) または [-world_width/2, world_width/2) にラップ
@@ -223,7 +237,8 @@ fn pan_zoom_camera_system(
     map_cam.current_focal_point = map_cam
         .current_focal_point
         .lerp(map_cam.target_focal_point, (lerp_speed * dt).min(1.0));
-    map_cam.current_viewport_height += (map_cam.target_viewport_height - map_cam.current_viewport_height)
+    map_cam.current_viewport_height += (map_cam.target_viewport_height
+        - map_cam.current_viewport_height)
         * (lerp_speed * dt).min(1.0);
 
     // カメラ位置を注視点 + オフセットに更新

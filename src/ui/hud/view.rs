@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::faction::{FactionResources, PlayerFaction};
 use crate::ui::theme::UiTheme;
 
-use super::types::{HudAction, HudLabel, HudRoot, END_TURN_NORMAL};
+use super::types::{END_TURN_NORMAL, HudAction, HudLabel, HudRoot};
 
 pub fn setup_hud(
     mut commands: Commands,

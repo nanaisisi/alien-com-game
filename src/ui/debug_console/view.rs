@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use super::types::*;
-use crate::ui::theme::UiTheme;
 use crate::ui::UiBlockMapInteraction;
+use crate::ui::theme::UiTheme;
 
 /// 初回注意ダイアログを表示
 pub fn spawn_warning_modal(commands: &mut Commands, asset_server: &AssetServer) {

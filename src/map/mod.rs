@@ -10,9 +10,9 @@ pub mod settings;
 pub mod terrain;
 pub mod types;
 
-pub use self::generation::{cleanup_hex_map, generate_hex_map};
 #[allow(unused_imports)]
 pub use self::generation::create_hex_mesh;
+pub use self::generation::{cleanup_hex_map, generate_hex_map};
 #[allow(unused_imports)]
 pub use self::hex::{DEFAULT_MAP_HEIGHT, DEFAULT_MAP_WIDTH, MAP_HEIGHT, MAP_WIDTH};
 pub use self::hex::{MAP_HEIGHT as GRID_HEIGHT, MAP_WIDTH as GRID_WIDTH};
@@ -24,7 +24,7 @@ pub use self::settings::{MapConfig, MapSize, PlanetEnvironment};
 pub use self::terrain::TerrainType;
 #[allow(unused_imports)]
 pub use self::types::{
-    GridOverlayLine, HexTile, MapDisplaySettings, MapGrid, MapRoot, YieldOverlayTag, HEX_RADIUS,
+    GridOverlayLine, HEX_RADIUS, HexTile, MapDisplaySettings, MapGrid, MapRoot, YieldOverlayTag,
 };
 
 pub struct MapPlugin;

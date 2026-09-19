@@ -4,9 +4,7 @@ use crate::faction::{FactionId, FactionManager, FactionResources, PlayerFaction}
 use crate::state::AppState;
 use crate::ui::theme::UiTheme;
 
-use super::types::{
-    HudAction, HudLabel, END_TURN_HOVER, END_TURN_NORMAL, END_TURN_PRESSED,
-};
+use super::types::{END_TURN_HOVER, END_TURN_NORMAL, END_TURN_PRESSED, HudAction, HudLabel};
 
 type ButtonInteractionQuery<'world, 'state> = Query<
     'world,
@@ -122,16 +120,16 @@ pub fn hud_button_action_system(
                             && let Some((e, _)) = outposts_query
                                 .iter()
                                 .find(|(_, o)| o.coord == coord && o.faction == player_faction.0)
-                            {
-                                target_entity = Some(e);
-                            }
+                        {
+                            target_entity = Some(e);
+                        }
                         if target_entity.is_none()
                             && let Some((e, _)) = outposts_query
                                 .iter()
                                 .find(|(_, o)| o.faction == player_faction.0)
-                            {
-                                target_entity = Some(e);
-                            }
+                        {
+                            target_entity = Some(e);
+                        }
                         city_modal_state.target_outpost_entity = target_entity;
                         if let Some(target_e) = target_entity
                             && let Ok((_, outpost)) = outposts_query.get(target_e)

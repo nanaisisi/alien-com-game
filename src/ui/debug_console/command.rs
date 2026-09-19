@@ -5,7 +5,7 @@ use super::types::DebugConsoleState;
 use crate::camera::MapCamera;
 use crate::faction::FactionResources;
 use crate::map::hex::HexCoord;
-use crate::map::{MapGrid, HEX_RADIUS};
+use crate::map::{HEX_RADIUS, MapGrid};
 
 #[derive(SystemParam)]
 pub struct CommandContext<'w, 's> {
@@ -14,11 +14,7 @@ pub struct CommandContext<'w, 's> {
     pub camera_query: Query<'w, 's, &'static mut MapCamera>,
 }
 
-pub fn execute_command(
-    raw_cmd: &str,
-    state: &mut DebugConsoleState,
-    ctx: &mut CommandContext,
-) {
+pub fn execute_command(raw_cmd: &str, state: &mut DebugConsoleState, ctx: &mut CommandContext) {
     let trimmed = raw_cmd.trim();
     if trimmed.is_empty() {
         return;
@@ -34,15 +30,36 @@ pub fn execute_command(
     match cmd.as_str() {
         "help" => {
             state.add_log("=== AVAILABLE COMMANDS ===", Color::srgb(0.25, 0.85, 0.75));
-            state.add_log("  help                  : Show this help message", Color::WHITE);
+            state.add_log(
+                "  help                  : Show this help message",
+                Color::WHITE,
+            );
             state.add_log("  clear                 : Clear console log", Color::WHITE);
-            state.add_log("  turn <count>          : Advance turns (default 1)", Color::WHITE);
-            state.add_log("  energy <amount>       : Add/subtract energy", Color::WHITE);
-            state.add_log("  prod <amount>         : Add/subtract production", Color::WHITE);
-            state.add_log("  sci <amount>          : Add/subtract science", Color::WHITE);
+            state.add_log(
+                "  turn <count>          : Advance turns (default 1)",
+                Color::WHITE,
+            );
+            state.add_log(
+                "  energy <amount>       : Add/subtract energy",
+                Color::WHITE,
+            );
+            state.add_log(
+                "  prod <amount>         : Add/subtract production",
+                Color::WHITE,
+            );
+            state.add_log(
+                "  sci <amount>          : Add/subtract science",
+                Color::WHITE,
+            );
             state.add_log("  food <amount>         : Add/subtract food", Color::WHITE);
-            state.add_log("  res <e> <p> <s> <f>   : Set all 4 resources at once", Color::WHITE);
-            state.add_log("  goto <q> <r>          : Jump camera to HexCoord (q, r)", Color::WHITE);
+            state.add_log(
+                "  res <e> <p> <s> <f>   : Set all 4 resources at once",
+                Color::WHITE,
+            );
+            state.add_log(
+                "  goto <q> <r>          : Jump camera to HexCoord (q, r)",
+                Color::WHITE,
+            );
             state.add_log("  cam <q> <r>           : Alias for goto", Color::WHITE);
         }
         "clear" | "cls" => {
@@ -69,7 +86,10 @@ pub fn execute_command(
                 ctx.resources.food += ctx.resources.food_per_turn;
             }
             state.add_log(
-                format!("Advanced {} turns. Current turn: {}", count, ctx.resources.turn),
+                format!(
+                    "Advanced {} turns. Current turn: {}",
+                    count, ctx.resources.turn
+                ),
                 Color::srgb(0.3, 0.9, 0.4),
             );
         }
@@ -78,11 +98,17 @@ pub fn execute_command(
                 if let Ok(val) = arg.parse::<i32>() {
                     ctx.resources.energy += val;
                     state.add_log(
-                        format!("Energy changed by {}. Current: {}", val, ctx.resources.energy),
+                        format!(
+                            "Energy changed by {}. Current: {}",
+                            val, ctx.resources.energy
+                        ),
                         Color::srgb(0.3, 0.9, 0.4),
                     );
                 } else {
-                    state.add_log("Invalid amount. Usage: energy <amount>", Color::srgb(0.9, 0.3, 0.3));
+                    state.add_log(
+                        "Invalid amount. Usage: energy <amount>",
+                        Color::srgb(0.9, 0.3, 0.3),
+                    );
                 }
             } else {
                 state.add_log("Usage: energy <amount>", Color::srgb(0.9, 0.3, 0.3));
@@ -93,11 +119,17 @@ pub fn execute_command(
                 if let Ok(val) = arg.parse::<i32>() {
                     ctx.resources.production += val;
                     state.add_log(
-                        format!("Production changed by {}. Current: {}", val, ctx.resources.production),
+                        format!(
+                            "Production changed by {}. Current: {}",
+                            val, ctx.resources.production
+                        ),
                         Color::srgb(0.3, 0.9, 0.4),
                     );
                 } else {
-                    state.add_log("Invalid amount. Usage: prod <amount>", Color::srgb(0.9, 0.3, 0.3));
+                    state.add_log(
+                        "Invalid amount. Usage: prod <amount>",
+                        Color::srgb(0.9, 0.3, 0.3),
+                    );
                 }
             } else {
                 state.add_log("Usage: prod <amount>", Color::srgb(0.9, 0.3, 0.3));
@@ -108,11 +140,17 @@ pub fn execute_command(
                 if let Ok(val) = arg.parse::<i32>() {
                     ctx.resources.science += val;
                     state.add_log(
-                        format!("Science changed by {}. Current: {}", val, ctx.resources.science),
+                        format!(
+                            "Science changed by {}. Current: {}",
+                            val, ctx.resources.science
+                        ),
                         Color::srgb(0.3, 0.9, 0.4),
                     );
                 } else {
-                    state.add_log("Invalid amount. Usage: sci <amount>", Color::srgb(0.9, 0.3, 0.3));
+                    state.add_log(
+                        "Invalid amount. Usage: sci <amount>",
+                        Color::srgb(0.9, 0.3, 0.3),
+                    );
                 }
             } else {
                 state.add_log("Usage: sci <amount>", Color::srgb(0.9, 0.3, 0.3));
@@ -127,7 +165,10 @@ pub fn execute_command(
                         Color::srgb(0.3, 0.9, 0.4),
                     );
                 } else {
-                    state.add_log("Invalid amount. Usage: food <amount>", Color::srgb(0.9, 0.3, 0.3));
+                    state.add_log(
+                        "Invalid amount. Usage: food <amount>",
+                        Color::srgb(0.9, 0.3, 0.3),
+                    );
                 }
             } else {
                 state.add_log("Usage: food <amount>", Color::srgb(0.9, 0.3, 0.3));
@@ -153,10 +194,16 @@ pub fn execute_command(
                         Color::srgb(0.3, 0.9, 0.4),
                     );
                 } else {
-                    state.add_log("Usage: res <energy> <production> <science> <food>", Color::srgb(0.9, 0.3, 0.3));
+                    state.add_log(
+                        "Usage: res <energy> <production> <science> <food>",
+                        Color::srgb(0.9, 0.3, 0.3),
+                    );
                 }
             } else {
-                state.add_log("Usage: res <energy> <production> <science> <food>", Color::srgb(0.9, 0.3, 0.3));
+                state.add_log(
+                    "Usage: res <energy> <production> <science> <food>",
+                    Color::srgb(0.9, 0.3, 0.3),
+                );
             }
         }
         "goto" | "cam" => {
@@ -194,7 +241,10 @@ pub fn execute_command(
         }
         unknown => {
             state.add_log(
-                format!("Unknown command: '{}'. Type 'help' for command list.", unknown),
+                format!(
+                    "Unknown command: '{}'. Type 'help' for command list.",
+                    unknown
+                ),
                 Color::srgb(0.9, 0.3, 0.3),
             );
         }
@@ -221,23 +271,27 @@ mod tests {
         app.init_resource::<FactionResources>()
             .init_resource::<MapGrid>();
 
-        app.world_mut().run_system_once(|
-            mut ctx: CommandContext,
-        | {
-            let mut state = DebugConsoleState::default();
-            execute_command("help", &mut state, &mut ctx);
-            assert!(state.logs.iter().any(|(msg, _)| msg.contains("AVAILABLE COMMANDS")));
+        app.world_mut()
+            .run_system_once(|mut ctx: CommandContext| {
+                let mut state = DebugConsoleState::default();
+                execute_command("help", &mut state, &mut ctx);
+                assert!(
+                    state
+                        .logs
+                        .iter()
+                        .any(|(msg, _)| msg.contains("AVAILABLE COMMANDS"))
+                );
 
-            // energy コマンドのテスト
-            let initial_energy = ctx.resources.energy;
-            execute_command("energy 500", &mut state, &mut ctx);
-            assert_eq!(ctx.resources.energy, initial_energy + 500);
+                // energy コマンドのテスト
+                let initial_energy = ctx.resources.energy;
+                execute_command("energy 500", &mut state, &mut ctx);
+                assert_eq!(ctx.resources.energy, initial_energy + 500);
 
-            // turn コマンドのテスト
-            let initial_turn = ctx.resources.turn;
-            execute_command("turn 3", &mut state, &mut ctx);
-            assert_eq!(ctx.resources.turn, initial_turn + 3);
-        }).unwrap();
+                // turn コマンドのテスト
+                let initial_turn = ctx.resources.turn;
+                execute_command("turn 3", &mut state, &mut ctx);
+                assert_eq!(ctx.resources.turn, initial_turn + 3);
+            })
+            .unwrap();
     }
 }
-

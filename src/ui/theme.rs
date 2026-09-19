@@ -116,11 +116,7 @@ impl ButtonStyle {
 impl ButtonTheme {
     #[inline]
     pub const fn get(&self, danger: bool) -> &ButtonStyle {
-        if danger {
-            &self.danger
-        } else {
-            &self.standard
-        }
+        if danger { &self.danger } else { &self.standard }
     }
 }
 

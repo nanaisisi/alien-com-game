@@ -154,7 +154,12 @@ pub fn pause_keyboard_navigation_system(mut ctx: PauseNavContext) {
 pub type PauseButtonInteractionQuery<'world, 'state> = Query<
     'world,
     'state,
-    (&'static Interaction, &'static mut BackgroundColor, &'static mut BorderColor, &'static PauseButtonAction),
+    (
+        &'static Interaction,
+        &'static mut BackgroundColor,
+        &'static mut BorderColor,
+        &'static PauseButtonAction,
+    ),
     (Changed<Interaction>, With<Button>),
 >;
 
@@ -251,7 +256,11 @@ pub fn pause_button_action_system(
                         focus.modal_open = true;
                         focus.modal_type = PauseModalType::ReturnToTitle;
                         focus.modal_focus = PauseModalFocusItem::Cancel;
-                        spawn_pause_confirm_modal(commands, asset_server, PauseModalType::ReturnToTitle);
+                        spawn_pause_confirm_modal(
+                            commands,
+                            asset_server,
+                            PauseModalType::ReturnToTitle,
+                        );
                     }
                 }
                 PauseButtonAction::RequestQuitToDesktop => {
@@ -260,7 +269,11 @@ pub fn pause_button_action_system(
                         focus.modal_open = true;
                         focus.modal_type = PauseModalType::QuitToDesktop;
                         focus.modal_focus = PauseModalFocusItem::Cancel;
-                        spawn_pause_confirm_modal(commands, asset_server, PauseModalType::QuitToDesktop);
+                        spawn_pause_confirm_modal(
+                            commands,
+                            asset_server,
+                            PauseModalType::QuitToDesktop,
+                        );
                     }
                 }
                 PauseButtonAction::ConfirmModal => {

@@ -36,12 +36,12 @@ impl TerrainType {
     /// 地形の基礎色 (SF感のあるスタイリッシュなパレット)
     pub fn base_color(&self) -> Color {
         match self {
-            Self::Plains => Color::srgb(0.24, 0.42, 0.28),        // 深い緑
-            Self::Hills => Color::srgb(0.48, 0.45, 0.35),         // 黄土・岩色
-            Self::Forest => Color::srgb(0.12, 0.30, 0.22),        // 濃緑
-            Self::Mountains => Color::srgb(0.38, 0.40, 0.46),     // 暗めの岩石色
-            Self::Ocean => Color::srgb(0.10, 0.25, 0.48),         // ディープブルー
-            Self::ToxicSwamp => Color::srgb(0.35, 0.18, 0.45),    // 瘴気パープル
+            Self::Plains => Color::srgb(0.24, 0.42, 0.28), // 深い緑
+            Self::Hills => Color::srgb(0.48, 0.45, 0.35),  // 黄土・岩色
+            Self::Forest => Color::srgb(0.12, 0.30, 0.22), // 濃緑
+            Self::Mountains => Color::srgb(0.38, 0.40, 0.46), // 暗めの岩石色
+            Self::Ocean => Color::srgb(0.10, 0.25, 0.48),  // ディープブルー
+            Self::ToxicSwamp => Color::srgb(0.35, 0.18, 0.45), // 瘴気パープル
             Self::CrystalFields => Color::srgb(0.20, 0.60, 0.65), // エメラルドシアン
         }
     }
@@ -102,4 +102,3 @@ impl TerrainType {
         }
     }
 }
-

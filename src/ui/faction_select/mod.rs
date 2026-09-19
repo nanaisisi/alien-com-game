@@ -22,10 +22,7 @@ impl Plugin for FactionSelectPlugin {
             .add_systems(OnEnter(AppState::FactionSelect), setup_faction_select_ui)
             .add_systems(
                 Update,
-                (
-                    faction_select_button_system,
-                    faction_select_action_system,
-                )
+                (faction_select_button_system, faction_select_action_system)
                     .run_if(in_state(AppState::FactionSelect)),
             )
             .add_systems(OnExit(AppState::FactionSelect), cleanup_faction_select_ui);

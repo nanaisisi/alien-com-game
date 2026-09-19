@@ -2,9 +2,9 @@ use bevy::prelude::*;
 
 use super::MinimapState;
 use crate::faction::{FactionOutpost, PlayerFaction, TerritoryMap};
+use crate::map::MapGrid;
 use crate::map::hex::{HexCoord, MAP_HEIGHT, MAP_WIDTH};
 use crate::map::terrain::TerrainType;
-use crate::map::MapGrid;
 
 /// マップ生成完了後、または領土変更時にミニマップ用テクスチャをピクセル描画
 pub fn update_minimap_texture_system(
@@ -32,8 +32,16 @@ pub fn update_minimap_texture_system(
 
     let w = image.width() as usize;
     let h = image.height() as usize;
-    let map_w = if map_grid.width > 0 { map_grid.width } else { MAP_WIDTH };
-    let map_h = if map_grid.height > 0 { map_grid.height } else { MAP_HEIGHT };
+    let map_w = if map_grid.width > 0 {
+        map_grid.width
+    } else {
+        MAP_WIDTH
+    };
+    let map_h = if map_grid.height > 0 {
+        map_grid.height
+    } else {
+        MAP_HEIGHT
+    };
     let half_h = map_h / 2;
 
     let mut pixels = vec![0u8; w * h * 4];
@@ -50,7 +58,11 @@ pub fn update_minimap_texture_system(
             let col = ((norm_x * (map_w as f32)) as i32).clamp(0, map_w - 1);
 
             let coord = HexCoord::from_col_row_with_width(col, row, map_w);
-            let terrain = map_grid.terrain_data.get(&coord).copied().unwrap_or(TerrainType::Ocean);
+            let terrain = map_grid
+                .terrain_data
+                .get(&coord)
+                .copied()
+                .unwrap_or(TerrainType::Ocean);
 
             // 地形の基本色 (RGBA)
             let base_c = terrain.base_color().to_srgba();

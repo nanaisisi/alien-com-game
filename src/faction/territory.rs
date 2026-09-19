@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use super::types::{FactionId, FactionManager};
+use crate::map::MapGrid;
 use crate::map::hex::HexCoord;
 use crate::map::terrain::TerrainType;
-use crate::map::MapGrid;
 
 /// タイルの領有権コンポーネント
 #[derive(Component, Debug, Clone, Copy, Reflect)]
@@ -61,8 +61,16 @@ pub fn setup_initial_faction_territories(
 
     info!("Initializing initial faction outposts and territories...");
 
-    let map_w = if map_grid.width > 0 { map_grid.width } else { map_config.width() };
-    let map_h = if map_grid.height > 0 { map_grid.height } else { map_config.height() };
+    let map_w = if map_grid.width > 0 {
+        map_grid.width
+    } else {
+        map_config.width()
+    };
+    let map_h = if map_grid.height > 0 {
+        map_grid.height
+    } else {
+        map_config.height()
+    };
     let half_h = map_h / 2;
 
     // 6派閥の理想的な上陸候補地（経度方向 col を均等に分割し、通行可能陸地を探索）
@@ -71,17 +79,19 @@ pub fn setup_initial_faction_territories(
 
     for (i, &faction) in FactionId::ALL.iter().enumerate() {
         let base_col = (i as i32 * col_step + col_step / 2) % map_w;
-        
+
         // 陸地でかつ進入可能なタイルを検索
         let mut chosen_coord = None;
         for row_offset in [0, 1, -1, 2, -2, 3, -3, 4, -4] {
             let row = row_offset.clamp(-half_h, half_h);
             let coord = HexCoord::from_col_row_with_width(base_col, row, map_w);
             if let Some(&terrain) = map_grid.terrain_data.get(&coord)
-                && terrain.is_passable_ground() && terrain != TerrainType::ToxicSwamp {
-                    chosen_coord = Some(coord);
-                    break;
-                }
+                && terrain.is_passable_ground()
+                && terrain != TerrainType::ToxicSwamp
+            {
+                chosen_coord = Some(coord);
+                break;
+            }
         }
 
         // 見つからなければ平原などの通行可能タイルを広く探索
@@ -91,9 +101,10 @@ pub fn setup_initial_faction_territories(
                     let c = (base_col + dc).rem_euclid(map_w);
                     let coord = HexCoord::from_col_row_with_width(c, row, map_w);
                     if let Some(&t) = map_grid.terrain_data.get(&coord)
-                        && t.is_passable_ground() {
-                            return coord;
-                        }
+                        && t.is_passable_ground()
+                    {
+                        return coord;
+                    }
                 }
             }
             HexCoord::from_col_row_with_width(base_col, 0, map_w)
@@ -191,7 +202,11 @@ pub fn update_territory_overlays(
         return;
     }
 
-    let map_w = if map_grid.width > 0 { map_grid.width } else { map_config.width() };
+    let map_w = if map_grid.width > 0 {
+        map_grid.width
+    } else {
+        map_config.width()
+    };
     let world_width = crate::map::hex::map_world_width_with_width(crate::map::HEX_RADIUS, map_w);
 
     // 派閥ごとのマテリアルキャッシュ（外側：Primary Color、内側：Accent Color、内部薄塗り：Interior）
@@ -285,7 +300,11 @@ pub fn update_territory_overlays(
                             TerritoryOverlay,
                             Mesh3d(outer_mesh_handles[dir_idx].clone()),
                             MeshMaterial3d(mat_handle.clone()),
-                            Transform::from_xyz(world_pos.x + section_offset_x, y + 0.005, world_pos.z),
+                            Transform::from_xyz(
+                                world_pos.x + section_offset_x,
+                                y + 0.005,
+                                world_pos.z,
+                            ),
                         ));
                     }
                     // 内側ボーダー (Accent/Secondary Color)
@@ -294,7 +313,11 @@ pub fn update_territory_overlays(
                             TerritoryOverlay,
                             Mesh3d(inner_mesh_handles[dir_idx].clone()),
                             MeshMaterial3d(mat_handle.clone()),
-                            Transform::from_xyz(world_pos.x + section_offset_x, y + 0.006, world_pos.z),
+                            Transform::from_xyz(
+                                world_pos.x + section_offset_x,
+                                y + 0.006,
+                                world_pos.z,
+                            ),
                         ));
                     }
                 }
@@ -331,14 +354,7 @@ fn create_border_edge_meshes(radius: f32) -> ([Mesh; 6], [Mesh; 6]) {
     // 3: (-1, 0)  -> angle ~ 180°   -> 頂点 2 から 3
     // 4: (-1, 1)  -> angle ~ 120°   -> 頂点 1 から 2
     // 5: (0, 1)   -> angle ~ 60°    -> 頂点 0 から 1
-    let edge_corners: [(usize, usize); 6] = [
-        (5, 0),
-        (4, 5),
-        (3, 4),
-        (2, 3),
-        (1, 2),
-        (0, 1),
-    ];
+    let edge_corners: [(usize, usize); 6] = [(5, 0), (4, 5), (3, 4), (2, 3), (1, 2), (0, 1)];
 
     let create_edge_quad = |v1: Vec3, v2: Vec3, r_start: f32, r_end: f32| -> Mesh {
         // v1, v2 は正規化された半径 1.0 における頂点
@@ -357,7 +373,10 @@ fn create_border_edge_meshes(radius: f32) -> ([Mesh; 6], [Mesh; 6]) {
         let uvs = vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
         let indices = Indices::U32(vec![0, 1, 2, 0, 2, 3]);
 
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+        let mut mesh = Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        );
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use super::hex::HexCoord;
-use super::{HexTile, MapGrid, HEX_RADIUS};
+use super::{HEX_RADIUS, HexTile, MapGrid};
 use crate::camera::MapCamera;
 use crate::state::AppState;
 
@@ -77,22 +77,26 @@ fn handle_tile_hover_and_click(
     let is_minimap_dragging = minimap_state.as_ref().is_some_and(|s| s.is_dragging);
 
     // UIブロッカー要素（上部バー、情報パネル、アクションボタン、ミニマップ等）の上にカーソルがあるか動的に判定
-    let is_over_ui = is_minimap_dragging || ui_blockers.iter().any(|(gt, computed_node)| {
-        let size = computed_node.size();
-        if size.x <= 0.0 || size.y <= 0.0 {
-            return false;
-        }
+    let is_over_ui = is_minimap_dragging
+        || ui_blockers.iter().any(|(gt, computed_node)| {
+            let size = computed_node.size();
+            if size.x <= 0.0 || size.y <= 0.0 {
+                return false;
+            }
 
-        let translation = gt.translation();
-        let half_w = size.x * 0.5;
-        let half_h = size.y * 0.5;
-        let min_x = translation.x - half_w;
-        let max_x = translation.x + half_w;
-        let min_y = translation.y - half_h;
-        let max_y = translation.y + half_h;
+            let translation = gt.translation();
+            let half_w = size.x * 0.5;
+            let half_h = size.y * 0.5;
+            let min_x = translation.x - half_w;
+            let max_x = translation.x + half_w;
+            let min_y = translation.y - half_h;
+            let max_y = translation.y + half_h;
 
-        cursor_pos.x >= min_x && cursor_pos.x <= max_x && cursor_pos.y >= min_y && cursor_pos.y <= max_y
-    });
+            cursor_pos.x >= min_x
+                && cursor_pos.x <= max_x
+                && cursor_pos.y >= min_y
+                && cursor_pos.y <= max_y
+        });
 
     if is_over_ui {
         hovered_tile.0 = None;
@@ -214,14 +218,22 @@ pub fn handle_map_display_shortcuts(
                 display_settings.show_grid = !display_settings.show_grid;
                 info!(
                     "Hex Grid Display: {}",
-                    if display_settings.show_grid { "ENABLED" } else { "DISABLED" }
+                    if display_settings.show_grid {
+                        "ENABLED"
+                    } else {
+                        "DISABLED"
+                    }
                 );
             }
             crate::map::input::InGameAction::ToggleYields => {
                 display_settings.show_yields = !display_settings.show_yields;
                 info!(
                     "Tile Yield Display: {}",
-                    if display_settings.show_yields { "ENABLED" } else { "DISABLED" }
+                    if display_settings.show_yields {
+                        "ENABLED"
+                    } else {
+                        "DISABLED"
+                    }
                 );
             }
             _ => {}
@@ -342,7 +354,10 @@ pub fn setup_map_overlays(
             ]);
         }
 
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+        let mut mesh = Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        );
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);

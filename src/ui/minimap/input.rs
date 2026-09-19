@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-use super::view::MinimapImageNode;
 use super::MinimapState;
+use super::view::MinimapImageNode;
 use crate::camera::MapCamera;
 use crate::map::hex::{self, MAP_HEIGHT, MAP_WIDTH};
-use crate::map::{MapGrid, HEX_RADIUS};
+use crate::map::{HEX_RADIUS, MapGrid};
 
 /// ミニマップ上でのクリック／ホールドによるカメラ位置の追随移動
 pub fn handle_minimap_interaction_system(
@@ -13,12 +13,15 @@ pub fn handle_minimap_interaction_system(
     mouse_button: Res<ButtonInput<MouseButton>>,
     mut minimap_state: ResMut<MinimapState>,
     map_grid: Res<MapGrid>,
-    image_query: Query<(
-        &GlobalTransform,
-        &ComputedNode,
-        &Interaction,
-        &bevy::ui::RelativeCursorPosition,
-    ), With<MinimapImageNode>>,
+    image_query: Query<
+        (
+            &GlobalTransform,
+            &ComputedNode,
+            &Interaction,
+            &bevy::ui::RelativeCursorPosition,
+        ),
+        With<MinimapImageNode>,
+    >,
     mut camera_query: Query<&mut MapCamera>,
 ) {
     let Ok(window) = windows.single() else {
@@ -77,8 +80,16 @@ pub fn handle_minimap_interaction_system(
             (nx, ny)
         };
 
-        let map_w = if map_grid.width > 0 { map_grid.width } else { MAP_WIDTH };
-        let map_h = if map_grid.height > 0 { map_grid.height } else { MAP_HEIGHT };
+        let map_w = if map_grid.width > 0 {
+            map_grid.width
+        } else {
+            MAP_WIDTH
+        };
+        let map_h = if map_grid.height > 0 {
+            map_grid.height
+        } else {
+            MAP_HEIGHT
+        };
 
         let world_width = hex::map_world_width_with_width(HEX_RADIUS, map_w);
         let world_height = (map_h as f32) * 1.5 * HEX_RADIUS;

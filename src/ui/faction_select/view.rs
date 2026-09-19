@@ -54,7 +54,9 @@ pub fn setup_faction_select_ui(
                 ));
 
                 header.spawn((
-                    Text::new("未知の惑星へ進出する指揮勢力と、開拓対象となる惑星環境を選択してください"),
+                    Text::new(
+                        "未知の惑星へ進出する指揮勢力と、開拓対象となる惑星環境を選択してください",
+                    ),
                     TextFont {
                         font: font_regular.clone().into(),
                         font_size: FontSize::Px(13.0),
@@ -130,7 +132,11 @@ pub fn setup_faction_select_ui(
                                     ));
 
                                     left.spawn((
-                                        Text::new(format!("国{}【{}】", faction.code(), faction.name_ja())),
+                                        Text::new(format!(
+                                            "国{}【{}】",
+                                            faction.code(),
+                                            faction.name_ja()
+                                        )),
                                         TextFont {
                                             font: font_bold.clone().into(),
                                             font_size: FontSize::Px(15.0),
@@ -172,40 +178,41 @@ pub fn setup_faction_select_ui(
                     ))
                     .with_children(|panel| {
                         // 上部: 派閥情報
-                        panel.spawn(Node {
-                            flex_direction: FlexDirection::Column,
-                            row_gap: Val::Px(4.0),
-                            ..default()
-                        })
-                        .with_children(|faction_info| {
-                            // 派閥正式名称
-                            faction_info.spawn((
-                                DetailTitleText,
-                                Text::new(format!(
-                                    "{} ({})",
-                                    selected_menu.faction.formal_title(),
-                                    selected_menu.faction.name_ja()
-                                )),
-                                TextFont {
-                                    font: font_bold.clone().into(),
-                                    font_size: FontSize::Px(18.0),
-                                    ..default()
-                                },
-                                TextColor(selected_menu.faction.accent_color()),
-                            ));
+                        panel
+                            .spawn(Node {
+                                flex_direction: FlexDirection::Column,
+                                row_gap: Val::Px(4.0),
+                                ..default()
+                            })
+                            .with_children(|faction_info| {
+                                // 派閥正式名称
+                                faction_info.spawn((
+                                    DetailTitleText,
+                                    Text::new(format!(
+                                        "{} ({})",
+                                        selected_menu.faction.formal_title(),
+                                        selected_menu.faction.name_ja()
+                                    )),
+                                    TextFont {
+                                        font: font_bold.clone().into(),
+                                        font_size: FontSize::Px(18.0),
+                                        ..default()
+                                    },
+                                    TextColor(selected_menu.faction.accent_color()),
+                                ));
 
-                            // 派閥説明
-                            faction_info.spawn((
-                                DetailDescText,
-                                Text::new(selected_menu.faction.description()),
-                                TextFont {
-                                    font: font_regular.clone().into(),
-                                    font_size: FontSize::Px(12.5),
-                                    ..default()
-                                },
-                                TextColor(text.main()),
-                            ));
-                        });
+                                // 派閥説明
+                                faction_info.spawn((
+                                    DetailDescText,
+                                    Text::new(selected_menu.faction.description()),
+                                    TextFont {
+                                        font: font_regular.clone().into(),
+                                        font_size: FontSize::Px(12.5),
+                                        ..default()
+                                    },
+                                    TextColor(text.main()),
+                                ));
+                            });
 
                         // 区切り線
                         panel.spawn((
@@ -218,173 +225,225 @@ pub fn setup_faction_select_ui(
                         ));
 
                         // 下部: 惑星環境・マップ設定セクション
-                        panel.spawn(Node {
-                            flex_direction: FlexDirection::Column,
-                            row_gap: Val::Px(8.0),
-                            ..default()
-                        })
-                        .with_children(|settings_sec| {
-                            settings_sec.spawn((
-                                Text::new("PLANET ENVIRONMENT // 探査環境 & マップ構成"),
-                                TextFont {
-                                    font: font_bold.clone().into(),
-                                    font_size: FontSize::Px(13.5),
-                                    ..default()
-                                },
-                                TextColor(surfaces.accent()),
-                            ));
-
-                            // 1. 環境タイプボタン行
-                            settings_sec.spawn(Node {
-                                flex_direction: FlexDirection::Row,
-                                flex_wrap: FlexWrap::Wrap,
-                                row_gap: Val::Px(6.0),
-                                column_gap: Val::Px(6.0),
-                                ..default()
-                            })
-                            .with_children(|env_row| {
-                                for env in PlanetEnvironment::ALL {
-                                    let is_active = env == map_config.environment;
-                                    env_row.spawn((
-                                        Button,
-                                        SelectAction::ChooseEnvironment(env),
-                                        EnvButton(env),
-                                        Node {
-                                            padding: UiRect::axes(Val::Px(10.0), Val::Px(5.0)),
-                                            border: UiRect::all(Val::Px(if is_active { 2.0 } else { 1.0 })),
-                                            border_radius: BorderRadius::all(Val::Px(4.0)),
-                                            ..default()
-                                        },
-                                        BorderColor::all(if is_active { env.theme_color() } else { surfaces.border() }),
-                                        BackgroundColor(if is_active {
-                                            Color::srgba(0.18, 0.26, 0.38, 0.9)
-                                        } else {
-                                            surfaces.card()
-                                        }),
-                                    ))
-                                    .with_children(|btn| {
-                                        btn.spawn((
-                                            Text::new(env.name_ja()),
-                                            TextFont {
-                                                font: font_bold.clone().into(),
-                                                font_size: FontSize::Px(11.5),
-                                                ..default()
-                                            },
-                                            TextColor(if is_active { env.theme_color() } else { text.main() }),
-                                        ));
-                                    });
-                                }
-                            });
-
-                            // 環境説明テキスト
-                            settings_sec.spawn((
-                                EnvDescText,
-                                Text::new(map_config.environment.description()),
-                                TextFont {
-                                    font: font_regular.clone().into(),
-                                    font_size: FontSize::Px(12.0),
-                                    ..default()
-                                },
-                                TextColor(text.muted()),
-                            ));
-
-                            // 2. マップサイズ選択 & シード再生成ボタン行
-                            settings_sec.spawn(Node {
+                        panel
+                            .spawn(Node {
                                 flex_direction: FlexDirection::Column,
-                                row_gap: Val::Px(6.0),
-                                margin: UiRect::top(Val::Px(2.0)),
+                                row_gap: Val::Px(8.0),
                                 ..default()
                             })
-                            .with_children(|size_sec| {
-                                size_sec.spawn(Node {
-                                    flex_direction: FlexDirection::Row,
-                                    justify_content: JustifyContent::SpaceBetween,
-                                    align_items: AlignItems::Center,
-                                    ..default()
-                                })
-                                .with_children(|header_row| {
-                                    header_row.spawn((
-                                        Text::new("マップサイズ:"),
-                                        TextFont {
-                                            font: font_regular.clone().into(),
-                                            font_size: FontSize::Px(12.0),
-                                            ..default()
-                                        },
-                                        TextColor(text.muted()),
-                                    ));
+                            .with_children(|settings_sec| {
+                                settings_sec.spawn((
+                                    Text::new("PLANET ENVIRONMENT // 探査環境 & マップ構成"),
+                                    TextFont {
+                                        font: font_bold.clone().into(),
+                                        font_size: FontSize::Px(13.5),
+                                        ..default()
+                                    },
+                                    TextColor(surfaces.accent()),
+                                ));
 
-                                    // シード再抽選ボタン
-                                    header_row.spawn((
-                                        Button,
-                                        SelectAction::RerollSeed,
-                                        Node {
-                                            padding: UiRect::axes(Val::Px(10.0), Val::Px(3.0)),
-                                            border: UiRect::all(Val::Px(1.0)),
-                                            border_radius: BorderRadius::all(Val::Px(4.0)),
-                                            align_items: AlignItems::Center,
-                                            ..default()
-                                        },
-                                        BorderColor::all(surfaces.border()),
-                                        BackgroundColor(surfaces.card()),
-                                    ))
-                                    .with_children(|btn| {
-                                        btn.spawn((
-                                            SeedDisplayText,
-                                            Text::new(format!("🎲 SEED: {}", map_config.seed)),
-                                            TextFont {
-                                                font: font_regular.clone().into(),
-                                                font_size: FontSize::Px(11.0),
-                                                ..default()
-                                            },
-                                            TextColor(text.main()),
-                                        ));
+                                // 1. 環境タイプボタン行
+                                settings_sec
+                                    .spawn(Node {
+                                        flex_direction: FlexDirection::Row,
+                                        flex_wrap: FlexWrap::Wrap,
+                                        row_gap: Val::Px(6.0),
+                                        column_gap: Val::Px(6.0),
+                                        ..default()
+                                    })
+                                    .with_children(|env_row| {
+                                        for env in PlanetEnvironment::ALL {
+                                            let is_active = env == map_config.environment;
+                                            env_row
+                                                .spawn((
+                                                    Button,
+                                                    SelectAction::ChooseEnvironment(env),
+                                                    EnvButton(env),
+                                                    Node {
+                                                        padding: UiRect::axes(
+                                                            Val::Px(10.0),
+                                                            Val::Px(5.0),
+                                                        ),
+                                                        border: UiRect::all(Val::Px(
+                                                            if is_active { 2.0 } else { 1.0 },
+                                                        )),
+                                                        border_radius: BorderRadius::all(Val::Px(
+                                                            4.0,
+                                                        )),
+                                                        ..default()
+                                                    },
+                                                    BorderColor::all(if is_active {
+                                                        env.theme_color()
+                                                    } else {
+                                                        surfaces.border()
+                                                    }),
+                                                    BackgroundColor(if is_active {
+                                                        Color::srgba(0.18, 0.26, 0.38, 0.9)
+                                                    } else {
+                                                        surfaces.card()
+                                                    }),
+                                                ))
+                                                .with_children(|btn| {
+                                                    btn.spawn((
+                                                        Text::new(env.name_ja()),
+                                                        TextFont {
+                                                            font: font_bold.clone().into(),
+                                                            font_size: FontSize::Px(11.5),
+                                                            ..default()
+                                                        },
+                                                        TextColor(if is_active {
+                                                            env.theme_color()
+                                                        } else {
+                                                            text.main()
+                                                        }),
+                                                    ));
+                                                });
+                                        }
                                     });
-                                });
 
-                                // サイズ選択ボタン一覧 (7種、折り返し可能)
-                                size_sec.spawn(Node {
-                                    flex_direction: FlexDirection::Row,
-                                    flex_wrap: FlexWrap::Wrap,
-                                    row_gap: Val::Px(5.0),
-                                    column_gap: Val::Px(5.0),
-                                    align_items: AlignItems::Center,
-                                    ..default()
-                                })
-                                .with_children(|size_group| {
-                                    for sz in MapSize::ALL {
-                                        let is_active = sz == map_config.size;
-                                        size_group.spawn((
-                                            Button,
-                                            SelectAction::ChooseSize(sz),
-                                            SizeButton(sz),
-                                            Node {
-                                                padding: UiRect::axes(Val::Px(7.0), Val::Px(4.0)),
-                                                border: UiRect::all(Val::Px(if is_active { 1.5 } else { 1.0 })),
-                                                border_radius: BorderRadius::all(Val::Px(4.0)),
+                                // 環境説明テキスト
+                                settings_sec.spawn((
+                                    EnvDescText,
+                                    Text::new(map_config.environment.description()),
+                                    TextFont {
+                                        font: font_regular.clone().into(),
+                                        font_size: FontSize::Px(12.0),
+                                        ..default()
+                                    },
+                                    TextColor(text.muted()),
+                                ));
+
+                                // 2. マップサイズ選択 & シード再生成ボタン行
+                                settings_sec
+                                    .spawn(Node {
+                                        flex_direction: FlexDirection::Column,
+                                        row_gap: Val::Px(6.0),
+                                        margin: UiRect::top(Val::Px(2.0)),
+                                        ..default()
+                                    })
+                                    .with_children(|size_sec| {
+                                        size_sec
+                                            .spawn(Node {
+                                                flex_direction: FlexDirection::Row,
+                                                justify_content: JustifyContent::SpaceBetween,
+                                                align_items: AlignItems::Center,
                                                 ..default()
-                                            },
-                                            BorderColor::all(if is_active { surfaces.accent() } else { surfaces.border() }),
-                                            BackgroundColor(if is_active {
-                                                Color::srgba(0.20, 0.35, 0.45, 0.9)
-                                            } else {
-                                                surfaces.card()
-                                            }),
-                                        ))
-                                        .with_children(|btn| {
-                                            btn.spawn((
-                                                Text::new(sz.name_ja()),
-                                                TextFont {
-                                                    font: font_regular.clone().into(),
-                                                    font_size: FontSize::Px(10.5),
-                                                    ..default()
-                                                },
-                                                TextColor(if is_active { Color::WHITE } else { text.main() }),
-                                            ));
-                                        });
-                                    }
-                                });
+                                            })
+                                            .with_children(|header_row| {
+                                                header_row.spawn((
+                                                    Text::new("マップサイズ:"),
+                                                    TextFont {
+                                                        font: font_regular.clone().into(),
+                                                        font_size: FontSize::Px(12.0),
+                                                        ..default()
+                                                    },
+                                                    TextColor(text.muted()),
+                                                ));
+
+                                                // シード再抽選ボタン
+                                                header_row
+                                                    .spawn((
+                                                        Button,
+                                                        SelectAction::RerollSeed,
+                                                        Node {
+                                                            padding: UiRect::axes(
+                                                                Val::Px(10.0),
+                                                                Val::Px(3.0),
+                                                            ),
+                                                            border: UiRect::all(Val::Px(1.0)),
+                                                            border_radius: BorderRadius::all(
+                                                                Val::Px(4.0),
+                                                            ),
+                                                            align_items: AlignItems::Center,
+                                                            ..default()
+                                                        },
+                                                        BorderColor::all(surfaces.border()),
+                                                        BackgroundColor(surfaces.card()),
+                                                    ))
+                                                    .with_children(|btn| {
+                                                        btn.spawn((
+                                                            SeedDisplayText,
+                                                            Text::new(format!(
+                                                                "🎲 SEED: {}",
+                                                                map_config.seed
+                                                            )),
+                                                            TextFont {
+                                                                font: font_regular.clone().into(),
+                                                                font_size: FontSize::Px(11.0),
+                                                                ..default()
+                                                            },
+                                                            TextColor(text.main()),
+                                                        ));
+                                                    });
+                                            });
+
+                                        // サイズ選択ボタン一覧 (7種、折り返し可能)
+                                        size_sec
+                                            .spawn(Node {
+                                                flex_direction: FlexDirection::Row,
+                                                flex_wrap: FlexWrap::Wrap,
+                                                row_gap: Val::Px(5.0),
+                                                column_gap: Val::Px(5.0),
+                                                align_items: AlignItems::Center,
+                                                ..default()
+                                            })
+                                            .with_children(|size_group| {
+                                                for sz in MapSize::ALL {
+                                                    let is_active = sz == map_config.size;
+                                                    size_group
+                                                        .spawn((
+                                                            Button,
+                                                            SelectAction::ChooseSize(sz),
+                                                            SizeButton(sz),
+                                                            Node {
+                                                                padding: UiRect::axes(
+                                                                    Val::Px(7.0),
+                                                                    Val::Px(4.0),
+                                                                ),
+                                                                border: UiRect::all(Val::Px(
+                                                                    if is_active {
+                                                                        1.5
+                                                                    } else {
+                                                                        1.0
+                                                                    },
+                                                                )),
+                                                                border_radius: BorderRadius::all(
+                                                                    Val::Px(4.0),
+                                                                ),
+                                                                ..default()
+                                                            },
+                                                            BorderColor::all(if is_active {
+                                                                surfaces.accent()
+                                                            } else {
+                                                                surfaces.border()
+                                                            }),
+                                                            BackgroundColor(if is_active {
+                                                                Color::srgba(0.20, 0.35, 0.45, 0.9)
+                                                            } else {
+                                                                surfaces.card()
+                                                            }),
+                                                        ))
+                                                        .with_children(|btn| {
+                                                            btn.spawn((
+                                                                Text::new(sz.name_ja()),
+                                                                TextFont {
+                                                                    font: font_regular
+                                                                        .clone()
+                                                                        .into(),
+                                                                    font_size: FontSize::Px(10.5),
+                                                                    ..default()
+                                                                },
+                                                                TextColor(if is_active {
+                                                                    Color::WHITE
+                                                                } else {
+                                                                    text.main()
+                                                                }),
+                                                            ));
+                                                        });
+                                                }
+                                            });
+                                    });
                             });
-                        });
                     });
             });
 

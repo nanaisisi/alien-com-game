@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use std::collections::{HashMap, VecDeque};
 
 use crate::faction::PlayerFaction;
+use crate::map::MapGrid;
 use crate::map::hex::HexCoord;
 use crate::map::interaction::{HoveredTile, SelectedTile};
-use crate::map::MapGrid;
 use crate::state::AppState;
 
 use super::types::{
@@ -84,7 +84,10 @@ pub fn handle_unit_keyboard_shortcuts(
                         info!("Unit Move Mode: ENABLED (transitioned from right-drag)");
                     } else {
                         move_mode.0 = !move_mode.0;
-                        info!("Unit Move Mode: {}", if move_mode.0 { "ENABLED" } else { "DISABLED" });
+                        info!(
+                            "Unit Move Mode: {}",
+                            if move_mode.0 { "ENABLED" } else { "DISABLED" }
+                        );
                     }
                 }
             }
@@ -100,7 +103,13 @@ pub fn handle_unit_keyboard_shortcuts(
                     move_mode.0 = false;
                     info!("Unit {:?} fortified (Defend posture).", unit.group_type);
                 }
-                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+                select_next_ready_unit(
+                    &units,
+                    player_fac,
+                    &mut selected_unit,
+                    &mut selected_tile,
+                    &mut map_camera,
+                );
             }
 
             // 4. 警戒監視 (Alert / Overwatch)
@@ -114,7 +123,13 @@ pub fn handle_unit_keyboard_shortcuts(
                     move_mode.0 = false;
                     info!("Unit {:?} set to Alert/Overwatch.", unit.group_type);
                 }
-                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+                select_next_ready_unit(
+                    &units,
+                    player_fac,
+                    &mut selected_unit,
+                    &mut selected_tile,
+                    &mut map_camera,
+                );
             }
 
             // 5. 回復・修理 (Heal)
@@ -129,8 +144,17 @@ pub fn handle_unit_keyboard_shortcuts(
                         unit.is_exhausted = true;
                         unit.current_movement = 0;
                         move_mode.0 = false;
-                        info!("Unit {:?} set to Healing mode (HP: {}/{}).", unit.group_type, unit.hp, unit.max_hp);
-                        select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+                        info!(
+                            "Unit {:?} set to Healing mode (HP: {}/{}).",
+                            unit.group_type, unit.hp, unit.max_hp
+                        );
+                        select_next_ready_unit(
+                            &units,
+                            player_fac,
+                            &mut selected_unit,
+                            &mut selected_tile,
+                            &mut map_camera,
+                        );
                     }
                 }
             }
@@ -146,7 +170,13 @@ pub fn handle_unit_keyboard_shortcuts(
                     move_mode.0 = false;
                     info!("Unit {:?} is now Sleeping.", unit.group_type);
                 }
-                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+                select_next_ready_unit(
+                    &units,
+                    player_fac,
+                    &mut selected_unit,
+                    &mut selected_tile,
+                    &mut map_camera,
+                );
             }
 
             // 7. 白兵突撃 (Charge / Attack)
@@ -207,7 +237,13 @@ pub fn handle_unit_keyboard_shortcuts(
                     move_mode.0 = false;
                     info!("Unit {:?} turn skipped (waiting).", unit.group_type);
                 }
-                select_next_ready_unit(&units, player_fac, &mut selected_unit, &mut selected_tile, &mut map_camera);
+                select_next_ready_unit(
+                    &units,
+                    player_fac,
+                    &mut selected_unit,
+                    &mut selected_tile,
+                    &mut map_camera,
+                );
             }
 
             // 11. 部隊解体 (Disband)
@@ -233,7 +269,8 @@ pub fn handle_unit_keyboard_shortcuts(
             }
 
             // 12. 自軍ユニット巡回 (Next / Prev)
-            crate::map::input::InGameAction::NextUnit | crate::map::input::InGameAction::PrevUnit => {
+            crate::map::input::InGameAction::NextUnit
+            | crate::map::input::InGameAction::PrevUnit => {
                 let is_prev = event.0 == crate::map::input::InGameAction::PrevUnit;
                 let mut player_units: Vec<(Entity, HexCoord, bool)> = units
                     .iter()
@@ -241,15 +278,16 @@ pub fn handle_unit_keyboard_shortcuts(
                     .map(|(e, u, _)| {
                         let is_ready = !u.is_exhausted
                             && u.current_movement > 0
-                            && !matches!(u.action_state, UnitActionState::Sleeping | UnitActionState::Alert);
+                            && !matches!(
+                                u.action_state,
+                                UnitActionState::Sleeping | UnitActionState::Alert
+                            );
                         (e, u.coord, is_ready)
                     })
                     .collect();
 
                 if !player_units.is_empty() {
-                    player_units.sort_by(|a, b| {
-                        b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0))
-                    });
+                    player_units.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.0.cmp(&b.0)));
 
                     let current_idx = selected_unit.0.and_then(|current_e| {
                         player_units.iter().position(|(e, _, _)| *e == current_e)
@@ -301,7 +339,8 @@ pub fn handle_unit_keyboard_shortcuts(
             }
 
             // 14. 拠点巡回 (NextCity / PrevCity)
-            crate::map::input::InGameAction::NextCity | crate::map::input::InGameAction::PrevCity => {
+            crate::map::input::InGameAction::NextCity
+            | crate::map::input::InGameAction::PrevCity => {
                 let is_prev = event.0 == crate::map::input::InGameAction::PrevCity;
                 let mut player_outposts: Vec<(Entity, HexCoord)> = outposts_query
                     .iter()
@@ -311,9 +350,9 @@ pub fn handle_unit_keyboard_shortcuts(
                 player_outposts.sort_by_key(|(e, _)| *e);
 
                 if !player_outposts.is_empty() {
-                    let current_outpost_idx = selected_tile.0.and_then(|t| {
-                        player_outposts.iter().position(|(_, c)| *c == t)
-                    });
+                    let current_outpost_idx = selected_tile
+                        .0
+                        .and_then(|t| player_outposts.iter().position(|(_, c)| *c == t));
 
                     let len = player_outposts.len();
                     let next_idx = match current_outpost_idx {
@@ -357,7 +396,10 @@ fn select_next_ready_unit(
             u.faction == player_fac
                 && !u.is_exhausted
                 && u.current_movement > 0
-                && !matches!(u.action_state, UnitActionState::Sleeping | UnitActionState::Alert)
+                && !matches!(
+                    u.action_state,
+                    UnitActionState::Sleeping | UnitActionState::Alert
+                )
                 && Some(*e) != selected_unit.0
         })
         .map(|(e, u, _)| (e, u.coord))
@@ -451,7 +493,9 @@ fn execute_unit_attack_action(
 
     // 与ダメージ計算
     let charge_bonus = if !is_ranged && dist == 1 { 1.25 } else { 1.0 };
-    let damage_to_target = ((attacker_power as f32) * (attacker_hp as f32 / 100.0) * charge_bonus / def_mult).ceil() as u32;
+    let damage_to_target = ((attacker_power as f32) * (attacker_hp as f32 / 100.0) * charge_bonus
+        / def_mult)
+        .ceil() as u32;
     let damage_to_target = damage_to_target.max(5);
 
     // 反撃ダメージ計算（遠隔射撃の場合は反撃なし、近接白兵の場合は反撃あり）
@@ -488,7 +532,10 @@ fn execute_unit_attack_action(
         } else {
             tar_unit.hp -= damage_to_target;
             // 警戒中だった敵が攻撃を受けたら警戒解除
-            if matches!(tar_unit.action_state, UnitActionState::Alert | UnitActionState::Sleeping) {
+            if matches!(
+                tar_unit.action_state,
+                UnitActionState::Alert | UnitActionState::Sleeping
+            ) {
                 tar_unit.action_state = UnitActionState::Idle;
             }
         }
@@ -498,16 +545,22 @@ fn execute_unit_attack_action(
         commands.entity(target_e).despawn();
         info!("Enemy unit destroyed!");
         // 白兵突撃で敵を撃破した場合、そのタイルへ踏み込み移動
-        if !is_ranged && !attacker_died
-            && let Ok((_, mut att_unit, mut att_transform)) = units.get_mut(attacker_entity) {
-                att_unit.coord = target_coord;
-                let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
-                let height = map_grid.terrain_data.get(&target_coord).map(|t| t.height()).unwrap_or(0.0);
-                att_transform.translation.x = world_pos.x;
-                att_transform.translation.y = height;
-                att_transform.translation.z = world_pos.z;
-                selected_tile.0 = Some(target_coord);
-            }
+        if !is_ranged
+            && !attacker_died
+            && let Ok((_, mut att_unit, mut att_transform)) = units.get_mut(attacker_entity)
+        {
+            att_unit.coord = target_coord;
+            let world_pos = target_coord.to_world_pos(crate::map::HEX_RADIUS);
+            let height = map_grid
+                .terrain_data
+                .get(&target_coord)
+                .map(|t| t.height())
+                .unwrap_or(0.0);
+            att_transform.translation.x = world_pos.x;
+            att_transform.translation.y = height;
+            att_transform.translation.z = world_pos.z;
+            selected_tile.0 = Some(target_coord);
+        }
     }
 
     if attacker_died {
@@ -547,7 +600,10 @@ fn execute_unit_transfer_action(
         if let Ok((_, mut unit, _)) = units.get_mut(unit_entity) {
             unit.hp = unit.max_hp;
             unit.current_movement = (unit.current_movement + 1).min(unit.max_movement);
-            info!("Unit {:?} resupplied from nearby outpost (HP restored to full).", group_type);
+            info!(
+                "Unit {:?} resupplied from nearby outpost (HP restored to full).",
+                group_type
+            );
         }
         return;
     }
@@ -568,7 +624,10 @@ fn execute_unit_transfer_action(
         if let Ok((_, mut ally, _)) = units.get_mut(ally_e) {
             let heal_amt = 20;
             ally.hp = (ally.hp + heal_amt).min(ally.max_hp);
-            info!("Transferred emergency field repair kit to ally {:?} (+{} HP).", ally.group_type, heal_amt);
+            info!(
+                "Transferred emergency field repair kit to ally {:?} (+{} HP).",
+                ally.group_type, heal_amt
+            );
         }
         // 次に自部隊の移動力を消費
         if let Ok((_, mut unit, _)) = units.get_mut(unit_entity) {
@@ -852,9 +911,15 @@ pub fn update_selection_visuals(
     // 2. 到達可能タイルの上面に移動マーカー（ドット/サークル）を配置
     let marker_mesh = meshes.add(Cylinder::new(0.22, 0.02));
     let (marker_col, marker_emissive) = if is_active_moving {
-        (Color::srgba(1.0, 0.85, 0.2, 0.85), LinearRgba::rgb(0.6, 0.5, 0.1))
+        (
+            Color::srgba(1.0, 0.85, 0.2, 0.85),
+            LinearRgba::rgb(0.6, 0.5, 0.1),
+        )
     } else {
-        (Color::srgba(0.2, 0.9, 0.8, 0.65), LinearRgba::rgb(0.1, 0.5, 0.4))
+        (
+            Color::srgba(0.2, 0.9, 0.8, 0.65),
+            LinearRgba::rgb(0.1, 0.5, 0.4),
+        )
     };
 
     let marker_mat = materials.add(StandardMaterial {
@@ -892,14 +957,18 @@ pub fn update_selection_visuals(
 
         if is_drag_target {
             commands.spawn((
-                MoveTargetMarker { target_coord: coord },
+                MoveTargetMarker {
+                    target_coord: coord,
+                },
                 Mesh3d(drag_target_mesh.clone()),
                 MeshMaterial3d(drag_target_mat.clone()),
                 Transform::from_xyz(pos.x, height + 0.05, pos.z),
             ));
         } else {
             commands.spawn((
-                MoveTargetMarker { target_coord: coord },
+                MoveTargetMarker {
+                    target_coord: coord,
+                },
                 Mesh3d(marker_mesh.clone()),
                 MeshMaterial3d(marker_mat.clone()),
                 Transform::from_xyz(pos.x, height + 0.04, pos.z),
@@ -935,10 +1004,8 @@ pub fn process_unit_turn_updates(
     let map_w = map_grid.width.max(1);
 
     // 敵ユニットの全座標一覧を事前取得（警戒・休眠解除用）
-    let enemy_coords: Vec<(crate::faction::types::FactionId, HexCoord)> = units
-        .iter()
-        .map(|(_, u)| (u.faction, u.coord))
-        .collect();
+    let enemy_coords: Vec<(crate::faction::types::FactionId, HexCoord)> =
+        units.iter().map(|(_, u)| (u.faction, u.coord)).collect();
 
     for (_, mut unit) in &mut units {
         let fac = unit.faction;
@@ -984,7 +1051,10 @@ pub fn process_unit_turn_updates(
                 });
                 if enemy_near {
                     unit.action_state = UnitActionState::Idle;
-                    info!("Sleeping unit {:?} woke up due to approaching enemy!", unit.group_type);
+                    info!(
+                        "Sleeping unit {:?} woke up due to approaching enemy!",
+                        unit.group_type
+                    );
                 } else {
                     unit.is_exhausted = true;
                     unit.current_movement = 0;
@@ -997,7 +1067,10 @@ pub fn process_unit_turn_updates(
                 });
                 if enemy_near {
                     unit.action_state = UnitActionState::Idle;
-                    info!("Alert unit {:?} detected enemy in range and woke up!", unit.group_type);
+                    info!(
+                        "Alert unit {:?} detected enemy in range and woke up!",
+                        unit.group_type
+                    );
                 } else {
                     unit.is_exhausted = true;
                     unit.current_movement = 0;

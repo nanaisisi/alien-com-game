@@ -12,8 +12,8 @@ pub use interaction::{
 };
 #[allow(unused_imports)]
 pub use types::{
-    reset_pause_focus, PauseButtonAction, PauseMenuFocus, PauseMenuItem, PauseModalFocusItem,
-    PauseModalType, PAUSE_MENU_ITEMS,
+    PAUSE_MENU_ITEMS, PauseButtonAction, PauseMenuFocus, PauseMenuItem, PauseModalFocusItem,
+    PauseModalType, reset_pause_focus,
 };
 #[allow(unused_imports)]
 pub use view::{cleanup_pause_menu_ui, setup_pause_menu_ui, spawn_pause_confirm_modal};

@@ -9,4 +9,3 @@ pub enum AppState {
     PauseMenu,
     Settings,
 }
-

@@ -8,12 +8,10 @@ pub mod types;
 
 #[allow(unused_imports)]
 pub use territory::{
-    cleanup_territories, setup_initial_faction_territories, update_territory_overlays,
-    FactionOutpost, TerritoryMap, TerritoryOverlay, TileTerritory,
+    FactionOutpost, TerritoryMap, TerritoryOverlay, TileTerritory, cleanup_territories,
+    setup_initial_faction_territories, update_territory_overlays,
 };
-pub use types::{
-    DiplomaticRelation, FactionId, FactionManager, FactionResources, PlayerFaction,
-};
+pub use types::{DiplomaticRelation, FactionId, FactionManager, FactionResources, PlayerFaction};
 
 pub struct FactionPlugin;
 

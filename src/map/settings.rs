@@ -38,10 +38,18 @@ impl PlanetEnvironment {
     pub fn description(&self) -> &'static str {
         match self {
             Self::Terra => "母星に近い気候。海洋と陸地、森林が程よく分布する探査安定惑星。",
-            Self::Arid => "水資源が乏しく広大な乾燥大地が続く。陸上部隊の行軍は容易だが水域は極小。",
-            Self::Archipelago => "地表の大半が海に没した水惑星。限られた群島をめぐる激しい領有争いが生じる。",
-            Self::ToxicMarsh => "原生異星植物と毒性湿地帯が密集。未知の生態系が活発で過酷な進軍を強いられる。",
-            Self::Crystalline => "共鳴結晶鉱床が露出した高標高帯。特殊資源に恵まれるが険峻な山脈が遮る。",
+            Self::Arid => {
+                "水資源が乏しく広大な乾燥大地が続く。陸上部隊の行軍は容易だが水域は極小。"
+            }
+            Self::Archipelago => {
+                "地表の大半が海に没した水惑星。限られた群島をめぐる激しい領有争いが生じる。"
+            }
+            Self::ToxicMarsh => {
+                "原生異星植物と毒性湿地帯が密集。未知の生態系が活発で過酷な進軍を強いられる。"
+            }
+            Self::Crystalline => {
+                "共鳴結晶鉱床が露出した高標高帯。特殊資源に恵まれるが険峻な山脈が遮る。"
+            }
         }
     }
 
@@ -62,7 +70,7 @@ impl PlanetEnvironment {
             Self::Terra => 0.72,
             Self::Arid => 0.75,
             Self::Archipelago => 0.78,
-            Self::ToxicMarsh => 0.80, // 山岳は少なく湿地が多い
+            Self::ToxicMarsh => 0.80,  // 山岳は少なく湿地が多い
             Self::Crystalline => 0.65, // 山岳が頻出
         }
     }

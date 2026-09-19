@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 
-use crate::world::MainDirectionalLight;
 use super::types::{AntiAliasingMode, GameSettings, RESOLUTION_PRESETS};
+use crate::world::MainDirectionalLight;
 
 /// フレームレート制限用の状態追跡リソース
 #[derive(Resource)]
@@ -37,10 +37,7 @@ pub fn setup_environment_settings_system(
 }
 
 /// FPS制限適用システム
-pub fn enforce_fps_limit_system(
-    settings: Res<GameSettings>,
-    mut limiter: ResMut<FpsLimiterState>,
-) {
+pub fn enforce_fps_limit_system(settings: Res<GameSettings>, mut limiter: ResMut<FpsLimiterState>) {
     if let Some(target_duration) = settings.fps_limit.target_frame_time() {
         let elapsed = limiter.last_frame_instant.elapsed();
         if elapsed < target_duration {

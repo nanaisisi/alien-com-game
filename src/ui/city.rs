@@ -1,15 +1,15 @@
 use bevy::prelude::*;
 
-use crate::faction::types::{FactionResources, PlayerFaction};
 use crate::faction::FactionOutpost;
-use crate::map::interaction::SelectedTile;
+use crate::faction::types::{FactionResources, PlayerFaction};
 use crate::map::MapGrid;
+use crate::map::interaction::SelectedTile;
 use crate::state::AppState;
-use crate::ui::theme::UiTheme;
 use crate::ui::UiBlockMapInteraction;
+use crate::ui::theme::UiTheme;
+use crate::unit::Unit;
 use crate::unit::mesh::spawn_unit_model;
 use crate::unit::types::CombatGroupType;
-use crate::unit::Unit;
 
 pub struct CityUiPlugin;
 
@@ -91,30 +91,25 @@ pub fn toggle_city_modal_system(
                 && let Some((e, _outpost)) = outposts_query
                     .iter()
                     .find(|(_, o)| o.coord == coord && o.faction == player_faction.0)
-                {
-                    target_entity = Some(e);
-                }
+            {
+                target_entity = Some(e);
+            }
 
             // なければプレイヤー派閥の最初の都市を選択
             if target_entity.is_none()
                 && let Some((e, _)) = outposts_query
                     .iter()
                     .find(|(_, o)| o.faction == player_faction.0)
-                {
-                    target_entity = Some(e);
-                }
+            {
+                target_entity = Some(e);
+            }
 
             modal_state.target_outpost_entity = target_entity;
 
             if let Some(target_e) = target_entity
                 && let Ok((_, outpost)) = outposts_query.get(target_e)
             {
-                spawn_city_modal(
-                    &mut commands,
-                    &asset_server,
-                    outpost,
-                    &faction_res,
-                );
+                spawn_city_modal(&mut commands, &asset_server, outpost, &faction_res);
             } else {
                 modal_state.is_open = false;
             }
@@ -204,8 +199,6 @@ pub fn city_modal_keyboard_shortcuts(
         }
         return;
     }
-
-
 
     if let Some(unit_type) = unit_to_produce {
         let (prod_cost, energy_cost, food_cost) = match unit_type {
@@ -681,9 +674,7 @@ type CityButtonInteractionQuery<'world, 'state> = Query<
 >;
 
 /// ボタンのホバーエフェクト
-pub fn city_modal_button_interaction_system(
-    mut interaction_query: CityButtonInteractionQuery,
-) {
+pub fn city_modal_button_interaction_system(mut interaction_query: CityButtonInteractionQuery) {
     let surfaces = UiTheme::surfaces();
     let btn_theme = UiTheme::button(false);
     for (interaction, mut bg_color, mut border_color) in &mut interaction_query {
@@ -733,28 +724,30 @@ pub fn city_production_action_system(
             }
             CityButtonAction::UpgradeCity => {
                 if let Some(outpost_e) = modal_state.target_outpost_entity
-                    && let Ok((_, mut outpost)) = outposts_query.get_mut(outpost_e) {
-                        let prod_cost = 60;
-                        let energy_cost = 40;
-                        if faction_res.production >= prod_cost && faction_res.energy >= energy_cost {
-                            faction_res.production -= prod_cost;
-                            faction_res.energy -= energy_cost;
-                            outpost.level += 1;
-                            faction_res.production_per_turn += 3;
-                            faction_res.energy_per_turn += 3;
+                    && let Ok((_, mut outpost)) = outposts_query.get_mut(outpost_e)
+                {
+                    let prod_cost = 60;
+                    let energy_cost = 40;
+                    if faction_res.production >= prod_cost && faction_res.energy >= energy_cost {
+                        faction_res.production -= prod_cost;
+                        faction_res.energy -= energy_cost;
+                        outpost.level += 1;
+                        faction_res.production_per_turn += 3;
+                        faction_res.energy_per_turn += 3;
 
-                            if let Ok(mut notice) = notice_query.single_mut() {
-                                **notice = format!(
-                                    "✔ 基地拡張完了！ Lv.{} に昇格しました。（生産/エネルギー +3/ターン）",
-                                    outpost.level
-                                );
-                            }
-                        } else {
-                            if let Ok(mut notice) = notice_query.single_mut() {
-                                **notice = "❌ 資源が不足しています（必要: 生産 60 / エネルギー 40）".to_string();
-                            }
+                        if let Ok(mut notice) = notice_query.single_mut() {
+                            **notice = format!(
+                                "✔ 基地拡張完了！ Lv.{} に昇格しました。（生産/エネルギー +3/ターン）",
+                                outpost.level
+                            );
+                        }
+                    } else {
+                        if let Ok(mut notice) = notice_query.single_mut() {
+                            **notice = "❌ 資源が不足しています（必要: 生産 60 / エネルギー 40）"
+                                .to_string();
                         }
                     }
+                }
             }
             CityButtonAction::ProduceUnit(unit_type) => {
                 let (prod_cost, energy_cost, food_cost) = match unit_type {
@@ -792,11 +785,11 @@ pub fn city_production_action_system(
                 for candidate in neighbors {
                     if let Some(&terrain) = map_grid.terrain_data.get(&candidate)
                         && terrain.is_passable_ground()
-                            && !units_query.iter().any(|u| u.coord == candidate)
-                        {
-                            target_coord = Some(candidate);
-                            break;
-                        }
+                        && !units_query.iter().any(|u| u.coord == candidate)
+                    {
+                        target_coord = Some(candidate);
+                        break;
+                    }
                 }
 
                 // なければ前哨基地タイル

@@ -2,13 +2,17 @@ use bevy::ecs::system::SystemParam;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
-use super::command::{execute_command, CommandContext};
+use super::command::{CommandContext, execute_command};
 use super::types::*;
 use super::view::{spawn_console_ui, spawn_warning_modal, update_console_log_view};
 use crate::ui::theme::{BUTTON_HOVERED, BUTTON_NORMAL, BUTTON_PRESSED};
 
-type WarningButtonQuery<'w, 's> =
-    Query<'w, 's, (&'static Interaction, &'static DebugWarningAction), (Changed<Interaction>, With<Button>)>;
+type WarningButtonQuery<'w, 's> = Query<
+    'w,
+    's,
+    (&'static Interaction, &'static DebugWarningAction),
+    (Changed<Interaction>, With<Button>),
+>;
 
 type CloseButtonQuery<'w, 's> = Query<
     'w,
@@ -262,27 +266,29 @@ pub fn handle_console_keyboard_input(
 
     // 下キー: 履歴を進める
     if input.keys.just_pressed(KeyCode::ArrowDown)
-        && let Some(idx) = state.history_index {
-            if idx + 1 < state.history.len() {
-                state.history_index = Some(idx + 1);
-                state.input_text = state.history[idx + 1].clone();
-            } else {
-                state.history_index = None;
-                state.input_text.clear();
-            }
+        && let Some(idx) = state.history_index
+    {
+        if idx + 1 < state.history.len() {
+            state.history_index = Some(idx + 1);
+            state.input_text = state.history[idx + 1].clone();
+        } else {
+            state.history_index = None;
+            state.input_text.clear();
         }
+    }
 
     // 文字入力受付 (KeyboardInput の text フィールドを利用)
     for ev in input.key_events.read() {
         if ev.state.is_pressed()
-            && let Some(ref text) = ev.text {
-                for ch in text.chars() {
-                    // バッククォートや制御文字を除外
-                    if ch != '`' && ch != '~' && !ch.is_control() {
-                        state.input_text.push(ch);
-                    }
+            && let Some(ref text) = ev.text
+        {
+            for ch in text.chars() {
+                // バッククォートや制御文字を除外
+                if ch != '`' && ch != '~' && !ch.is_control() {
+                    state.input_text.push(ch);
                 }
             }
+        }
     }
 
     // 入力テキスト表示の更新

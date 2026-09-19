@@ -8,8 +8,8 @@ pub mod types;
 pub mod view;
 
 pub use graphics::{
-    apply_graphics_settings_system, enforce_fps_limit_system, setup_environment_settings_system,
-    FpsLimiterState,
+    FpsLimiterState, apply_graphics_settings_system, enforce_fps_limit_system,
+    setup_environment_settings_system,
 };
 pub use interaction::{
     settings_button_action_system, settings_button_interaction_system,
@@ -18,8 +18,8 @@ pub use interaction::{
 };
 #[allow(unused_imports)]
 pub use types::{
-    reset_settings_focus, AntiAliasingMode, FpsLimitMode, GameSettings, ModalFocusItem,
-    SettingsFocusItem, SettingsNavFocus, RESOLUTION_PRESETS,
+    AntiAliasingMode, FpsLimitMode, GameSettings, ModalFocusItem, RESOLUTION_PRESETS,
+    SettingsFocusItem, SettingsNavFocus, reset_settings_focus,
 };
 pub use view::{cleanup_settings_ui, setup_settings_ui};
 
@@ -34,7 +34,10 @@ impl Plugin for SettingsUiPlugin {
             .add_systems(PostStartup, apply_graphics_settings_system)
             .add_systems(Update, apply_graphics_settings_system)
             .add_systems(Last, enforce_fps_limit_system)
-            .add_systems(OnEnter(AppState::Settings), (setup_settings_ui, reset_settings_focus))
+            .add_systems(
+                OnEnter(AppState::Settings),
+                (setup_settings_ui, reset_settings_focus),
+            )
             .add_systems(
                 Update,
                 (

@@ -1,12 +1,10 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-use super::view::{
-    MinimapCameraBoxPart, MinimapCoordText, MINIMAP_HEIGHT, MINIMAP_WIDTH,
-};
+use super::view::{MINIMAP_HEIGHT, MINIMAP_WIDTH, MinimapCameraBoxPart, MinimapCoordText};
 use crate::camera::MapCamera;
 use crate::map::hex::{self, HexCoord, MAP_HEIGHT, MAP_WIDTH};
-use crate::map::{MapGrid, HEX_RADIUS};
+use crate::map::{HEX_RADIUS, MapGrid};
 
 /// カメラの現在位置とズーム率に合わせて、ミニマップ上の視野矩形を更新（東西ラップ時の入れ違い・反対側表示に対応）
 pub fn update_minimap_viewport_system(
@@ -20,8 +18,16 @@ pub fn update_minimap_viewport_system(
         return;
     };
 
-    let map_w = if map_grid.width > 0 { map_grid.width } else { MAP_WIDTH };
-    let map_h = if map_grid.height > 0 { map_grid.height } else { MAP_HEIGHT };
+    let map_w = if map_grid.width > 0 {
+        map_grid.width
+    } else {
+        MAP_WIDTH
+    };
+    let map_h = if map_grid.height > 0 {
+        map_grid.height
+    } else {
+        MAP_HEIGHT
+    };
 
     let world_width = hex::map_world_width_with_width(HEX_RADIUS, map_w);
     let world_height = (map_h as f32) * 1.5 * HEX_RADIUS;
@@ -104,7 +110,8 @@ pub fn update_minimap_viewport_system(
 
     // 座標テキスト表示の更新
     if let Ok(mut text) = text_query.single_mut() {
-        let current_hex = HexCoord::from_world_pos_with_width(map_cam.current_focal_point, HEX_RADIUS, map_w);
+        let current_hex =
+            HexCoord::from_world_pos_with_width(map_cam.current_focal_point, HEX_RADIUS, map_w);
         let (c, r) = current_hex.to_col_row_with_width(map_w);
         **text = format!("COL {:02} ROW {:+02}", c, r);
     }

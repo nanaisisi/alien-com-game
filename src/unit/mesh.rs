@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use crate::faction::types::FactionId;
 use super::types::CombatGroupType;
+use crate::faction::types::FactionId;
 
 /// 戦闘団種別と派閥に応じたSFビジュアル（子エンティティ階層）をスポーンする
 pub fn spawn_unit_model(

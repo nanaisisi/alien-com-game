@@ -9,8 +9,8 @@ use crate::state::AppState;
 
 #[allow(unused_imports)]
 pub use view::{
-    MinimapCameraBoxPart, MinimapCoordText, MinimapImageNode, MinimapRoot, MINIMAP_HEIGHT,
-    MINIMAP_WIDTH,
+    MINIMAP_HEIGHT, MINIMAP_WIDTH, MinimapCameraBoxPart, MinimapCoordText, MinimapImageNode,
+    MinimapRoot,
 };
 
 pub struct MinimapPlugin;

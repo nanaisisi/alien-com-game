@@ -280,7 +280,7 @@ pub fn spawn_pause_confirm_modal(
                                         TextFont {
                                             font: font_bold.clone().into(),
                                             font_size: FontSize::Px(14.0),
-                                             ..default()
+                                            ..default()
                                         },
                                         TextColor(Color::srgb(1.0, 0.9, 0.9)),
                                     ));

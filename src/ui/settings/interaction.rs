@@ -1,14 +1,19 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
-use crate::state::AppState;
 use super::types::*;
 use super::view::spawn_confirm_return_modal;
+use crate::state::AppState;
 
 type SettingsButtonInteractionQuery<'world, 'state> = Query<
     'world,
     'state,
-    (&'static Interaction, &'static mut BackgroundColor, &'static mut BorderColor, &'static SettingsButtonAction),
+    (
+        &'static Interaction,
+        &'static mut BackgroundColor,
+        &'static mut BorderColor,
+        &'static SettingsButtonAction,
+    ),
     (Changed<Interaction>, With<Button>),
 >;
 
@@ -19,9 +24,7 @@ type SettingsButtonActionQuery<'world, 'state> = Query<
     (Changed<Interaction>, With<Button>),
 >;
 
-pub fn settings_button_interaction_system(
-    mut query: SettingsButtonInteractionQuery,
-) {
+pub fn settings_button_interaction_system(mut query: SettingsButtonInteractionQuery) {
     for (interaction, mut bg_color, mut border_color, action) in &mut query {
         let is_danger = matches!(action, SettingsButtonAction::ConfirmReturnToTitle);
         match *interaction {
@@ -480,7 +483,10 @@ pub fn settings_keyboard_navigation_system(
                 spawn_confirm_return_modal(&mut commands, &asset_server);
             }
             SettingsFocusItem::Back => {
-                info!("Returning to {:?} via Enter/Space...", state.settings.return_state);
+                info!(
+                    "Returning to {:?} via Enter/Space...",
+                    state.settings.return_state
+                );
                 state.next_state.set(state.settings.return_state);
             }
             _ => {}
@@ -489,7 +495,10 @@ pub fn settings_keyboard_navigation_system(
 
     // [Escape] キャンセル/戻るキー
     if keys.just_pressed(KeyCode::Escape) {
-        info!("ESC pressed: Returning to {:?}...", state.settings.return_state);
+        info!(
+            "ESC pressed: Returning to {:?}...",
+            state.settings.return_state
+        );
         state.next_state.set(state.settings.return_state);
     }
 }
@@ -499,7 +508,12 @@ pub fn update_settings_focus_highlight_system(
     focus: Res<SettingsNavFocus>,
     modal_query: Query<Entity, With<ReturnToTitleConfirmModal>>,
     mut row_query: Query<
-        (&SettingsNavRow, &mut BorderColor, &mut BackgroundColor, Option<&Button>),
+        (
+            &SettingsNavRow,
+            &mut BorderColor,
+            &mut BackgroundColor,
+            Option<&Button>,
+        ),
         Without<ModalNavButton>,
     >,
     mut modal_btn_query: Query<
