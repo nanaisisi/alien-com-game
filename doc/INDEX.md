@@ -11,9 +11,11 @@ doc/
 ├── INDEX.md                        # 本ファイル（ドキュメント目録）
 ├── GAME_DESIGN.md                  # ゲーム企画・コア仕様設計書
 ├── Faction.md                      # 勢力一覧・固有ボーナス/特性定義
-└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計19件）
+└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計21件）
     ├── sub_tile_seamless_connection.md
     ├── future_concept_subtile_industry.md
+    ├── concept_tile_centric_expansion.md
+    ├── concept_tile_progression_system.md
     ├── concept_weapon_module_commonality.md
     ├── example_weapon_modules_cases.md
     ├── concept_future_legged_unmanned_rules.md
@@ -24,11 +26,14 @@ doc/
     ├── concept_industry_module_mapping.md
     ├── concept_automation_systems.md
     ├── concept_diplomacy_relations.md
+    ├── concept_frontier_dissidents_and_territorial_claims.md
     ├── concept_occupation_governance_and_divided_economy.md
     ├── concept_capitulation_remnants_and_supply_chain.md
     ├── concept_frontier_civilization_and_ecosystem_dynamics.md
+    ├── concept_game_progression_and_victory.md
     ├── concept_event_situational.md
     ├── concept_event_stochastic.md
+    ├── concept_event_catalog_and_chains.md
     ├── concept_in_game_wiki.md
     └── concept_viewer_separation_wiki_and_live.md
 ```
@@ -58,15 +63,25 @@ doc/
 
 各システム・メカニクスごとに詳細な検討と仕様アイデアがまとめられています。
 
-### ① マップ構造・サブタイル運用（スケール連携）
+### ① マップ構造・サブタイル運用・領土拡張（スケール連携）
 
-全体マップ（大戦略）とサブタイル（戦術マップ）の連携に関する仕様検討。
+全体マップ（大戦略）とサブタイル（戦術マップ）の連携、および「脱・都市中心」のタイル拡張システム。
 
 * **[sub_tile_seamless_connection.md](./discussion/sub_tile_seamless_connection.md)**
   * 全体マップとサブタイル（戦術マップ）のシームレスな接続性。
   * タイル境界（エッジ）での部隊進入・離脱・追撃、隣接タイルからの増援・支援砲撃の物理的結合ルール。
 * **[future_concept_subtile_industry.md](./discussion/future_concept_subtile_industry.md)**
   * サブタイル上に存在する小規模施設・インフラ（パイプライン、送電線、観測所、防衛タワー等）の配置と、戦術戦での破壊・防衛インタラクション。
+* **[concept_tile_centric_expansion.md](./discussion/concept_tile_centric_expansion.md)**
+  * **脱・都市中心主義（Post-City Centric）のタイル個別拡張システム**。
+  * 万能な「都市」オブジェクトを廃止し、各タイルを「軍事前哨(FOB)」「資源採掘」「重工業コンビナート」「居住区画」等の個別機能サイトとして定義。
+  * 道路・送電線・パイプラインの物理的インフラ延伸による開拓と、343サブタイルの段階的設営（設営→基礎化→特化→自律集積）、変電所や補給パイプラインのピンポイント破壊による兵站戦。
+* **[concept_tile_progression_system.md](./discussion/concept_tile_progression_system.md)**
+  * **タイル共通フォーマットと進展度（Progression Tier 0〜4）システム**。
+  * 全タイル共通の最小スキーマ（インフラ結合度、稼働率、実効支配度、環境負荷、サブグリッド）。
+  * 4大区分（産業、資源、社会居住、軍事）× 5段階進展（未開地→仮設前哨→本格運用→高度集積→要塞中枢）の進化マッピングと、補給途絶や戦火による後退・荒廃（デグレード）の緊張感。
+  * **タイル単位の占有権と部隊配置ルール**: 都市を介さない直接占有、個別部隊増殖を防ぐ「1タイル1部隊（アクティブ）」の原則、移動不能な余剰スタックの戦闘力喪失・兵站負担加速（自壊・連鎖降伏リスク）。
+  * **隣接タイルの干渉と戦場過密（「みちみち」の大混戦）**: 平時は1部隊でも、戦闘時は周囲6方向の隣接タイルから敵味方の増援がエッジより殺到し、343サブタイルが過密化。射線フリクションや交通麻痺、戦闘後の再編と個別部隊の降伏・残存判定。
 
 ### ② 軍事・兵器モジュール・戦術運用
 
