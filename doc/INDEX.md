@@ -102,6 +102,8 @@ doc/
 
 * **[concept_diplomacy_relations.md](./discussion/concept_diplomacy_relations.md)**
   * 国家間外交、通商協定、防衛協定、エイリアンに対する共同方針。
+* **[concept_frontier_dissidents_and_territorial_claims.md](./discussion/concept_frontier_dissidents_and_territorial_claims.md)**
+  * 自発的失踪者（民生ベース自活・こなれた武装の第三極コミュニティ）の社会・軍事生態、および自然国境と実効支配に基づく段階的領土要求（近傍／超積極的／積極的／消極的）システム。
 * **[concept_occupation_governance_and_divided_economy.md](./discussion/concept_occupation_governance_and_divided_economy.md)**
   * 敵都市・領土の占領統治方式（軍政・傀儡政権・直接併合）、治安度維持、分断された経済圏の管理。
 * **[concept_capitulation_remnants_and_supply_chain.md](./discussion/concept_capitulation_remnants_and_supply_chain.md)**
