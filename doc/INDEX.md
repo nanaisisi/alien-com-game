@@ -44,8 +44,9 @@ doc/
   * 原住エイリアンとの共存／支配／排除の関係性システム
   * 技術ツリー、内政・資源、外交の基本方針
 * **[Faction.md](./Faction.md)**：登場勢力設定仕様書
-  * 初期3大勢力（アルカディア植民連合、クロノス重工、エデン・イニシアチブ）の思想・背景
-  * 各勢力の固有特性（アフィニティ特性）、経済/軍事ボーナス、初期ユニット構成
+  * 母星の歴史・大戦停戦を経て入植した架空の6大国家概念（帝国A、大公国B、連邦C、共和国D、共同体E、連合F）
+  * 各国の体制・文化圏背景、母星と入植惑星での外交関係（具体的な国名は未確定・継続検討事項）
+  * アフィニティ（思想・適応路線）や経済/軍事ボーナスの基本方向性
 
 ---
 
@@ -72,7 +73,7 @@ doc/
 * **[example_weapon_modules_cases.md](./discussion/example_weapon_modules_cases.md)**
   * 兵装モジュール・シャシー組み合わせの実装具体例（対空砲架、レールガン、ミサイルポッド、電子戦装備等）。
 * **[concept_future_legged_unmanned_rules.md](./discussion/concept_future_legged_unmanned_rules.md)**
-  * 多脚歩行兵器・無人ドローン・自律機械ユニットの特性、地形踏破力、通信途絶時の行動ルーチン。
+  * 多脚・二脚歩行兵器の特性検討（万能ではなく構造の複雑さ・整備負荷・脆弱性等の「不便さ」を伴うロマン枠としての議論深化）、無人ドローン・自律機械ユニットの階層（Tier）と通信途絶時の行動ルーチン。
 * **[concept_ethics_autonomous_and_surrender_dynamics.md](./discussion/concept_ethics_autonomous_and_surrender_dynamics.md)**
   * 自律兵器運用における倫理的課題・国際条約、敵部隊の降伏判定と捕虜・無力化ユニットの処理。
 * **[concept_salvage_scuttling_and_compatibility.md](./discussion/concept_salvage_scuttling_and_compatibility.md)**
