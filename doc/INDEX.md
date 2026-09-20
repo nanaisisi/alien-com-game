@@ -107,12 +107,14 @@ doc/
 * **[concept_capitulation_remnants_and_supply_chain.md](./discussion/concept_capitulation_remnants_and_supply_chain.md)**
   * 敗戦国の無条件/条件付き降伏、残存武装勢力（レジスタンス/軍閥）のゲリラ化とサプライチェーンの寸断・再編。
 
-### ⑤ 世界観・生態系・惑星開拓
+### ⑤ 世界観・生態系・進行フェーズ
 
-舞台となる惑星環境、初期開拓フェーズの設定。
+舞台となる惑星環境、初期開拓フェーズ、およびゲーム全体の進行推移・勝利条件。
 
 * **[concept_frontier_civilization_and_ecosystem_dynamics.md](./discussion/concept_frontier_civilization_and_ecosystem_dynamics.md)**
   * 惑星開拓初期の低文明・現地適応設定、原住エイリアンや現地植物の生態サイクル・環境変化に対する動的反応。
+* **[concept_game_progression_and_victory.md](./discussion/concept_game_progression_and_victory.md)**
+  * ゲーム進行の3大フェーズ推移（第1期:降着生存 → 第2期:領土画定・冷戦 → 第3期:総力戦・クライシス）、および5大勝利条件（軍事・ガイア同化・母星脱出・経済独占・平和連邦）の設計。
 
 ### ⑥ イベントシステム
 
@@ -122,6 +124,8 @@ doc/
   * プレイヤーの特定行動（過度な環境破壊、特定技術研究、特定外交方針等）にトリガーされて発生するシチュエーショナル・イベント。
 * **[concept_event_stochastic.md](./discussion/concept_event_stochastic.md)**
   * 気象激変、地殻変動、エイリアンの異常活性化など、確率的・ランダムに発生する環境イベント。
+* **[concept_event_catalog_and_chains.md](./discussion/concept_event_catalog_and_chains.md)**
+  * イベントの8大ジャンル体系、現場エンティティ結合型の具体的イベントカタログ、不可逆な連鎖イベント（Event Chains）の設計。
 
 ### ⑦ UI・情報閲覧システム
 
