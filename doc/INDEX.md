@@ -34,6 +34,7 @@ doc/
     ├── concept_event_situational.md
     ├── concept_event_stochastic.md
     ├── concept_event_catalog_and_chains.md
+    ├── concept_faction_consensus_and_standardization.md
     ├── concept_in_game_wiki.md
     └── concept_viewer_separation_wiki_and_live.md
 ```
@@ -143,6 +144,8 @@ doc/
   * 気象激変、地殻変動、エイリアンの異常活性化など、確率的・ランダムに発生する環境イベント。
 * **[concept_event_catalog_and_chains.md](./discussion/concept_event_catalog_and_chains.md)**
   * イベントの8大ジャンル体系、現場エンティティ結合型の具体的イベントカタログ、不可逆な連鎖イベント（Event Chains）の設計。
+* **[concept_faction_consensus_and_standardization.md](./discussion/concept_faction_consensus_and_standardization.md)**
+  * 他勢力・部署との親交と全体空気感による完全合意吸収、相手国承認に基づく平和的タイル移管（安全撤兵・拒絶時不可侵）、および通信非対応兵器の配備不可と3大調達アプローチ（自国化改修・ライセンス生産・適合品輸入）。
 
 ### ⑦ UI・情報閲覧システム
 
