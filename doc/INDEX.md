@@ -11,7 +11,7 @@ doc/
 ├── INDEX.md                        # 本ファイル（ドキュメント目録）
 ├── GAME_DESIGN.md                  # ゲーム企画・コア仕様設計書
 ├── Faction.md                      # 勢力一覧・固有ボーナス/特性定義
-└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計21件）
+└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計22件）
     ├── sub_tile_seamless_connection.md
     ├── future_concept_subtile_industry.md
     ├── concept_tile_centric_expansion.md
@@ -35,6 +35,7 @@ doc/
     ├── concept_event_stochastic.md
     ├── concept_event_catalog_and_chains.md
     ├── concept_faction_consensus_and_standardization.md
+    ├── concept_theater_operations_and_joint_sectors.md
     ├── concept_in_game_wiki.md
     └── concept_viewer_separation_wiki_and_live.md
 ```
@@ -111,6 +112,11 @@ doc/
   * 工業施設と生産モジュールのマッピング、工場ラインの構成と兵器生産の接続。
 * **[concept_automation_systems.md](./discussion/concept_automation_systems.md)**
   * 自動輸送ルート設定、定期哨戒（パトロール）、前線への自動補給ロジック。
+* **[concept_theater_operations_and_joint_sectors.md](./discussion/concept_theater_operations_and_joint_sectors.md)**
+  * **方面軍（Theater Command）システムと自動指揮・管理・占領統治**。
+  * 方面軍（東部方面軍等）配下の軍集団（対A国A侵攻軍集団、対A国B侵攻軍集団、対A国C守備軍集団、対B国守備軍集団等）による柔軟な階層ツリー編制。
+  * **専念領域（Dedicated Sector）**と**方面間共同管理領域（Joint Sector）**の分離・連携メカニクス（相互火力支援・兵站共有・指揮摩擦）。
+  * 同盟統合軍（Combined Joint Task Force）における戦略分業、およびエイリアン（集合意識方面集団）による人類境界の包囲・寸断ダイナミクス。
 
 ### ④ 外交・占領統治・戦後処理
 
@@ -118,6 +124,8 @@ doc/
 
 * **[concept_diplomacy_relations.md](./discussion/concept_diplomacy_relations.md)**
   * 国家間外交、通商協定、防衛協定、エイリアンに対する共同方針。
+* **[concept_alliance_system.md](./discussion/concept_alliance_system.md)**
+  * 3大思想ベースの共有による不変・不可逆な同盟ブロック、陣営内の協調・分業・規格統合、終局の戦後秩序分配。
 * **[concept_frontier_dissidents_and_territorial_claims.md](./discussion/concept_frontier_dissidents_and_territorial_claims.md)**
   * 自発的失踪者（民生ベース自活・こなれた武装の第三極コミュニティ）の社会・軍事生態、および自然国境と実効支配に基づく段階的領土要求（近傍／超積極的／積極的／消極的）システム。
 * **[concept_occupation_governance_and_divided_economy.md](./discussion/concept_occupation_governance_and_divided_economy.md)**
