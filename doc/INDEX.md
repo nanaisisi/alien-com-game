@@ -1,6 +1,6 @@
 # ドキュメント構成・目録 (Documentation Index)
 
-本プロジェクト（Alien Com Game）における各種仕様書・検討資料の構成および索引です。
+本プロジェクト（Nanai Alien Com Game）における各種仕様書・検討資料の構成および索引です。
 
 ---
 

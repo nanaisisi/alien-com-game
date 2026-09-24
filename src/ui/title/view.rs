@@ -49,7 +49,7 @@ pub fn setup_title_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .with_children(|header| {
                             // メインタイトル
                             header.spawn((
-                                Text::new("ALIEN COM GAME"),
+                                Text::new("NANAI ALIEN COM GAME"),
                                 TextFont {
                                     font: font_bold.clone().into(),
                                     font_size: FontSize::Px(52.0),

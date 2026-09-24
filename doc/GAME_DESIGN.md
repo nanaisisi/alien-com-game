@@ -1,4 +1,4 @@
-# ゲーム企画・仕様設計書：Alien Com Game (仮称)
+# ゲーム企画・仕様設計書：Nanai Alien Com Game (仮称)
 
 基本的にはAI生成の文書なので注意。
 

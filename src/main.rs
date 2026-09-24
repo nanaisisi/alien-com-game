@@ -22,7 +22,7 @@ fn main() {
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        title: "Alien Com Game".into(),
+                        title: "Nanai Alien Com Game".into(),
                         resolution: (1280, 720).into(),
                         ..default()
                     }),

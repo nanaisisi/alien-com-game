@@ -34,7 +34,7 @@ impl Default for DebugConsoleState {
             history_index: None,
             logs: vec![
                 (
-                    "=== ALIEN COM GAME DEBUG CONSOLE ===".to_string(),
+                    "=== NANAI ALIEN COM GAME DEBUG CONSOLE ===".to_string(),
                     Color::srgb(0.25, 0.85, 0.75),
                 ),
                 (

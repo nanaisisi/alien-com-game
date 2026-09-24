@@ -1,4 +1,4 @@
-# ALIEN COM GAME
+# NANAI ALIEN COM GAME
 
 ## 概要
 
