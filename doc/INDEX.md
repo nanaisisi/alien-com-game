@@ -11,7 +11,7 @@ doc/
 ├── INDEX.md                        # 本ファイル（ドキュメント目録）
 ├── GAME_DESIGN.md                  # ゲーム企画・コア仕様設計書
 ├── Faction.md                      # 勢力一覧・固有ボーナス/特性定義
-└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計22件）
+└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計28件）
     ├── sub_tile_seamless_connection.md
     ├── future_concept_subtile_industry.md
     ├── concept_tile_centric_expansion.md
@@ -24,9 +24,11 @@ doc/
     ├── concept_dynamic_arsenal_geospatial.md
     ├── concept_industry_structure.md
     ├── concept_industry_dynamics_novelty_continuity.md
+    ├── concept_industrial_evolution_and_supply_chains.md
     ├── concept_industry_module_mapping.md
     ├── concept_automation_systems.md
     ├── concept_diplomacy_relations.md
+    ├── concept_alliance_system.md
     ├── concept_frontier_dissidents_and_territorial_claims.md
     ├── concept_occupation_governance_and_divided_economy.md
     ├── concept_capitulation_remnants_and_supply_chain.md
@@ -111,9 +113,13 @@ doc/
   * 素材採掘・精錬・中間部品加工・最終製品組立に至る多段階産業ツリーの基本構造。
 * **[concept_industry_dynamics_novelty_continuity.md](./discussion/concept_industry_dynamics_novelty_continuity.md)**
   * **新規性と継続性からみる産業構造仕様書**。
-  * 現代の最先端半導体（世界で数社・数拠点の頂点寡占）とレガシー町工場群（各地に分散する裾野）に見る産業ピラミッド構造。
-  * 開拓初期の限定的ファブから先端結晶ファブへの進化、既存規格・工作機械・金型による「継続性の慣性・長寿命プラットフォーム」と、新世代AI・新物性による「新規性の特異点・初期脆弱性」の二項対立。
-  * 産業移行フェーズ、魔改造（Field-Retrofit）による過渡期解決、地球型工業（純粋継続性）vs 惑星適応型工業（不可逆な新規性）の乖離、およびドクトリンとUIへの還元。
+  * 既存規格・工作機械・金型・高歩留まりによる「継続性の慣性・長寿命プラットフォーム」と、新世代AI・新物性による「新規性の特異点・初期脆弱性」の二項対立、および産業移行フェーズ。
+* **[concept_industrial_evolution_and_supply_chains.md](./discussion/concept_industrial_evolution_and_supply_chains.md)**
+  * **文明・産業革命史からみる産業エコシステムとサプライチェーン創出仕様書**。
+  * 「軍事は産業の氷山の一角（民生基盤の海に浮かぶ突起）」という脱・軍事偏重モデル。
+  * 歴史的産業革命の4大エポック（粗放開拓期 → 重化学規格化期 → 電子情報精密ファブ期 → 極限物理・自律バイオ統合期）。
+  * 露光装置・量子論理ファブ等の「世界で数拠点の頂点寡占（Apex Monopoly）」と、町工場・レガシー半導体等の「各地に分散する裾野（Pervasive Base）」のピラミッド構造。
+  * 民生需要（トラクター・トラック・商船・事務計算機）から立ち上がるサプライチェーンの自己組織化、デュアルユース（軍民両用）転用性、および国家産業政策（民生主導・頂点突破・規格自律性）。
 * **[concept_industry_module_mapping.md](./discussion/concept_industry_module_mapping.md)**
   * 工業施設と生産モジュールのマッピング、工場ラインの構成と兵器生産の接続。
 * **[concept_automation_systems.md](./discussion/concept_automation_systems.md)**
