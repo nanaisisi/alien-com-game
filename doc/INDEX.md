@@ -23,6 +23,7 @@ doc/
     ├── concept_salvage_scuttling_and_compatibility.md
     ├── concept_dynamic_arsenal_geospatial.md
     ├── concept_industry_structure.md
+    ├── concept_industry_dynamics_novelty_continuity.md
     ├── concept_industry_module_mapping.md
     ├── concept_automation_systems.md
     ├── concept_diplomacy_relations.md
@@ -108,6 +109,10 @@ doc/
 
 * **[concept_industry_structure.md](./discussion/concept_industry_structure.md)**
   * 素材採掘・精錬・中間部品加工・最終製品組立に至る多段階産業ツリーの基本構造。
+* **[concept_industry_dynamics_novelty_continuity.md](./discussion/concept_industry_dynamics_novelty_continuity.md)**
+  * **新規性と継続性からみる産業構造仕様書**。
+  * 既存規格・工作機械・金型・高歩留まりによる「継続性の慣性・長寿命プラットフォーム」と、エイリアン工学・新世代AI・新物性による「新規性の特異点・初期脆弱性」の二項対立。
+  * 産業移行フェーズ、魔改造（Field-Retrofit）による過渡期解決、地球型工業（純粋継続性）vs 惑星適応型工業（不可逆な新規性）の乖離、およびドクトリンとUIへの還元。
 * **[concept_industry_module_mapping.md](./discussion/concept_industry_module_mapping.md)**
   * 工業施設と生産モジュールのマッピング、工場ラインの構成と兵器生産の接続。
 * **[concept_automation_systems.md](./discussion/concept_automation_systems.md)**
