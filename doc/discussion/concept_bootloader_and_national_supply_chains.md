@@ -145,3 +145,5 @@
   - 地理的隔絶と輸送ボトルネックが、国家ごとのセクショナリズムを必然化させる環境的根拠として相互補強する。
 - [concept_frontier_dissidents_and_territorial_claims.md](./concept_frontier_dissidents_and_territorial_claims.md):
   - 国家の閉鎖的・画一的なサプライチェーン構築の歪みからこぼれ落ちた人々が「失踪者集落」を作り、彼らは逆に多国籍の廃品を組み合わせたDIYサプライチェーンを築く。
+- [concept_demographics_ectogenesis_and_speciation.md](./concept_demographics_ectogenesis_and_speciation.md):
+  - 工作機械のブートと並行して行われる「人工子宮ポッドによる労働力の解凍・増殖」、自然出産との二重構造、および異星適応による生物種の分化を規定。
