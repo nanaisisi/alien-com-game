@@ -11,7 +11,7 @@ doc/
 ├── INDEX.md                        # 本ファイル（ドキュメント目録）
 ├── GAME_DESIGN.md                  # ゲーム企画・コア仕様設計書
 ├── Faction.md                      # 勢力一覧・固有ボーナス/特性定義
-└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計28件）
+└── discussion/                     # 詳細設計・発展仕様・アイデア検討ドキュメント群（計30件）
     ├── sub_tile_seamless_connection.md
     ├── future_concept_subtile_industry.md
     ├── concept_tile_centric_expansion.md
@@ -27,6 +27,7 @@ doc/
     ├── concept_industrial_evolution_and_supply_chains.md
     ├── concept_industry_module_mapping.md
     ├── concept_automation_systems.md
+    ├── concept_transport_windows_and_infrastructure_bottlenecks.md
     ├── concept_diplomacy_relations.md
     ├── concept_alliance_system.md
     ├── concept_frontier_dissidents_and_territorial_claims.md
@@ -124,6 +125,10 @@ doc/
   * 工業施設と生産モジュールのマッピング、工場ラインの構成と兵器生産の接続。
 * **[concept_automation_systems.md](./discussion/concept_automation_systems.md)**
   * 自動輸送ルート設定、定期哨戒（パトロール）、前線への自動補給ロジック。
+* **[concept_transport_windows_and_infrastructure_bottlenecks.md](./discussion/concept_transport_windows_and_infrastructure_bottlenecks.md)**
+  * **輸送ウインドウ（タイムスロット）とインフラボトルネック検討仕様**。
+  * 衛星打上げウインドウに類似した、道路・鉄道・海上・航空・軌道の各輸送モードにおける時間枠・ノード/エッジ制約の構造的比較。
+  * 道路の平坦地インフラ圧迫・下道の狭小性・無人化パラドックス、鉄道の複々線化限界とダイヤグラム硬直性、海上の広大海路と港湾バース制約、航空の滑走路本数物理限界と複数拠点（マルチエアポート）化の必然性。
 * **[concept_theater_operations_and_joint_sectors.md](./discussion/concept_theater_operations_and_joint_sectors.md)**
   * **方面軍（Theater Command）システムと自動指揮・管理・占領統治**。
   * 方面軍（東部方面軍等）配下の軍集団（対A国A侵攻軍集団、対A国B侵攻軍集団、対A国C守備軍集団、対B国守備軍集団等）による柔軟な階層ツリー編制。
