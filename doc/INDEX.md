@@ -13,7 +13,7 @@ doc/
 ├── Faction.md                              # 勢力一覧・固有ボーナス/特性定義
 ├── PENDING_ISSUES.md                       # 未確定・検討課題まとめ
 ├── MISSING_DOCUMENTS_ROADMAP.md            # 未作成・不足ドキュメント体系と開発ロードマップ
-└── discussion/                             # 詳細設計・発展仕様・アイデア検討ドキュメント群（計32件）
+└── discussion/                             # 詳細設計・発展仕様・アイデア検討ドキュメント群（計33件）
     ├── diplomacy_governance/               # 外交・占領統治・戦後処理（5件）
     │   ├── concept_diplomacy_relations.md
     │   ├── concept_alliance_system.md
@@ -35,7 +35,7 @@ doc/
     │   ├── concept_automation_systems.md
     │   ├── concept_transport_windows_and_infrastructure_bottlenecks.md
     │   └── concept_theater_operations_and_joint_sectors.md
-    ├── map_tile/                           # マップ・サブタイル・領土拡張（4件）
+    ├── map_tile/                           # マップ・サブタイル・領土拡張（5件）
     │   ├── sub_tile_seamless_connection.md
     │   ├── future_concept_subtile_industry.md
     │   ├── concept_tile_centric_expansion.md
@@ -100,6 +100,11 @@ doc/
   * 4大区分（産業、資源、社会居住、軍事）× 5段階進展（未開地→仮設前哨→本格運用→高度集積→要塞中枢）の進化マッピングと、補給途絶や戦火による後退・荒廃（デグレード）の緊張感。
   * **タイル単位の占有権と部隊配置ルール**: 都市を介さない直接占有、個別部隊増殖を防ぐ「1タイル1部隊（アクティブ）」の原則、移動不能な余剰スタックの戦闘力喪失・兵站負担加速（自壊・連鎖降伏リスク）。
   * **隣接タイルの干渉と戦場過密（「みちみち」の大混戦）**: 平時は1部隊でも、戦闘時は周囲6方向の隣接タイルから敵味方の増援がエッジより殺到し、343サブタイルが過密化。射線フリクションや交通麻痺、戦闘後の再編と個別部隊の降伏・残存判定。
+* **[concept_maritime_governance_and_ocean_engineering.md](./discussion/map_tile/concept_maritime_governance_and_ocean_engineering.md)**
+  * **海上統治・海洋工学仕様検討書**。
+  * 埋め立て、固定式、半固定式、メガフロートの4大工法比較と水深別適性。
+  * 海上都市（立体レイヤード構造）の市民生活、動力途絶による沈没パニック、塩害・生体付着、水中音共鳴によるリヴァイアサン級エイリアン誘引リスク。
+  * 海洋タイルのTier 0〜4進展、シーレーン防衛、公海・国境未定地におけるメガフロート曳航による領海既成事実化（グレーゾーン紛争）。
 
 ### ② 軍事・兵器モジュール・戦術運用（`military_tactics/`）
 

@@ -91,6 +91,7 @@
 | **[`./discussion/world_progression/concept_demographics_ectogenesis_and_speciation.md`](./discussion/world_progression/concept_demographics_ectogenesis_and_speciation.md)** | `world_progression/` | 人工子宮（エクトジェネシス）による人口爆発と適応種分化（初版完了） |
 | **[`./discussion/industry_logistics/concept_theater_operations_and_joint_sectors.md`](./discussion/industry_logistics/concept_theater_operations_and_joint_sectors.md)** | `industry_logistics/` | 方面軍（Theater Command）組織、専念領域と共同管理領域（初版完了） |
 | **[`./discussion/events/concept_faction_consensus_and_standardization.md`](./discussion/events/concept_faction_consensus_and_standardization.md)** | `events/` | 空気感による完全合意吸収、相手国承認のタイル移管、通信規格調達3方式（初版完了） |
+| **[`./discussion/map_tile/concept_maritime_governance_and_ocean_engineering.md`](./discussion/map_tile/concept_maritime_governance_and_ocean_engineering.md)** | `map_tile/` | 海上統治・海洋工学（埋め立て/固定式/半固定式/メガフロート、海上都市、シーレーン）（初版完了） |
 
 ---
 
