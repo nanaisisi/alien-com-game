@@ -111,8 +111,8 @@ pub struct WikiEntry {
 
 ## 5. 関連ドキュメント
 
-- 自動処理設計: [`concept_automation_systems.md`](concept_automation_systems.md)
-- 産業・モジュールマッピング: [`concept_industry_module_mapping.md`](concept_industry_module_mapping.md)
-- 兵器モジュール共通化: [`concept_weapon_module_commonality.md`](concept_weapon_module_commonality.md)
-- 固定情報と動的情報のビューアー分離: [`concept_viewer_separation_wiki_and_live.md`](concept_viewer_separation_wiki_and_live.md)
-- 基本ゲームデザイン: [`GAME_DESIGN.md`](../GAME_DESIGN.md)
+- 自動処理設計: [`concept_automation_systems.md`](../military_tactics/concept_automation_systems.md)
+- 産業・モジュールマッピング: [`concept_industry_module_mapping.md`](../industry_logistics/concept_industry_module_mapping.md)
+- 兵器モジュール共通化: [`concept_weapon_module_commonality.md`](../military_tactics/concept_weapon_module_commonality.md)
+- 固定情報と動的情報のビューアー分離: [`concept_viewer_separation_wiki_and_live.md`](../ui_wiki/concept_viewer_separation_wiki_and_live.md)
+- 基本ゲームデザイン: [`GAME_DESIGN.md`](../../GAME_DESIGN.md)

@@ -100,13 +100,13 @@
 2. **プレイヤー認知の整理**:
    - 「普遍的な仕様を知りたい時はWikiを見る」
    - 「今起きている戦況・兵站・外交のボトルネックを知りたい時はゲーム画面・インスペクターを見る」
-   という明確な使い分けができ、UIが極めて見通し良くなる。
+     という明確な使い分けができ、UIが極めて見通し良くなる。
 
 ---
 
 ## 5. 関連ドキュメント
 
 - ゲーム内Wikiシステム計画: [`concept_in_game_wiki.md`](concept_in_game_wiki.md)
-- 状況依存型兵器体系・産業形成: [`concept_dynamic_arsenal_geospatial.md`](concept_dynamic_arsenal_geospatial.md)
-- 自動処理システム全体仕様: [`concept_automation_systems.md`](concept_automation_systems.md)
-- 産業・モジュール相互接続マッピング: [`concept_industry_module_mapping.md`](concept_industry_module_mapping.md)
+- 状況依存型兵器体系・産業形成: [`concept_dynamic_arsenal_geospatial.md`](../military_tactics/concept_dynamic_arsenal_geospatial.md)
+- 自動処理システム全体仕様: [`concept_automation_systems.md`](../automation/concept_automation_systems.md)
+- 産業・モジュール相互接続マッピング: [`concept_industry_module_mapping.md`](../industry_logistics/concept_industry_module_mapping.md)

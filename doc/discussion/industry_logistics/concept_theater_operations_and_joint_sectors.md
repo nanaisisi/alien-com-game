@@ -90,7 +90,7 @@
    - 損耗を恐れず高出力戦闘を維持。補給線が細くなると自動で一時進撃停止・再編を行う。
 2. **新規制圧占領軍集団（Occupation & Military Governance: D占領軍集団等）**:
    - 侵攻軍が進撃・突破した後の「被占領地域（新領土）」における軍政・治安維持を担当。
-   - [concept_occupation_governance_and_divided_economy.md](./concept_occupation_governance_and_divided_economy.md) で定義された憲兵隊・独立捜査機関・現地自治体警察を統率し、地下レジスタンスの摘発、協力者の保護、インフラ復旧を自律執行。侵攻戦闘団から治安維持の足止め負担を完全に切り離す。
+   - [concept_occupation_governance_and_divided_economy.md](../diplomacy_governance/concept_occupation_governance_and_divided_economy.md) で定義された憲兵隊・独立捜査機関・現地自治体警察を統率し、地下レジスタンスの摘発、協力者の保護、インフラ復旧を自律執行。侵攻戦闘団から治安維持の足止め負担を完全に切り離す。
 3. **従来国境守備軍集団（Border Defense: E守備軍集団等）**:
    - 自国の既存国境や要衝山脈線を守る部隊。
    - **平時（通常機能）**: 主体は**国境警備隊（Border Guards）**が担い、密輸遮断・境界哨戒・スパイ侵入阻止を低維持費で定常的に実施。正規軍は「非常用」として後方予備・待機状態に置かれ、維持費を最小化。
@@ -148,13 +148,13 @@
 軍集団に「対A国 A侵攻軍集団」としてターゲット国家・都市群を指定すると、司令部AIは以下の手順を自律実行する：
 
 1. **偵察・チョークポイント特定**: 偵察小隊を前進させ、敵の兵力配置とインフラ線をスキャン。
-2. **前哨基地（FOB）の段階前進**: [concept_tile_progression_system.md](./concept_tile_progression_system.md) のTier 1仮設前哨を補給限界地点に自動設営。
+2. **前哨基地（FOB）の段階前進**: [concept_tile_progression_system.md](../map_tile/concept_tile_progression_system.md) のTier 1仮設前哨を補給限界地点に自動設営。
 3. **包囲孤立化（Encircling）**: 敵中枢タイルを正面から強襲する前に、補給パイプライン・電力を供給している周辺タイルを分断・制圧。
 4. **占領軍集団への治安管轄移譲**: 突破部隊は敵主力を追撃して前進し、後方に取り残された都市・採掘タイルの軍政・警備は後続の「D占領軍集団」へ自動で管轄移管される。
 
 ### 4.2 タイル過密（みちみち大混戦）の自動回避
 
-[concept_tile_progression_system.md](./concept_tile_progression_system.md) では「1タイル1戦闘団」が原則であり、平時に部隊が重なると移動不能・自壊リスクが生じる。
+[concept_tile_progression_system.md](../map_tile/concept_tile_progression_system.md) では「1タイル1戦闘団」が原則であり、平時に部隊が重なると移動不能・自壊リスクが生じる。
 
 - 方面軍AIは、前進ルート上のタイル容量（Cap）を先読み計算し、**「進撃路のスタック渋滞」が発生しないよう、行軍速度や迂回路を自動調停**する。
 
@@ -162,7 +162,7 @@
 
 ## 5. 同盟統合軍の連携（Combined Joint Task Force）
 
-[concept_alliance_system.md](./concept_alliance_system.md) で定義された「3大思想ベースの不可逆同盟ブロック」において、方面システムは国家の枠を超えて拡張される。
+[concept_alliance_system.md](../diplomacy_governance/concept_alliance_system.md) で定義された「3大思想ベースの不可逆同盟ブロック」において、方面システムは国家の枠を超えて拡張される。
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -192,7 +192,7 @@
   - 電子技術・防空に長けた同盟国軍が「防空・補給線防護専念セクター」を後方に展開。
 - **同盟共同管理領域**:
   - 国家間で領土野心が衝突しない（不可逆同盟である）ため、共同管理領域における境界画定摩擦が発生しない。
-  - [concept_faction_consensus_and_standardization.md](./concept_faction_consensus_and_standardization.md) に基づき、データリンクが標準化されていれば、同盟国の防空ミサイルが自国戦闘団の頭上を完全援護する。
+  - [concept_faction_consensus_and_standardization.md](../events/concept_faction_consensus_and_standardization.md) に基づき、データリンクが標準化されていれば、同盟国の防空ミサイルが自国戦闘団の頭上を完全援護する。
 
 ---
 
@@ -345,8 +345,8 @@ pub struct JointSectorCoordination {
 
 ## 8. 関連ドキュメントとの接続
 
-- **[concept_automation_systems.md](./concept_automation_systems.md)**: 自動調達・兵站ルーティング・オートリゾルブ計算の基本仕様。
-- **[concept_tile_progression_system.md](./concept_tile_progression_system.md)**: タイル占有権（1タイル1戦闘団）と過密・自壊ルール。
-- **[concept_occupation_governance_and_divided_economy.md](./concept_occupation_governance_and_divided_economy.md)**: 占領軍集団が指揮する憲兵・警察・守備隊と治安力学。
-- **[concept_alliance_system.md](./concept_alliance_system.md)**: 3大思想ベースの不可逆同盟と同盟統合作戦。
-- **[concept_faction_consensus_and_standardization.md](./concept_faction_consensus_and_standardization.md)**: 平和的タイル移管と軍事通信標準化。
+- **[concept_automation_systems.md](../automation/concept_automation_systems.md)**: 自動調達・兵站ルーティング・オートリゾルブ計算の基本仕様。
+- **[concept_tile_progression_system.md](../map_tile/concept_tile_progression_system.md)**: タイル占有権（1タイル1戦闘団）と過密・自壊ルール。
+- **[concept_occupation_governance_and_divided_economy.md](../diplomacy_governance/concept_occupation_governance_and_divided_economy.md)**: 占領軍集団が指揮する憲兵・警察・守備隊と治安力学。
+- **[concept_alliance_system.md](../diplomacy_governance/concept_alliance_system.md)**: 3大思想ベースの不可逆同盟と同盟統合作戦。
+- **[concept_faction_consensus_and_standardization.md](../events/concept_faction_consensus_and_standardization.md)**: 平和的タイル移管と軍事通信標準化。

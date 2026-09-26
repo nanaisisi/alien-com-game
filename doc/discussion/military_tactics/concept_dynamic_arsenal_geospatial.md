@@ -15,7 +15,7 @@
 |  - 鉄道網・河川輸送の積載限界、チョークポイント（海峡・山道）の有無                       |
 |  - 前線までの兵站距離と局所的ボトルネック                                               |
 +--------------------------------------------┬--------------------------------------------+
-                                             │ 
+                                             │
                                              ▼ 相互作用
 +-----------------------------------------------------------------------------------------+
 | 【外交・地政学要因 (Diplomatic & Geopolitical Dynamics)】                               |
@@ -23,7 +23,7 @@
 |  - 敵対国による特定資源・希少モジュールの輸出規制・海上封鎖                             |
 |  - 本星条約の建前と入植地における即物的な密貿易                                         |
 +--------------------------------------------┬--------------------------------------------+
-                                             │ 
+                                             │
                                              ▼ 必然的帰結
 +-----------------------------------------------------------------------------------------+
 | 【自然形成される兵器体系 (Dynamic Arsenal Emergence)】                                 |
@@ -142,14 +142,14 @@
 
 - 「あの敵国の沿岸製鉄都市を占領すれば、我が国も60t級重戦車が量産可能になる」
 - 「共同体Eとの関係が悪化すれば、最新型レーダーの補給部品が止まり、航空団が飛べなくなる」
-といった、**地政学・産業拠点そのものが戦争と外交の直接的な動機（Casus Belli）**となる。
+  といった、**地政学・産業拠点そのものが戦争と外交の直接的な動機（Casus Belli）**となる。
 
 ---
 
 ## 6. 関連ドキュメント
 
-- 国家間関係・外交システム: [`concept_diplomacy_relations.md`](concept_diplomacy_relations.md)
-- サブタイル産業エコシステム: [`future_concept_subtile_industry.md`](future_concept_subtile_industry.md)
-- 産業・モジュール相互接続マッピング: [`concept_industry_module_mapping.md`](concept_industry_module_mapping.md)
-- 自動処理システム全体仕様: [`concept_automation_systems.md`](concept_automation_systems.md)
-- ゲーム内Wikiシステム計画: [`concept_in_game_wiki.md`](concept_in_game_wiki.md)
+- 国家間関係・外交システム: [`concept_diplomacy_relations.md`](../diplomacy_governance/concept_diplomacy_relations.md)
+- サブタイル産業エコシステム: [`future_concept_subtile_industry.md`](../map_tile/future_concept_subtile_industry.md)
+- 産業・モジュール相互接続マッピング: [`concept_industry_module_mapping.md`](../industry_logistics/concept_industry_module_mapping.md)
+- 自動処理システム全体仕様: [`concept_automation_systems.md`](../automation/concept_automation_systems.md)
+- ゲーム内Wikiシステム計画: [`concept_in_game_wiki.md`](../ui_wiki/concept_in_game_wiki.md)
