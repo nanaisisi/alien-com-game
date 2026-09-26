@@ -201,7 +201,7 @@ $$\Delta Exp = \text{配備数 (Fleet Size)} \times \text{過酷度係数 (Strai
 
 ## 8. 関連ドキュメント
 
-- 産業・モジュールジャンルの相互接続マッピング: [`concept_industry_module_mapping.md`](concept_industry_module_mapping.md)
-- 個別の兵器・モジュール事例および各国家の具体ケース: [`example_weapon_modules_cases.md`](example_weapon_modules_cases.md)
-- 産業基盤・コンビナート構造: [`concept_industry_structure.md`](concept_industry_structure.md)
-- 国家間外交・条約力学: [`concept_diplomacy_relations.md`](concept_diplomacy_relations.md)
+- 産業・モジュールジャンルの相互接続マッピング: [`concept_industry_module_mapping.md`](../industry/concept_industry_module_mapping.md)
+- 個別の兵器・モジュール事例および各国家の具体ケース: [`example_weapon_modules_cases.md`](../industry/example_weapon_modules_cases.md)
+- 産業基盤・コンビナート構造: [`concept_industry_structure.md`](../industry/concept_industry_structure.md)
+- 国家間外交・条約力学: [`concept_diplomacy_relations.md`](../strategy/concept_diplomacy_relations.md)

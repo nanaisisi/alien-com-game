@@ -264,7 +264,7 @@ civ6の圧力と忠誠度は一考の価値はあるかな。あの長尺でも�
 12. **変わる自分（自己変容）**:
     - 他者との関わりの中で変わる自派閥。
     - 製造業や外交姿勢などカジュアル目に反映。
-    - 詳細は [concept_faction_consensus_and_standardization.md](./discussion/concept_faction_consensus_and_standardization.md) を参照。
+    - 詳細は [concept_faction_consensus_and_standardization.md](./discussion/events/concept_faction_consensus_and_standardization.md) を参照。
 
 ### 5.2 ゲームシステムイメージ
 
