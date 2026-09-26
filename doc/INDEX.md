@@ -25,7 +25,8 @@ doc/
     │   ├── concept_event_stochastic.md
     │   ├── concept_event_catalog_and_chains.md
     │   └── concept_faction_consensus_and_standardization.md
-    ├── industry_logistics/                 # 産業・サプライチェーン・組織（8件）
+    ├── industry_logistics/                 # 産業・サプライチェーン・組織（9件）
+    │   ├── concept_resource_economy_and_logistics.md
     │   ├── concept_industry_structure.md
     │   ├── concept_industry_dynamics_novelty_continuity.md
     │   ├── concept_industrial_evolution_and_supply_chains.md
@@ -121,6 +122,11 @@ doc/
 
 生産ライン、モジュール製造、煩雑さを軽減する自動化システム、および広域指揮統治。
 
+* **[concept_resource_economy_and_logistics.md](./discussion/industry_logistics/concept_resource_economy_and_logistics.md)**
+  * **資源カテゴリ・物資格納・食料と弾薬規格の進化流通仕様書**。
+  * 冷戦直後型地球共通規格から、同時並行開発による分化、後発追従・同盟協定・デファクトスタンダードによる再統合に至る弾薬規格の動的メカニクス。
+  * 陸（土壌・温室・畜産）／海（閉鎖養殖・海洋資源）／工業（細胞培養リアクター）の食料3大アプローチ、気候タイルの自活投資、および異星現地食品（あるものを食うリスク）。
+  * 一次資源（エネルギー、構造/機能鉱物、バイオ原質）、二次中間財、軍事・兵站消費財の3層品目定義。
 * **[concept_industry_structure.md](./discussion/industry_logistics/concept_industry_structure.md)**
   * 素材採掘・精錬・中間部品加工・最終製品組立に至る多段階産業ツリーの基本構造。
 * **[concept_industry_dynamics_novelty_continuity.md](./discussion/industry_logistics/concept_industry_dynamics_novelty_continuity.md)**
